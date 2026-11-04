@@ -12,9 +12,14 @@ const ENLACES = [
   { href: "/ajustes", texto: "Más", Icono: IconoAjustes },
 ];
 
+/** Barra con el ítem activo según la ruta (usePathname: va detrás de <Suspense>). */
 export function Navegacion() {
-  const ruta = usePathname();
-  const activo = (href: string) => (href === "/" ? ruta === "/" : ruta.startsWith(href));
+  return <BarraNavegacion ruta={usePathname()} />;
+}
+
+/** Barra sin depender de la URL; se usa también como fallback mientras resuelve la ruta. */
+export function BarraNavegacion({ ruta }: { ruta: string | null }) {
+  const activo = (href: string) => ruta !== null && (href === "/" ? ruta === "/" : ruta.startsWith(href));
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
       <ul className="mx-auto flex max-w-lg items-end justify-around">

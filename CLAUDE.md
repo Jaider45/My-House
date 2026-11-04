@@ -94,7 +94,7 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] 3. Auth, 2FA, crear hogar, invitación
 - [x] 4. Layout + PWA
 - [x] 5. Cuentas y categorías
-- [ ] 6. Movimientos + registro rápido
+- [x] 6. Movimientos + registro rápido
 - [ ] 7. Recurrentes
 - [ ] 8. Importación CSV
 - [ ] 9. Dashboard del mes

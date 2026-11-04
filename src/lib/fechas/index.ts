@@ -40,6 +40,13 @@ export function sumarMeses(mes: string, n: number): string {
   return `${Math.floor(total / 12)}-${dos((total % 12) + 1)}`;
 }
 
+/** Suma días a una fecha ISO. sumarDias("2026-03-01", -1) → "2026-02-28" */
+export function sumarDias(fecha: string, n: number): string {
+  const d = new Date(`${fecha}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
 /**
  * Fechas de extractos: "2026-11-04", "2026/11/04", "04/11/2026", "4-11-2026", "04/11/26".
  * Orden día/mes (Colombia). Devuelve ISO o null si no es una fecha válida.

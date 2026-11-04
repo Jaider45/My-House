@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatearFecha, hoy, mesDe, parsearFecha, rangoMes, sumarMeses } from ".";
+import { formatearFecha, hoy, mesDe, parsearFecha, rangoMes, sumarDias, sumarMeses } from ".";
 
 describe("hoy", () => {
   it("usa la hora de Bogotá (UTC-5)", () => {
@@ -20,6 +20,12 @@ describe("meses", () => {
     expect(sumarMeses("2026-11", 3)).toBe("2027-02");
     expect(sumarMeses("2026-03", -3)).toBe("2025-12");
     expect(mesDe("2026-11-04")).toBe("2026-11");
+  });
+
+  it("suma y resta días cruzando meses y años", () => {
+    expect(sumarDias("2026-03-01", -1)).toBe("2026-02-28");
+    expect(sumarDias("2026-12-31", 1)).toBe("2027-01-01");
+    expect(sumarDias("2026-11-04", -90)).toBe("2026-08-06");
   });
 });
 
