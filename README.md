@@ -238,7 +238,7 @@ My House/
 | 6 | Movimientos y registro rápido | ✅ |
 | 7 | Gastos recurrentes | ✅ |
 | 8 | Importación de extractos CSV | ✅ |
-| 9 | Tablero del mes | ⏳ |
+| 9 | Tablero del mes | ✅ |
 | 10 | Semáforo DIAN | ⏳ |
 | 11 | Cierre y despliegue (Vercel + Supabase Cloud) | ⏳ |
 

@@ -44,7 +44,9 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
     .limit(1000);
   if (cuenta) consulta = consulta.or(`account_id.eq.${cuenta},cuenta_destino_id.eq.${cuenta}`);
   if (tipo) consulta = consulta.eq("tipo", tipo);
-  if (categoria) {
+  if (categoria === "sin") {
+    consulta = consulta.is("category_id", null).neq("tipo", "transferencia");
+  } else if (categoria) {
     const hijas = catalogos.categorias.filter((c) => c.padre_id === categoria).map((c) => c.id);
     consulta = consulta.in("category_id", [categoria, ...hijas]);
   }
@@ -108,6 +110,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
           </select>
           <select name="categoria" defaultValue={categoria} className="min-h-10 rounded-lg border border-zinc-300 bg-transparent px-2 dark:border-zinc-700">
             <option value="">Todas las categorías</option>
+            <option value="sin">Sin categoría</option>
             {catalogos.categorias
               .filter((c) => !c.padre_id)
               .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))

@@ -65,8 +65,11 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
 8. `tax_tags.renglon_formulario` vacío hasta validarlo contra el formulario 210 del año.
 9. Pago de tarjeta = transferencia banco → tarjeta; el gasto cuenta cuando se compra.
 10. Patrimonio bruto del semáforo = saldos de cuentas del titular (no incluye inmuebles/vehículos: limitación conocida).
-11. Número mínimo = fijos del mes (confirmados + programados) + variables esenciales (promedio últimos 3 meses
-    cerrados; si no hay historia, mes actual) + cuota de imprevistos (% sobre esa suma).
+11. Número mínimo = fijos del mes (confirmados + programados) + variables esenciales (promedio de los últimos 3
+    meses cerrados que tengan gastos categorizados; si no hay, mes actual) + cuota de imprevistos (% sobre esa
+    suma). Costo de vida = gastos confirmados + programados del mes, sin categorías `excluir_de_costo_vida`; lo sin
+    categoría cuenta como variable no esencial. Costo por persona divide entre todos los miembros (con
+    dependientes). Cálculo puro en `src/lib/finanzas`.
 12. Next 16 con `cacheComponents` activo (será obligatorio en la próxima versión mayor).
 13. `@types/node@24` (coincide con Node 24 y lo exige Vitest 5).
 14. Un usuario opera un hogar (el primero al que pertenece). El selector de hogares queda para el SaaS.
@@ -107,6 +110,6 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] 6. Movimientos + registro rápido
 - [x] 7. Recurrentes
 - [x] 8. Importación CSV
-- [ ] 9. Dashboard del mes
+- [x] 9. Dashboard del mes
 - [ ] 10. Semáforo DIAN
 - [ ] 11. Cierre y despliegue

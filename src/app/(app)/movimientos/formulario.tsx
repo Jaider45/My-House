@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { AreaTexto, Campo, Selector } from "@/components/ui";
+import { AreaTexto, Campo, Casilla, Selector } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { CampoMonto } from "@/components/ui/campo-monto";
 import { MensajeEstado } from "@/components/ui/estado";
@@ -103,6 +103,10 @@ export function FormularioMovimiento({ catalogos, movimiento, hoy, miembroId }: 
         defaultValue={movimiento?.comercio ?? ""}
         maxLength={200}
       />
+
+      {movimiento?.comercio && !movimiento.category_id && tipo !== "transferencia" && (
+        <Casilla etiqueta={`Aplicar la categoría a los demás «${movimiento.comercio}» sin categoría`} name="aplicar_similares" defaultChecked />
+      )}
 
       <details className="rounded-xl bg-zinc-50 p-3 dark:bg-zinc-950" open={Boolean(movimiento?.tax_tag_id || movimiento?.nota)}>
         <summary className="cursor-pointer text-sm font-semibold">Más detalles</summary>

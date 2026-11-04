@@ -40,6 +40,16 @@ export async function guardarMovimiento(_: Estado, datos: FormData): Promise<Est
     ? await ctx.supabase.from("transactions").update(cambios).eq("id", id)
     : await ctx.supabase.from("transactions").insert({ ...r.movimiento, household_id: ctx.hogar.id });
   if (error) return { error: mensajeError(error) };
+
+  // Clasificar de una vez lo importado sin categoría del mismo comercio.
+  if (id && datos.get("aplicar_similares") === "on" && m.comercio && m.category_id) {
+    await ctx.supabase
+      .from("transactions")
+      .update({ category_id: m.category_id })
+      .is("category_id", null)
+      .eq("tipo", m.tipo)
+      .eq("comercio", m.comercio);
+  }
   refrescar();
   redirect(`/movimientos?mes=${mesDe(r.movimiento.fecha)}`);
 }
