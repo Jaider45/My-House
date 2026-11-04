@@ -232,7 +232,7 @@ My House/
 | 2 | Dinero y fechas en es-CO | ✅ |
 | 3 | Autenticación, 2FA, crear hogar e invitaciones | ✅ |
 | 4 | PWA instalable | ✅ |
-| 5 | Cuentas y categorías | ⏳ |
+| 5 | Cuentas y categorías | ✅ |
 | 6 | Movimientos y registro rápido | ⏳ |
 | 7 | Gastos recurrentes | ⏳ |
 | 8 | Importación de extractos CSV | ⏳ |
