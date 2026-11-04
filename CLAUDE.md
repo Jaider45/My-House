@@ -58,6 +58,10 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
 6. 2FA TOTP opcional por usuario; si está activa se exige AAL2 en cada ingreso.
 7. Recurrentes: pg_cron diario genera movimientos `programado` hasta 7 días adelante; el usuario los confirma.
    Fecha n = `fecha_inicio + n·periodo` (evita que el día 31 se corra). Quincenal = cada 15 días.
+   La programación arranca en la primera ocurrencia desde hoy (no se crean pagos pasados). Al editar, pausar o
+   reactivar una regla se borran sus programados futuros y se regeneran. `src/lib/recurrentes` replica en TS la
+   fecha del SQL; `tests/rls/recurrentes.test.ts` verifica que coincidan.
+   Cuidado con Cache Components: en una página, llamar `obtenerContexto()` antes de `hoy()`.
 8. `tax_tags.renglon_formulario` vacío hasta validarlo contra el formulario 210 del año.
 9. Pago de tarjeta = transferencia banco → tarjeta; el gasto cuenta cuando se compra.
 10. Patrimonio bruto del semáforo = saldos de cuentas del titular (no incluye inmuebles/vehículos: limitación conocida).
@@ -95,7 +99,7 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] 4. Layout + PWA
 - [x] 5. Cuentas y categorías
 - [x] 6. Movimientos + registro rápido
-- [ ] 7. Recurrentes
+- [x] 7. Recurrentes
 - [ ] 8. Importación CSV
 - [ ] 9. Dashboard del mes
 - [ ] 10. Semáforo DIAN

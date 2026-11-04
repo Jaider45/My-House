@@ -234,7 +234,7 @@ My House/
 | 4 | PWA instalable | ✅ |
 | 5 | Cuentas y categorías | ✅ |
 | 6 | Movimientos y registro rápido | ✅ |
-| 7 | Gastos recurrentes | ⏳ |
+| 7 | Gastos recurrentes | ✅ |
 | 8 | Importación de extractos CSV | ⏳ |
 | 9 | Tablero del mes | ⏳ |
 | 10 | Semáforo DIAN | ⏳ |

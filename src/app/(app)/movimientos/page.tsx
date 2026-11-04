@@ -26,13 +26,12 @@ export default function Movimientos({ searchParams }: PageProps<"/movimientos">)
 
 async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
   const sp = await searchParams;
+  const ctx = await obtenerContexto(); // antes de hoy(): marca el render como dinámico
   const mes = /^\d{4}-\d{2}$/.test(texto(sp.mes)) ? texto(sp.mes) : mesDe(hoy());
   const cuenta = texto(sp.cuenta);
   const categoria = texto(sp.categoria);
   const tipo = ["ingreso", "gasto", "transferencia"].includes(texto(sp.tipo)) ? (texto(sp.tipo) as "ingreso" | "gasto" | "transferencia") : "";
   const { desde, hasta } = rangoMes(mes);
-
-  const ctx = await obtenerContexto();
   const catalogos = await cargarCatalogos(ctx);
 
   let consulta = ctx.supabase
