@@ -70,6 +70,9 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     (supabase-js usa `Date.now()` y Cache Components lo rechaza en prerender).
 16. Sesión y 2FA se chequean en `src/proxy.ts` (optimista); la autorización real es RLS.
     `obtenerContexto()` (`src/lib/sesion.ts`) es la capa de acceso: usuario + miembro + hogar por request.
+17. PWA sin librerías: `src/app/manifest.ts` + `public/sw.js` escrito a mano. El SW no guarda páginas ni datos
+    (información financiera); solo estáticos con hash y la página `/sin-conexion`. Solo se registra en producción.
+    Íconos: `node scripts/generar-iconos.mjs` (usa `sharp`, que ya trae Next).
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
@@ -87,7 +90,7 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] 1. Migraciones + RLS + prueba de aislamiento
 - [x] 2. Dinero y fechas
 - [x] 3. Auth, 2FA, crear hogar, invitación
-- [ ] 4. Layout + PWA
+- [x] 4. Layout + PWA
 - [ ] 5. Cuentas y categorías
 - [ ] 6. Movimientos + registro rápido
 - [ ] 7. Recurrentes

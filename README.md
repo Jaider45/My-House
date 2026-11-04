@@ -231,7 +231,7 @@ My House/
 | 1 | Esquema multi-hogar, RLS y prueba de aislamiento | ✅ |
 | 2 | Dinero y fechas en es-CO | ✅ |
 | 3 | Autenticación, 2FA, crear hogar e invitaciones | ✅ |
-| 4 | PWA instalable | ⏳ |
+| 4 | PWA instalable | ✅ |
 | 5 | Cuentas y categorías | ⏳ |
 | 6 | Movimientos y registro rápido | ⏳ |
 | 7 | Gastos recurrentes | ⏳ |
