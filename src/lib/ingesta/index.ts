@@ -43,7 +43,8 @@ export const esquemaMovimiento = z
     if (m.tipo === "transferencia") {
       if (!m.cuenta_destino_id) c.addIssue({ code: "custom", path: ["cuenta_destino_id"], message: "Elija la cuenta destino." });
       if (m.cuenta_destino_id === m.account_id) c.addIssue({ code: "custom", path: ["cuenta_destino_id"], message: "La cuenta destino debe ser otra." });
-    } else if (!m.category_id) {
+    } else if (!m.category_id && m.origen === "manual") {
+      // Lo importado puede entrar sin categoría y categorizarse después.
       c.addIssue({ code: "custom", path: ["category_id"], message: "Elija una categoría." });
     }
   })

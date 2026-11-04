@@ -19,6 +19,7 @@ describe("validarMovimiento", () => {
 
   it("exige categoría en gastos e ingresos", () => {
     expect(validarMovimiento({ tipo: "ingreso", fecha: "2026-11-04", monto: 1, account_id: A })).toEqual({ ok: false, error: "Elija una categoría." });
+    expect(validarMovimiento({ tipo: "gasto", fecha: "2026-11-04", monto: 1, account_id: A, origen: "importacion" }).ok).toBe(true);
   });
 
   it("transferencia: exige destino distinto y descarta la categoría", () => {

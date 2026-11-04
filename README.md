@@ -216,7 +216,9 @@ My House/
 │   ├── migrations/              Esquema, RLS, funciones, pg_cron y Storage
 │   ├── seed.sql                 Datos solo para desarrollo
 │   └── config.toml              Supabase local (TOTP activo)
-├── tests/rls/                   Aislamiento entre hogares contra Postgres real
+├── tests/rls/                   Aislamiento entre hogares y recurrentes contra Postgres real
+├── docs/ejemplos/               Extractos CSV de ejemplo (3 meses + uno solapado)
+├── scripts/                     Generadores de íconos y de extractos de ejemplo
 ├── CLAUDE.md                    Contexto, convenciones, comandos y decisiones del proyecto
 └── .env.example                 Variables de entorno
 ```
@@ -235,7 +237,7 @@ My House/
 | 5 | Cuentas y categorías | ✅ |
 | 6 | Movimientos y registro rápido | ✅ |
 | 7 | Gastos recurrentes | ✅ |
-| 8 | Importación de extractos CSV | ⏳ |
+| 8 | Importación de extractos CSV | ✅ |
 | 9 | Tablero del mes | ⏳ |
 | 10 | Semáforo DIAN | ⏳ |
 | 11 | Cierre y despliegue (Vercel + Supabase Cloud) | ⏳ |
