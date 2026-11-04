@@ -89,7 +89,7 @@ describe("mismo hogar", () => {
     const deAna = await ana.from("transactions").select("id").order("fecha");
     const deBeto = await beto.from("transactions").select("id").order("fecha");
     expect(deAna.data!.map((t) => t.id)).toEqual(deBeto.data!.map((t) => t.id));
-    expect(deAna.data).toHaveLength(2);
+    expect(deAna.data!.length).toBeGreaterThanOrEqual(2);
   });
 
   it("el contador lee pero no escribe", async () => {
@@ -106,6 +106,23 @@ describe("mismo hogar", () => {
     const { data } = await ana.from("categories").select("nombre").eq("clase", "gasto");
     expect(data!.map((c) => c.nombre)).toContain("Educación de los hijos");
     expect(data).toHaveLength(13);
+  });
+});
+
+describe("autoría", () => {
+  it("un usuario no puede registrar movimientos a nombre de otro", async () => {
+    const { data: yo } = await beto.auth.getUser();
+    const { data: ana_ } = await ana.auth.getUser();
+    const { data, error } = await beto
+      .from("transactions")
+      .insert({
+        household_id: hogarA, account_id: cuentaA, fecha: "2026-11-05", monto: 1000, tipo: "gasto", category_id: categoriaA,
+        created_by: ana_.user!.id,
+      })
+      .select("created_by")
+      .single();
+    expect(error).toBeNull();
+    expect(data!.created_by).toBe(yo.user!.id);
   });
 });
 

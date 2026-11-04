@@ -7,6 +7,7 @@
 Registra ingresos y gastos en segundos desde el celular, conoce cuánto cuesta vivir cada mes
 y llega a la declaración de renta con todo clasificado y el semáforo DIAN a la vista.
 
+[![CI](https://github.com/Jaider45/My-House/actions/workflows/ci.yml/badge.svg)](https://github.com/Jaider45/My-House/actions/workflows/ci.yml)
 ![Node](https://img.shields.io/badge/Node-24_LTS-5FA04E?logo=nodedotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
@@ -219,13 +220,15 @@ My House/
 ├── tests/rls/                   Aislamiento entre hogares y recurrentes contra Postgres real
 ├── docs/ejemplos/               Extractos CSV de ejemplo (3 meses + uno solapado)
 ├── scripts/                     Generadores de íconos y de extractos de ejemplo
+├── docs/DESPLIEGUE.md           Guía de despliegue
+├── .github/workflows/ci.yml     Integración continua
 ├── CLAUDE.md                    Contexto, convenciones, comandos y decisiones del proyecto
 └── .env.example                 Variables de entorno
 ```
 
 ## 📊 Estado del proyecto
 
-**Fase 1 (MVP de una familia), en construcción.**
+**Fase 1 (MVP de una familia): completa en local, lista para desplegar.**
 
 | # | Incremento | Estado |
 | --- | --- | :---: |
@@ -240,7 +243,8 @@ My House/
 | 8 | Importación de extractos CSV | ✅ |
 | 9 | Tablero del mes | ✅ |
 | 10 | Semáforo DIAN | ✅ |
-| 11 | Cierre y despliegue (Vercel + Supabase Cloud) | ⏳ |
+| 11 | Cierre: CI, autoría en BD y guía de despliegue | ✅ |
+| — | Publicar en Vercel + Supabase Cloud (requiere sus cuentas) | ⏳ [guía](docs/DESPLIEGUE.md) |
 
 **Después de la Fase 1:** lectura de facturas con IA (OCR), registro por WhatsApp, pronóstico de gastos,
 planes y suscripciones, y conexión bancaria automática. El código ya deja los puntos de entrada listos.
@@ -252,6 +256,8 @@ planes y suscripciones, y conexión bancaria automática. El código ya deja los
 - **Prueba de aislamiento contra Postgres real:** dos usuarios del mismo hogar ven lo mismo, el contador no
   escribe, y otro hogar no puede leer, escribir, referenciar, mover filas, ver reportes, usar invitaciones
   ajenas ni descargar soportes.
+- **CI en cada push y pull request:** lint, tipos, pruebas, build, `npm audit` de producción y las pruebas de
+  aislamiento contra un Supabase real levantado en el runner.
 - Cada incremento se cierra con lint limpio, tipos sin errores, pruebas en verde y un commit descriptivo.
 
 ```bash
@@ -266,6 +272,7 @@ npm run build      # build de producción
 | --- | --- |
 | [CLAUDE.md](CLAUDE.md) | Contexto del proyecto, convenciones, comandos, decisiones y problemas conocidos del entorno local |
 | [supabase/migrations/](supabase/migrations/) | Modelo de datos, políticas RLS y funciones, comentados |
+| [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md) | Publicar en Supabase Cloud + Vercel, primer uso y mantenimiento |
 | [.env.example](.env.example) | Variables de entorno y dónde obtener cada una |
 
 ---

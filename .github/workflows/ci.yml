@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App (lint, tipos, pruebas y build)
+    runs-on: ubuntu-latest
+    env:
+      # Valores de relleno: el build no se conecta a Supabase.
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # Solo dependencias de producción: las de desarrollo (ESLint) arrastran avisos sin arreglo aún.
+      - run: npm audit --omit=dev --audit-level=low
+
+  rls:
+    name: Aislamiento entre hogares (Supabase local)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Supabase local con las migraciones
+        run: npx supabase start -x studio,logflare,vector,edge-runtime,realtime,imgproxy,supavisor
+      - name: Variables de entorno
+        run: |
+          npx supabase status -o env > estado.env
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(grep '^API_URL=' estado.env | cut -d= -f2- | tr -d '"')"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(grep '^ANON_KEY=' estado.env | cut -d= -f2- | tr -d '"')"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(grep '^SERVICE_ROLE_KEY=' estado.env | cut -d= -f2- | tr -d '"')"
+          } > .env.local
+      - run: npm run test:rls
+      - name: Los tipos generados están al día
+        run: |
+          npm run db:types
+          git diff --exit-code -- src/lib/supabase/database.types.ts || (echo "::error::database.types.ts desactualizado: corra «npm run db:types» y súbalo." && exit 1)

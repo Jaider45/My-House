@@ -79,14 +79,16 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
 14. Un usuario opera un hogar (el primero al que pertenece). El selector de hogares queda para el SaaS.
 15. `crearClienteServidor()` llama `await connection()`: todo lo que toca Supabase se renderiza por request
     (supabase-js usa `Date.now()` y Cache Components lo rechaza en prerender).
-16. Sesión y 2FA se chequean en `src/proxy.ts` (optimista); la autorización real es RLS.
+16. Autoría (`created_by`, `creada_por`) la fija un trigger con `auth.uid()`; el cliente no puede falsearla.
+    `npm audit` en CI solo para producción: el tooling de ESLint arrastra `minimatch` <11 sin arreglo compatible.
+17. Sesión y 2FA se chequean en `src/proxy.ts` (optimista); la autorización real es RLS.
     `obtenerContexto()` (`src/lib/sesion.ts`) es la capa de acceso: usuario + miembro + hogar por request.
-17. PWA sin librerías: `src/app/manifest.ts` + `public/sw.js` escrito a mano. El SW no guarda páginas ni datos
+18. PWA sin librerías: `src/app/manifest.ts` + `public/sw.js` escrito a mano. El SW no guarda páginas ni datos
     (información financiera); solo estáticos con hash y la página `/sin-conexion`. Solo se registra en producción.
     Íconos: `node scripts/generar-iconos.mjs` (usa `sharp`, que ya trae Next).
-18. Cuentas y categorías con movimientos no se borran: se archivan (borrar una cuenta borraría su historia en
+19. Cuentas y categorías con movimientos no se borran: se archivan (borrar una cuenta borraría su historia en
     cascada). En tarjetas, el "saldo inicial" se captura como deuda y se guarda negativo.
-19. Importación CSV: se parsea en el navegador (UTF-8, o Windows-1252 si hay caracteres dañados), se detecta
+20. Importación CSV: se parsea en el navegador (UTF-8, o Windows-1252 si hay caracteres dañados), se detecta
     el encabezado y se recuerda el mapeo por cuenta. Huella = sha256(cuenta|fecha|tipo|monto|descripción
     normalizada|n-ésima repetición en el archivo), recalculada en el servidor. "Posible duplicado" = movimiento
     no importado de igual tipo y monto a ±2 días (se presenta desmarcado). Lo importado puede quedar sin
@@ -116,4 +118,14 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] 8. Importación CSV
 - [x] 9. Dashboard del mes
 - [x] 10. Semáforo DIAN
-- [ ] 11. Cierre y despliegue
+- [x] 11. Cierre: CI, autoría en BD, guía de despliegue (`docs/DESPLIEGUE.md`)
+- [ ] Publicar en Supabase Cloud + Vercel (requiere las cuentas del usuario)
+
+### Criterios de terminado de la Fase 1 (verificados el 2026-11-04 en local)
+- Dos usuarios del mismo hogar ven los mismos movimientos y otro hogar no ve nada: `tests/rls` + prueba en
+  navegador (Ana admin, Beto invitado como editor).
+- Extracto de 3 meses sin duplicados: `docs/ejemplos` (39 filas) + extracto solapado (13 ya importados, 2 nuevos);
+  pruebas en `src/lib/importacion`.
+- Tablero con costo de vida del mes y semáforo DIAN del año en curso.
+- PWA: manifest + service worker verificados en build de producción; registro rápido en 3 toques. Instalar en
+  el celular requiere HTTPS (después del despliegue).
