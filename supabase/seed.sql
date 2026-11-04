@@ -1,0 +1,2 @@
+-- Datos solo para desarrollo local (no se aplica en la nube).
+-- Los usuarios de prueba los crean las pruebas RLS con la API admin (tests/rls).

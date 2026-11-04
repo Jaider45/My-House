@@ -20,7 +20,7 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
 | `npm run check` | lint + typecheck + pruebas unitarias (correr antes de cada commit) |
 | `npm test` | Pruebas unitarias (`src/**/*.test.ts`) |
 | `npm run test:rls` | Pruebas de aislamiento contra Supabase local (`tests/rls`). Requiere `npm run db:start` y `.env.local` |
-| `npm run db:start` / `db:stop` | Supabase local (Docker) |
+| `npm run db:start` / `db:stop` | Supabase local (Docker), sin Studio/realtime/logs para ahorrar disco |
 | `npm run db:reset` | Recrea la BD local aplicando migraciones + `supabase/seed.sql` |
 | `npm run db:types` | Regenera `src/lib/supabase/database.types.ts` |
 | `npx supabase migration new <nombre>` | Nueva migración versionada |
@@ -66,14 +66,21 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
 12. Next 16 con `cacheComponents` activo (será obligatorio en la próxima versión mayor).
 13. `@types/node@24` (coincide con Node 24 y lo exige Vitest 5).
 
+## Entorno local: problemas conocidos
+- Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
+  (pasó con `storage-api`: migraciones vacías y Storage arrancaba sin tablas). Síntoma: `relation "storage.buckets"
+  does not exist`. Arreglo usado: reconstruir la imagen localmente con `migrations/` y `package.json` del tag
+  oficial de github.com/supabase/storage, con el mismo nombre de imagen, y `supabase stop --no-backup`.
+- `.env.local` se genera con `npx supabase status -o env` (API_URL, ANON_KEY, SERVICE_ROLE_KEY).
+
 ## Fuera de la Fase 1 (preparado, no implementado)
 OCR con IA, registro por WhatsApp, pronóstico estadístico, pagos/suscripciones, conexión bancaria.
 Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `households.plan`, tabla `budgets_goals`.
 
 ## Estado
 - [x] 0. Scaffold
-- [ ] 1. Migraciones + RLS + prueba de aislamiento
-- [ ] 2. Dinero y fechas
+- [x] 1. Migraciones + RLS + prueba de aislamiento
+- [x] 2. Dinero y fechas
 - [ ] 3. Auth, 2FA, crear hogar, invitación
 - [ ] 4. Layout + PWA
 - [ ] 5. Cuentas y categorías
