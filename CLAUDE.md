@@ -65,6 +65,11 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     cerrados; si no hay historia, mes actual) + cuota de imprevistos (% sobre esa suma).
 12. Next 16 con `cacheComponents` activo (será obligatorio en la próxima versión mayor).
 13. `@types/node@24` (coincide con Node 24 y lo exige Vitest 5).
+14. Un usuario opera un hogar (el primero al que pertenece). El selector de hogares queda para el SaaS.
+15. `crearClienteServidor()` llama `await connection()`: todo lo que toca Supabase se renderiza por request
+    (supabase-js usa `Date.now()` y Cache Components lo rechaza en prerender).
+16. Sesión y 2FA se chequean en `src/proxy.ts` (optimista); la autorización real es RLS.
+    `obtenerContexto()` (`src/lib/sesion.ts`) es la capa de acceso: usuario + miembro + hogar por request.
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
@@ -81,7 +86,7 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] 0. Scaffold
 - [x] 1. Migraciones + RLS + prueba de aislamiento
 - [x] 2. Dinero y fechas
-- [ ] 3. Auth, 2FA, crear hogar, invitación
+- [x] 3. Auth, 2FA, crear hogar, invitación
 - [ ] 4. Layout + PWA
 - [ ] 5. Cuentas y categorías
 - [ ] 6. Movimientos + registro rápido

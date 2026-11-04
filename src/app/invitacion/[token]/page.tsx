@@ -1,0 +1,76 @@
+import { Suspense } from "react";
+import { Aviso, Cargando, EnlaceBoton, Tarjeta } from "@/components/ui";
+import { crearClienteServidor } from "@/lib/supabase/server";
+import { FormularioAceptar } from "./formulario";
+
+export const metadata = { title: "Invitación" };
+
+const ROLES = { admin: "administrador", editor: "editor", contador: "contador (solo lectura)" } as const;
+
+export default function Invitacion({ params }: PageProps<"/invitacion/[token]">) {
+  return (
+    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-4 py-10">
+      <p className="text-center text-2xl font-bold">My House</p>
+      <Tarjeta titulo="Invitación a un hogar">
+        <Suspense fallback={<Cargando />}>
+          <Contenido params={params} />
+        </Suspense>
+      </Tarjeta>
+    </main>
+  );
+}
+
+async function Contenido({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
+  const supabase = await crearClienteServidor();
+  const [{ data: filas }, { data: sesion }] = await Promise.all([
+    supabase.rpc("ver_invitacion", { p_token: token }),
+    supabase.auth.getUser(),
+  ]);
+  const inv = filas?.[0];
+
+  if (!inv) return <Aviso>Esta invitación no existe. Pida un enlace nuevo.</Aviso>;
+  if (!inv.vigente) return <Aviso>Esta invitación ya se usó o venció. Pida un enlace nuevo.</Aviso>;
+
+  const encabezado = (
+    <p className="mb-4 text-sm">
+      Lo invitaron a <strong>{inv.hogar}</strong> como <strong>{ROLES[inv.rol]}</strong>. La invitación es para{" "}
+      <strong>{inv.email}</strong>.
+    </p>
+  );
+  const siguiente = encodeURIComponent(`/invitacion/${token}`);
+  const email = encodeURIComponent(inv.email);
+
+  const user = sesion.user;
+  if (!user) {
+    return (
+      <div className="space-y-3">
+        {encabezado}
+        <EnlaceBoton href={`/registro?siguiente=${siguiente}&email=${email}`} className="w-full">
+          Crear cuenta
+        </EnlaceBoton>
+        <EnlaceBoton href={`/ingresar?siguiente=${siguiente}&email=${email}`} variante="secundario" className="w-full">
+          Ya tengo cuenta
+        </EnlaceBoton>
+      </div>
+    );
+  }
+
+  if (user.email?.toLowerCase() !== inv.email.toLowerCase()) {
+    return (
+      <div className="space-y-3">
+        {encabezado}
+        <Aviso>
+          Usted ingresó como {user.email}. Cierre sesión e ingrese con {inv.email} para aceptar.
+        </Aviso>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {encabezado}
+      <FormularioAceptar token={token} nombre={(user.user_metadata?.nombre as string | undefined) ?? ""} />
+    </div>
+  );
+}
