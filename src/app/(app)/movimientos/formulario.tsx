@@ -111,7 +111,7 @@ export function FormularioMovimiento({ catalogos, movimiento, hoy, miembroId }: 
       <details className="rounded-xl bg-zinc-50 p-3 dark:bg-zinc-950" open={Boolean(movimiento?.tax_tag_id || movimiento?.nota)}>
         <summary className="cursor-pointer text-sm font-semibold">Más detalles</summary>
         <div className="mt-3 space-y-3">
-          <Selector etiqueta="Persona (a quién se atribuye)" name="member_id" defaultValue={movimiento?.member_id ?? miembroId}>
+          <Selector etiqueta="Persona (a quién se atribuye)" name="member_id" defaultValue={movimiento ? (movimiento.member_id ?? "") : miembroId}>
             <option value="">Del hogar (titular de la cuenta)</option>
             {catalogos.miembros.map((m) => (
               <option key={m.id} value={m.id}>

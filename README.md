@@ -239,7 +239,7 @@ My House/
 | 7 | Gastos recurrentes | ✅ |
 | 8 | Importación de extractos CSV | ✅ |
 | 9 | Tablero del mes | ✅ |
-| 10 | Semáforo DIAN | ⏳ |
+| 10 | Semáforo DIAN | ✅ |
 | 11 | Cierre y despliegue (Vercel + Supabase Cloud) | ⏳ |
 
 **Después de la Fase 1:** lectura de facturas con IA (OCR), registro por WhatsApp, pronóstico de gastos,

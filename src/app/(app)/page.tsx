@@ -6,6 +6,7 @@ import { formatearCOP, porcentaje } from "@/lib/dinero";
 import { formatearMes, hoy, mesDe, rangoMes, sumarMeses } from "@/lib/fechas";
 import { resumirMes, type TotalCategoria } from "@/lib/finanzas";
 import type { Categoria } from "@/lib/categorias";
+import { cargarSemaforo, COLOR_SEMAFORO } from "@/lib/impuestos/servidor";
 
 export default function Inicio({ searchParams }: PageProps<"/">) {
   return (
@@ -38,7 +39,8 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
   const mesActual = mesDe(hoy());
   const mes = typeof sp.mes === "string" && /^\d{4}-\d{2}$/.test(sp.mes) ? sp.mes : mesActual;
 
-  const [{ data: filas }, { data: categorias }, { count: personas }, { count: cuentas }, { count: sinCategoria }] = await Promise.all([
+  const anio = Number(mesActual.slice(0, 4));
+  const [{ data: filas }, { data: categorias }, { count: personas }, { count: cuentas }, { count: sinCategoria }, semaforo] = await Promise.all([
     ctx.supabase.rpc("totales_por_categoria", {
       p_household: ctx.hogar.id,
       p_desde: rangoMes(sumarMeses(mes, -3)).desde,
@@ -54,6 +56,7 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
       .is("category_id", null)
       .gte("fecha", rangoMes(mes).desde)
       .lte("fecha", rangoMes(mes).hasta),
+    cargarSemaforo(ctx, anio),
   ]);
 
   const r = resumirMes({
@@ -191,6 +194,27 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
           </p>
         )}
       </Tarjeta>
+
+      {semaforo.ok && semaforo.personas.length > 0 && (
+        <Tarjeta titulo={`Semáforo DIAN ${anio}`} accion={<Link href="/impuestos" className="text-sm font-semibold text-teal-700">Ver detalle</Link>}>
+          <ul className="space-y-2">
+            {semaforo.personas.map((p) => {
+              const mayor = p.topes.reduce((a, b) => (b.porcentaje > a.porcentaje ? b : a));
+              return (
+                <li key={p.member_id} className="flex items-center justify-between gap-2 text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className={`size-3 rounded-full ${COLOR_SEMAFORO[p.estado].punto}`} aria-hidden />
+                    {p.nombre}
+                  </span>
+                  <span className="text-zinc-500">
+                    {mayor.nombre}: <strong className="tabular-nums text-zinc-900 dark:text-zinc-100">{mayor.porcentaje} %</strong>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </Tarjeta>
+      )}
 
       <EnlaceBoton href="/rapido" className="w-full">
         Registrar un gasto

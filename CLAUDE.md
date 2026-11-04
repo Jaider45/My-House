@@ -65,6 +65,10 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
 8. `tax_tags.renglon_formulario` vacío hasta validarlo contra el formulario 210 del año.
 9. Pago de tarjeta = transferencia banco → tarjeta; el gasto cuenta cuando se compra.
 10. Patrimonio bruto del semáforo = saldos de cuentas del titular (no incluye inmuebles/vehículos: limitación conocida).
+    Semáforo: verde < 70 %, amarillo 70–99 %, rojo ≥ 100 % del tope; el porcentaje se trunca. Consignaciones =
+    ingresos a cuentas banco + transferencias recibidas en banco (puede sobrestimar; es lo prudente).
+    Módulo por país: `src/lib/impuestos/tipos.ts` (contrato), `registro.ts` (países), `co/` (Colombia).
+    Para agregar un país: implementar `JurisdiccionTributaria`, registrarlo y sembrar `tax_params`/`tax_tags`.
 11. Número mínimo = fijos del mes (confirmados + programados) + variables esenciales (promedio de los últimos 3
     meses cerrados que tengan gastos categorizados; si no hay, mes actual) + cuota de imprevistos (% sobre esa
     suma). Costo de vida = gastos confirmados + programados del mes, sin categorías `excluir_de_costo_vida`; lo sin
@@ -111,5 +115,5 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] 7. Recurrentes
 - [x] 8. Importación CSV
 - [x] 9. Dashboard del mes
-- [ ] 10. Semáforo DIAN
+- [x] 10. Semáforo DIAN
 - [ ] 11. Cierre y despliegue
