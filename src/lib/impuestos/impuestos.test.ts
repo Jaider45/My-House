@@ -65,3 +65,32 @@ describe("registro de jurisdicciones", () => {
     expect(jurisdiccion("MX")).toBeUndefined();
   });
 });
+
+describe("dependientes (Colombia)", () => {
+  const d = colombia.dependientes!;
+  const deducciones = { dependientes_pct: 10, dependientes_tope_anual: 384, dependiente_adicional: 72, dependientes_max: 4 };
+
+  it.each([
+    [{ parentesco: "hijo" as const, edad: 9 }, true, "menor de 18"],
+    [{ parentesco: "hijo" as const, edad: 20 }, true, "estudios"],
+    [{ parentesco: "hijo" as const, edad: 30 }, true, "condición física"],
+    [{ parentesco: "hijo" as const, edad: null }, true, "fecha de nacimiento"],
+    [{ parentesco: "padre_madre" as const, edad: 70 }, true, "260 UVT"],
+    [{ parentesco: "pareja" as const, edad: 40 }, true, "260 UVT"],
+    [{ parentesco: "otro" as const, edad: 50 }, false, "no cuentan"],
+    [{ parentesco: null, edad: null }, false, "no cuentan"],
+  ])("%o → podría %s", (persona, podria, texto) => {
+    const r = d.orientacion(persona);
+    expect(r.podria).toBe(podria);
+    expect(r.texto).toContain(texto);
+  });
+
+  it("calcula los topes en pesos con la UVT del año y respeta el máximo de dependientes", () => {
+    const b = d.beneficio(52_374, deducciones, 2)!;
+    expect(b.topeAnual).toBe(384 * 52_374);
+    expect(b.adicionalPorDependiente).toBe(72 * 52_374);
+    expect(b.adicionalTotal).toBe(2 * 72 * 52_374);
+    expect(d.beneficio(52_374, deducciones, 6)!.adicionalTotal).toBe(4 * 72 * 52_374);
+    expect(d.beneficio(52_374, {}, 1)).toBeNull();
+  });
+});

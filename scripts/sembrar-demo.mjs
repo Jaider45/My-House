@@ -50,11 +50,30 @@ const andres = await usuario(CORREOS.andres, "Andrés");
 const camila = await usuario(CORREOS.camila, "Camila");
 
 const H = ok(await andres.rpc("crear_hogar", { p_nombre: "Hogar Martínez Rojas", p_nombre_miembro: "Andrés Martínez" }), "crear hogar");
-ok(await andres.from("households").update({ ciudad: "Bogotá" }).eq("id", H), "ciudad");
+ok(
+  await andres
+    .from("households")
+    .update({
+      ciudad: "Bogotá",
+      config: {
+        cuota_imprevistos_pct: 10,
+        contexto: "Andrés es diseñador independiente y Camila es asalariada. Mateo va al colegio y la abuela Rosa vive con nosotros (le pagamos la EPS). Tenemos un perro, Toby.",
+      },
+    })
+    .eq("id", H),
+  "hogar",
+);
 const inv = ok(await andres.from("invitations").insert({ household_id: H, email: CORREOS.camila, rol: "editor" }).select("token").single(), "invitar");
 ok(await camila.rpc("aceptar_invitacion", { p_token: inv.token, p_nombre: "Camila Rojas" }), "aceptar");
 ok(await andres.from("invitations").insert({ household_id: H, email: "contador@myhouse.test", rol: "contador" }), "invitar contador");
-ok(await andres.from("members").insert({ household_id: H, nombre: "Mateo", es_dependiente: true }), "dependiente");
+const andresId = ok(await andres.from("members").select("id").eq("household_id", H).eq("nombre", "Andrés Martínez").single(), "miembro Andrés").id;
+ok(
+  await andres.from("members").insert([
+    { household_id: H, nombre: "Mateo", es_dependiente: true, parentesco: "hijo", fecha_nacimiento: "2017-03-14", a_cargo_de: andresId, dependiente_dian: true, nota: "Va al colegio" },
+    { household_id: H, nombre: "Rosa", es_dependiente: true, parentesco: "padre_madre", fecha_nacimiento: "1952-08-02", a_cargo_de: null, dependiente_dian: false, nota: "Abuela; sin ingresos propios" },
+  ]),
+  "personas a cargo",
+);
 const miembros = ok(await andres.from("members").select("id, nombre"), "miembros");
 const M = Object.fromEntries(miembros.map((m) => [m.nombre.split(" ")[0], m.id]));
 const db = andres;

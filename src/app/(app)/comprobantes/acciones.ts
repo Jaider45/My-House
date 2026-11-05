@@ -7,6 +7,8 @@ import { mensajeError, type Estado } from "@/lib/acciones";
 import { formatearCOP } from "@/lib/dinero";
 import { hoy, sumarDias } from "@/lib/fechas";
 import { IaNoConfigurada, leerComprobante, type Archivo } from "@/lib/ia";
+import { resolverIa } from "@/lib/ia/proveedores";
+import { describirHogar, leerConfigHogar, type PersonaHogar } from "@/lib/hogar";
 import type { Database } from "@/lib/supabase/database.types";
 import { decidir, patronDe, type Decision, type ReglaComercio } from "@/lib/comprobantes";
 
@@ -24,17 +26,22 @@ function refrescar() {
 
 /** Catálogos que la lectura y la decisión necesitan, en una sola ida a la base. */
 async function catalogos(ctx: Ctx) {
-  const [{ data: categorias }, { data: cuentas }, { data: etiquetas }, { data: reglas }] = await Promise.all([
+  const [{ data: categorias }, { data: cuentas }, { data: etiquetas }, { data: reglas }, { data: hogar }, { data: personas }] = await Promise.all([
     ctx.supabase.from("categories").select("id, nombre").eq("archivada", false),
     ctx.supabase.from("accounts").select("id, nombre, tipo").eq("archivada", false).order("created_at"),
     ctx.supabase.from("tax_tags").select("id, nombre").eq("pais", ctx.hogar.pais),
     ctx.supabase.from("merchant_rules").select("patron, category_id, ambito, activa"),
+    ctx.supabase.from("households").select("config").eq("id", ctx.hogar.id).single(),
+    ctx.supabase.from("members").select("id, nombre, es_dependiente, parentesco, fecha_nacimiento, a_cargo_de, nota").order("created_at"),
   ]);
+  const config = leerConfigHogar(hogar?.config);
   return {
     categorias: categorias ?? [],
     cuentas: cuentas ?? [],
     etiquetas: etiquetas ?? [],
     reglas: (reglas ?? []) as ReglaComercio[],
+    ia: resolverIa(config.ia, process.env),
+    hogar: describirHogar((personas ?? []) as PersonaHogar[], config.contexto, hoy()),
   };
 }
 
@@ -97,16 +104,18 @@ async function procesar(ctx: Ctx, cat: Awaited<ReturnType<typeof catalogos>>, en
 
   const actualizar = (cambios: Database["public"]["Tables"]["receipts"]["Update"]) => ctx.supabase.from("receipts").update(cambios).eq("id", recibo.id);
   try {
+    if (!cat.ia) throw new IaNoConfigurada();
     const [archivoPath, lectura] = await Promise.all([
       entrada.archivo ? guardarArchivo(ctx, recibo.id, entrada.archivo) : Promise.resolve(null),
       leerComprobante(
+        cat.ia,
         {
           archivo: entrada.archivo
             ? ({ mime: entrada.archivo.type, nombre: entrada.archivo.name, base64: Buffer.from(await entrada.archivo.arrayBuffer()).toString("base64") } satisfies Archivo)
             : undefined,
           texto: entrada.texto,
         },
-        { hoy: fecha, categorias: cat.categorias.map((c) => c.nombre), cuentas: cat.cuentas.map((c) => c.nombre), etiquetas: cat.etiquetas.map((e) => e.nombre) },
+        { hoy: fecha, categorias: cat.categorias.map((c) => c.nombre), cuentas: cat.cuentas.map((c) => c.nombre), etiquetas: cat.etiquetas.map((e) => e.nombre), hogar: cat.hogar },
       ),
     ]);
     const cuentaPorDefecto = cat.cuentas.find((c) => c.tipo !== "tarjeta")?.id ?? cat.cuentas[0]?.id ?? null;
@@ -152,9 +161,8 @@ export async function enviarAlAsistente(_: Estado, datos: FormData): Promise<Est
   if (archivos.length > MAX_ARCHIVOS) return { error: `Máximo ${MAX_ARCHIVOS} archivos por mensaje.` };
   const malo = archivos.find((a) => !MIMES.includes(a.type) || a.size > MAX_BYTES);
   if (malo) return { error: `${malo.name}: solo fotos (JPG, PNG, WebP) o PDF de hasta 10 MB.` };
-  if (!process.env.ANTHROPIC_API_KEY) return { error: new IaNoConfigurada().message };
-
   const cat = await catalogos(ctx);
+  if (!cat.ia) return { error: new IaNoConfigurada().message };
   const { data: mensaje } = await ctx.supabase
     .from("assistant_messages")
     .insert({ household_id: ctx.hogar.id, autor: "usuario", texto: texto || (archivos.length === 1 ? "Te mando este comprobante" : `Te mando ${archivos.length} comprobantes`) })
@@ -250,6 +258,7 @@ export async function resolverComprobante(_: Estado, datos: FormData): Promise<E
 /** Deshace un comprobante registrado: borra el movimiento que creó (no toca movimientos a los que solo se adjuntó). */
 export async function deshacerComprobante(datos: FormData) {
   const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return;
   const { data: recibo } = await ctx.supabase.from("receipts").select("id, estado, transaction_id").eq("id", String(datos.get("id"))).single();
   if (!recibo) return;
   if (recibo.estado === "registrado" && recibo.transaction_id) await ctx.supabase.from("transactions").delete().eq("id", recibo.transaction_id);
@@ -259,6 +268,7 @@ export async function deshacerComprobante(datos: FormData) {
 
 export async function cambiarRegla(datos: FormData) {
   const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return;
   await ctx.supabase.from("merchant_rules").update({ activa: datos.get("activa") === "1" }).eq("id", String(datos.get("id")));
   revalidatePath("/comprobantes");
 }

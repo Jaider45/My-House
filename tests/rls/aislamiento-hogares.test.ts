@@ -215,3 +215,46 @@ describe("otro hogar no ve nada", () => {
     await ana.storage.from("soportes").remove([ruta]);
   });
 });
+
+describe("personas a cargo y configuración del hogar", () => {
+  it("el admin agrega una persona a cargo con parentesco, edad y quién la tiene a cargo", async () => {
+    const { data: anaMiembro } = await ana.from("members").select("id").eq("household_id", hogarA).eq("nombre", "Ana").single();
+    const { data, error } = await ana
+      .from("members")
+      .insert({ household_id: hogarA, nombre: "Sofía", es_dependiente: true, parentesco: "hijo", fecha_nacimiento: "2017-03-10", a_cargo_de: anaMiembro!.id, dependiente_dian: true })
+      .select("id, a_cargo_de")
+      .single();
+    expect(error).toBeNull();
+    expect(data!.a_cargo_de).toBe(anaMiembro!.id);
+    // Lo ve todo el hogar (el contador también); el otro hogar no.
+    expect((await dora.from("members").select("id").eq("id", data!.id)).data).toHaveLength(1);
+    expect((await carla.from("members").select("id").eq("id", data!.id)).data).toHaveLength(0);
+  });
+
+  it("no se puede poner a cargo de alguien de otro hogar ni con un parentesco inventado", async () => {
+    const { data: carlaMiembro } = await carla.from("members").select("id").eq("household_id", hogarB).single();
+    const ajeno = await ana.from("members").insert({ household_id: hogarA, nombre: "X", es_dependiente: true, a_cargo_de: carlaMiembro!.id });
+    expect(ajeno.error).not.toBeNull();
+    const inventado = await ana.from("members").insert({ household_id: hogarA, nombre: "Y", es_dependiente: true, parentesco: "vecino" });
+    expect(inventado.error).not.toBeNull();
+  });
+
+  it("un editor no puede editar personas ni la configuración (IA, contexto) del hogar", async () => {
+    const { data: sofia } = await ana.from("members").select("id").eq("household_id", hogarA).eq("nombre", "Sofía").single();
+    const { data: cambiada } = await beto.from("members").update({ nota: "editada por Beto" }).eq("id", sofia!.id).select("id");
+    expect(cambiada).toHaveLength(0);
+    const { data: config } = await beto
+      .from("households")
+      .update({ config: { ia: { proveedor: "openai", modelo: "gpt-4.1" } } })
+      .eq("id", hogarA)
+      .select("id");
+    expect(config).toHaveLength(0);
+    const { data } = await ana.from("households").select("config").eq("id", hogarA).single();
+    expect((data!.config as { ia?: unknown }).ia).toBeUndefined();
+  });
+
+  it("los parámetros de la deducción por dependientes se leen en UVT", async () => {
+    const { data } = await ana.from("tax_params").select("deducciones").eq("pais", "CO").eq("anio", 2026).single();
+    expect(data!.deducciones).toMatchObject({ dependientes_pct: 10, dependientes_tope_anual: 384, dependiente_adicional: 72, dependientes_max: 4 });
+  });
+});

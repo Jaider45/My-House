@@ -7,7 +7,7 @@ import { mensajeError } from "@/lib/acciones";
 import { clasificar, huellas, normalizarDescripcion, type Clasificacion, type FilaLeida } from "@/lib/importacion";
 import { validarMovimiento } from "@/lib/ingesta";
 import { hoy, sumarDias } from "@/lib/fechas";
-import { leerExtracto } from "@/lib/ia";
+import { IaNoConfigurada, iaDelHogar, leerExtracto } from "@/lib/ia";
 
 const MAX_FILAS = 5000;
 
@@ -94,7 +94,7 @@ export async function importarMovimientos(entrada: {
   if (!r.success) return { error: "Datos de importación inválidos." };
   const { cuentaId, archivo, filas } = r.data;
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return { error: "Su rol es de solo lectura." };
+  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
 
   const hashes = await huellas(cuentaId, filas);
   const elegidas = filas.map((f, i) => ({ f, hash: hashes[i] })).filter(({ f }) => f.incluir);
@@ -146,6 +146,7 @@ export async function importarMovimientos(entrada: {
 
 export async function deshacerLote(datos: FormData) {
   const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return;
   // Borrar el lote borra en cascada sus movimientos.
   await ctx.supabase.from("import_batches").delete().eq("id", String(datos.get("id")));
   revalidatePath("/importar");
@@ -163,9 +164,11 @@ export async function leerExtractoPdf(datos: FormData): Promise<{ filas?: { fech
   const archivo = datos.get("archivo");
   if (!(archivo instanceof File) || archivo.type !== "application/pdf") return { error: "Elige un archivo PDF." };
   if (archivo.size > 20 * 1024 * 1024) return { error: "El PDF pesa más de 20 MB: divídelo por meses." };
+  const ia = await iaDelHogar(ctx);
+  if (!ia) return { error: new IaNoConfigurada().message };
   try {
     const base64 = Buffer.from(await archivo.arrayBuffer()).toString("base64");
-    const { banco, filas } = await leerExtracto({ mime: "application/pdf", base64, nombre: archivo.name }, hoy());
+    const { banco, filas } = await leerExtracto(ia, { mime: "application/pdf", base64, nombre: archivo.name }, hoy());
     if (!filas.length) return { error: "No encontré movimientos en ese PDF. ¿Es un extracto?" };
     if (filas.length > MAX_FILAS) return { error: `El extracto tiene más de ${MAX_FILAS} movimientos: divídelo.` };
     return { banco, filas };

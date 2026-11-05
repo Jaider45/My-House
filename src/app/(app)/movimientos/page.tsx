@@ -68,8 +68,11 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
   const ctx = await obtenerContexto(); // antes de hoy(): marca el render como dinámico
   const hoyISO = hoy();
   const mes = mesValido(sp) ?? mesDe(hoyISO);
-  const cuenta = texto(sp.cuenta);
-  const categoria = texto(sp.categoria);
+  // Se validan antes de ir a la consulta: `cuenta` se interpola en un filtro `or` de PostgREST.
+  const uuid = (v: string) => (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) ? v : "");
+  const cuenta = uuid(texto(sp.cuenta));
+  const categoria = texto(sp.categoria) === "sin" ? "sin" : uuid(texto(sp.categoria));
+  const ambito = ["personal", "negocio"].includes(texto(sp.ambito)) ? (texto(sp.ambito) as "personal" | "negocio") : "";
   const buscar = texto(sp.q).trim().slice(0, 80);
   const tipo = ["ingreso", "gasto", "transferencia"].includes(texto(sp.tipo))
     ? (texto(sp.tipo) as "ingreso" | "gasto" | "transferencia")
@@ -80,7 +83,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
   let consulta = ctx.supabase
     .from("transactions")
     .select(
-      "id, tipo, fecha, monto, comercio, estado, account_id, cuenta_destino_id, category_id, member_id, tax_tag_id",
+      "id, tipo, fecha, monto, comercio, estado, account_id, cuenta_destino_id, category_id, member_id, tax_tag_id, ambito",
     )
     .gte("fecha", desde)
     .lte("fecha", hasta)
@@ -92,6 +95,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
       `account_id.eq.${cuenta},cuenta_destino_id.eq.${cuenta}`,
     );
   if (tipo) consulta = consulta.eq("tipo", tipo);
+  if (ambito) consulta = consulta.eq("ambito", ambito);
   if (buscar)
     consulta = consulta.ilike(
       "comercio",
@@ -179,6 +183,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
     ...(cuenta && { cuenta }),
     ...(categoria && { categoria }),
     ...(tipo && { tipo }),
+    ...(ambito && { ambito }),
     ...(buscar && { q: buscar }),
   });
   const enlaceMes = (m: string) =>
@@ -211,7 +216,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
                 >
                   <path d="M12 15V4M7 9l5-5 5 5M5 20h14" />
                 </svg>
-                Importar extracto CSV
+                Importar extracto
               </EnlaceBoton>
             </span>
           </>
@@ -262,6 +267,17 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
               <option value="gasto">Gastos</option>
               <option value="ingreso">Ingresos</option>
               <option value="transferencia">Transferencias</option>
+            </select>
+            <select
+              name="ambito"
+              defaultValue={ambito}
+              aria-label="Ámbito"
+              data-on={!!ambito}
+              className={claseFiltro}
+            >
+              <option value="">Personal y negocio</option>
+              <option value="personal">Solo personal</option>
+              <option value="negocio">Solo negocio</option>
             </select>
             <select
               name="categoria"
@@ -326,13 +342,13 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
               <>
                 <EnlaceBoton href="/rapido">Registrar un gasto</EnlaceBoton>
                 <EnlaceBoton href="/importar" variante="secundario">
-                  Importar extracto CSV
+                  Importar extracto
                 </EnlaceBoton>
               </>
             }
           >
             Registra un gasto en segundos o trae todo el mes de una vez con el
-            extracto CSV de tu banco. Los pagos fijos del mes aparecen aquí
+            extracto (CSV o PDF) de tu banco. Los pagos fijos del mes aparecen aquí
             cuando se programan.
           </Vacio>
         ) : (
@@ -390,6 +406,11 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
                       <td className="text-cuerpo">{formatearDia(m.fecha)}</td>
                       <td className="max-w-[260px] truncate font-semibold">
                         {m.concepto}
+                        {m.ambito === "negocio" && (
+                          <span className="ml-2 align-middle">
+                            <Chip tono="neutro">Negocio</Chip>
+                          </span>
+                        )}
                       </td>
                       <td>
                         <span className="inline-flex items-center gap-2">
@@ -477,6 +498,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
                           </span>
                           <span className="truncate text-[13px] leading-[18px] text-tenue">
                             {m.categoria} · {m.cuenta}
+                            {m.ambito === "negocio" && " · Negocio"}
                           </span>
                         </span>
                       </Link>

@@ -22,12 +22,12 @@ export default function Nuevo() {
 
 async function Contenido() {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return <Aviso>Su rol es de solo lectura.</Aviso>;
+  if (!ctx.puedeEditar) return <Aviso>Tu rol es de solo lectura.</Aviso>;
   const catalogos = await cargarCatalogos(ctx);
   if (!catalogos.cuentas.length) {
     return (
       <div className="space-y-3">
-        <Aviso tipo="info">Primero cree una cuenta (banco, efectivo o tarjeta).</Aviso>
+        <Aviso tipo="info">Primero crea una cuenta (banco, efectivo o tarjeta).</Aviso>
         <EnlaceBoton href="/cuentas" className="w-full">
           Crear cuenta
         </EnlaceBoton>

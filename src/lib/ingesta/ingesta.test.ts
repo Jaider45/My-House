@@ -18,7 +18,7 @@ describe("validarMovimiento", () => {
   });
 
   it("exige categoría en gastos e ingresos", () => {
-    expect(validarMovimiento({ tipo: "ingreso", fecha: "2026-11-04", monto: 1, account_id: A })).toEqual({ ok: false, error: "Elija una categoría." });
+    expect(validarMovimiento({ tipo: "ingreso", fecha: "2026-11-04", monto: 1, account_id: A })).toEqual({ ok: false, error: "Elige una categoría." });
     expect(validarMovimiento({ tipo: "gasto", fecha: "2026-11-04", monto: 1, account_id: A, origen: "importacion" }).ok).toBe(true);
   });
 
@@ -34,5 +34,16 @@ describe("validarMovimiento", () => {
     expect(validarMovimiento({ ...base, fecha: "2026-11-04", monto: 0 }).ok).toBe(false);
     expect(validarMovimiento({ ...base, fecha: "2026-11-04", monto: 10.5 }).ok).toBe(false);
     expect(validarMovimiento({ ...base, fecha: "31/02/2026", monto: 10 })).toEqual({ ok: false, error: "La fecha no es válida." });
+  });
+});
+
+describe("ámbito del movimiento", () => {
+  const base = { tipo: "gasto" as const, fecha: "2026-11-05", monto: 1000, account_id: "6f1c1d1e-1111-4111-8111-111111111111", category_id: "6f1c1d1e-2222-4222-8222-222222222222" };
+  it("es personal por defecto y acepta negocio", () => {
+    const p = validarMovimiento(base);
+    expect(p.ok && p.movimiento.ambito).toBe("personal");
+    const n = validarMovimiento({ ...base, ambito: "negocio" });
+    expect(n.ok && n.movimiento.ambito).toBe("negocio");
+    expect(validarMovimiento({ ...base, ambito: "otro" as never }).ok).toBe(false);
   });
 });

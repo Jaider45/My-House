@@ -35,7 +35,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   const ctx = await obtenerContexto();
   const { data: m } = await ctx.supabase
     .from("transactions")
-    .select("id, tipo, fecha, monto, account_id, cuenta_destino_id, category_id, member_id, tax_tag_id, comercio, nota, estado, origen, created_at")
+    .select("id, tipo, fecha, monto, account_id, cuenta_destino_id, category_id, member_id, tax_tag_id, comercio, nota, ambito, estado, origen, created_at")
     .eq("id", id)
     .maybeSingle();
   if (!m) notFound();
@@ -55,7 +55,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
         <p className="text-sm text-tenue">
           {m.tipo} · {formatearFecha(m.fecha)} {m.comercio && `· ${m.comercio}`}
         </p>
-        <Aviso tipo="info">Su rol es de solo lectura.</Aviso>
+        <Aviso tipo="info">Tu rol es de solo lectura.</Aviso>
       </Tarjeta>
     );
   }

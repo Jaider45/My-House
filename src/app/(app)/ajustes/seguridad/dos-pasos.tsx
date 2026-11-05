@@ -39,7 +39,7 @@ export function DosPasos() {
       if (error) return setMensaje({ tipo: "error", texto: mensajeError(error) });
       setActivo(inscripcion.factorId);
       setInscripcion(undefined);
-      setMensaje({ tipo: "ok", texto: "Verificación en dos pasos activada. Se le pedirá el código al ingresar." });
+      setMensaje({ tipo: "ok", texto: "Verificación en dos pasos activada. Se te pedirá el código al ingresar." });
     });
 
   const desactivar = () =>
@@ -59,7 +59,7 @@ export function DosPasos() {
       {activo ? (
         <>
           <p className="text-sm">
-            Estado: <strong className="text-ok-tinta">activa</strong>. Al ingresar se le pide el código de su app
+            Estado: <strong className="text-ok-tinta">activa</strong>. Al ingresar se te pide el código de tu app
             autenticadora.
           </p>
           <Boton variante="peligro" onClick={desactivar} disabled={pendiente}>
@@ -69,12 +69,12 @@ export function DosPasos() {
       ) : inscripcion ? (
         <form action={confirmar} className="space-y-4">
           <p className="text-sm">
-            1. Escanee el código con Google Authenticator, Microsoft Authenticator o similar.
+            1. Escanea el código con Google Authenticator, Microsoft Authenticator o similar.
           </p>
           {/* eslint-disable-next-line @next/next/no-img-element -- data URI SVG generado por Supabase */}
           <img src={inscripcion.qr} alt="Código QR para la app autenticadora" className="mx-auto size-48 rounded-lg bg-white p-2" />
           <p className="text-center text-xs break-all text-tenue">Clave manual: {inscripcion.secreto}</p>
-          <p className="text-sm">2. Escriba el código de 6 dígitos que muestra la app.</p>
+          <p className="text-sm">2. Escribe el código de 6 dígitos que muestra la app.</p>
           <Campo etiqueta="Código" name="codigo" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required />
           <Boton type="submit" className="w-full" disabled={pendiente}>
             {pendiente ? "Verificando…" : "Confirmar"}
@@ -83,7 +83,7 @@ export function DosPasos() {
       ) : (
         <>
           <p className="text-sm">
-            Estado: <strong>inactiva</strong>. Recomendada: protege su información financiera aunque alguien conozca su
+            Estado: <strong>inactiva</strong>. Recomendada: protege tu información financiera aunque alguien conozca tu
             contraseña.
           </p>
           <Boton onClick={activar} disabled={pendiente}>

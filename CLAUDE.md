@@ -30,7 +30,9 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
 - `src/app/(auth)` pantallas públicas; `src/app/(app)` pantallas autenticadas; `src/app/onboarding` crear hogar.
 - `src/lib/dinero` formateo/parseo COP · `src/lib/finanzas` costo de vida y número mínimo ·
   `src/lib/importacion` CSV y duplicados · `src/lib/impuestos` jurisdicciones (`co/`) ·
-  `src/lib/ingesta` punto único para crear movimientos (manual, CSV, recurrente; luego OCR/WhatsApp/banco).
+  `src/lib/ingesta` punto único para crear movimientos (manual, CSV, recurrente; luego OCR/WhatsApp/banco) ·
+  `src/lib/ia` lectura con IA (Claude u OpenAI) · `src/lib/hogar` configuración y personas a cargo ·
+  `src/lib/cola` registros sin conexión.
 - Pruebas unitarias junto al código (`*.test.ts`); pruebas RLS en `tests/rls`.
 
 ## Convenciones
@@ -115,14 +117,36 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     gasto en Deudas. Metas (`budgets_goals` tipo `meta`): ahorrado = `ahorrado_inicial` + movimientos con `goal_id`
     (gasto en «Ahorro e inversión», fuera del costo de vida). Recordatorios guardan fechas y canales; el envío por
     WhatsApp, correo o notificación queda para cuando se conecten esos servicios.
-23. IA (`src/lib/ia`, `claude-opus-5-5`, salida estructurada con Zod y `fallbacks: "default"`): el asistente de
-    comprobantes lee fotos, PDF o texto; `src/lib/comprobantes` decide (registrar, revisar o descartar; confianza
-    mínima 70; reglas aprendidas por comercio en `merchant_rules`). Duplicado = mismo tipo y monto a ±2 días: se
-    adjunta como soporte en lugar de crear otro movimiento. Los extractos en PDF se convierten en filas
-    (fecha, descripción, valor) que el importador trata como CSV. Requiere `ANTHROPIC_API_KEY` (solo servidor);
-    sin ella la app avisa y lo demás funciona. Las fotos se comprimen a 1600 px en el navegador antes de subirlas.
+23. IA (`src/lib/ia`, salida estructurada con Zod): el asistente de comprobantes lee fotos, PDF o texto;
+    `src/lib/comprobantes` decide (registrar, revisar o descartar; confianza mínima 70; reglas aprendidas por comercio
+    en `merchant_rules`). Duplicado = mismo tipo y monto a ±2 días: se adjunta como soporte en lugar de crear otro
+    movimiento. Los extractos en PDF se convierten en filas (fecha, descripción, valor) que el importador trata como
+    CSV. Las fotos se comprimen a 1600 px en el navegador antes de subirlas.
+    **Proveedores**: Anthropic (`anthropic.ts`, streaming + `fallbacks: "default"`, `effort: low` solo en Opus/Sonnet)
+    y OpenAI (`openai.ts`, Responses API, `zodTextFormat` estricto, `store: false`). Mismo contrato
+    (`pedirEstructurado`), mismos esquemas y textos (`esquemas.ts`). Llaves solo en el servidor (`ANTHROPIC_API_KEY`,
+    `OPENAI_API_KEY`); sin ninguna la app avisa y lo demás funciona. El hogar elige proveedor y modelo (texto libre
+    con sugerencias) en `households.config.ia`; `resolverIa` (`proveedores.ts`): elección del hogar si su proveedor
+    tiene llave → `IA_PROVEEDOR` → el primero con llave; modelo: el del hogar → `*_MODEL` → por defecto
+    (`claude-opus-5-5`, `gpt-6.1-sol`). Errores de API se traducen en `explicarError` (llave, modelo inexistente…).
+    Pruebas de adaptadores con los SDK reales contra un servidor falso local (`OPENAI_BASE_URL`/`ANTHROPIC_BASE_URL`).
 24. Datos de prueba: `node scripts/sembrar-demo.mjs` crea el hogar de demostración (andres@ y camila@myhouse.test,
-    clave de las pruebas RLS) con 12 meses de movimientos. Solo contra Supabase local.
+    clave de las pruebas RLS) con 12 meses de movimientos y dos personas a cargo. Solo contra Supabase local.
+25. Contexto del hogar: `households.config` se lee con `leerConfigHogar` y se escribe con `fusionarConfigHogar` (nunca
+    reemplazar el jsonb entero: borraría la configuración de otra pantalla). `config.contexto` (texto libre, ≤ 600)
+    y las personas a cargo (`members` con `parentesco`, `fecha_nacimiento`, `a_cargo_de`, `nota`,
+    `dependiente_dian`) se resumen con `describirHogar` en el texto de sistema del asistente.
+    DIAN: la jurisdicción expone `dependientes` (opcional): orientación por parentesco/edad (art. 387 E.T.) y topes de
+    la deducción desde `tax_params.deducciones` en UVT (10 % hasta 384 UVT/año; 72 UVT adicionales por dependiente,
+    máx. 4). Es orientativo: no se resta de nada ni cambia el semáforo.
+26. Registro sin conexión: si no hay red al guardar en `/rapido`, el registro queda en `localStorage`
+    (`src/lib/cola`, máx. 50) y `ColaSinConexion` (en el layout) lo envía con `registrarRapido` al volver la señal o al
+    abrir la app. Lo que el servidor rechaza queda visible para descartarlo. Solo funciona con la pantalla ya abierta:
+    el SW no guarda páginas. Riesgo conocido: si la respuesta se pierde tras guardar, puede duplicarse.
+27. Trato: toda la interfaz tutea («tú»), como el diseño.
+28. Acciones de servidor: además de RLS, cada acción que escribe revisa `puedeEditar`/`esAdmin` y devuelve un mensaje
+    (RLS sin permiso actualiza 0 filas sin error, y la acción reportaría éxito). Parámetros de URL que van a filtros
+    de PostgREST (`or(...)`) se validan como UUID antes.
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
@@ -130,6 +154,9 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
   does not exist`. Arreglo usado: reconstruir la imagen localmente con `migrations/` y `package.json` del tag
   oficial de github.com/supabase/storage, con el mismo nombre de imagen, y `supabase stop --no-backup`.
 - `.env.local` se genera con `npx supabase status -o env` (API_URL, ANON_KEY, SERVICE_ROLE_KEY).
+- `supabase start` puede fallar por health check (Storage tarda en arrancar; pg-meta fallaba): `db:start` excluye
+  `postgres-meta` (solo lo usa Studio). Si la CLI cree que todo corre pero falta un servicio, `npx supabase stop`
+  (conserva los datos) y `npm run db:start`.
 
 ## Fuera de la Fase 1 (preparado, no implementado)
 OCR con IA, registro por WhatsApp, pronóstico estadístico, pagos/suscripciones, conexión bancaria.
@@ -150,6 +177,8 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] 11. Cierre: CI, autoría en BD, guía de despliegue (`docs/DESPLIEGUE.md`)
 - [x] 12. Diseño visual del sistema My House (navegación, Inicio, Movimientos, Pagos fijos, Renta DIAN, Configuración)
 - [x] 13. Velocidad (JWT con hogar), pantallas del diseño, asistente de comprobantes e importación de PDF
+- [x] 14. Contexto del hogar (personas a cargo, dependientes DIAN), OpenAI como proveedor, filtro Personal/Negocio,
+  registro sin conexión, tuteo en toda la app
 - [ ] Publicar en Supabase Cloud + Vercel (requiere las cuentas del usuario)
 
 ### Criterios de terminado de la Fase 1 (verificados el 2026-11-04 en local)

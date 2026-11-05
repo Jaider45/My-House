@@ -10,7 +10,7 @@ const opcional = z.uuid().optional().or(z.literal("").transform(() => undefined)
 const esquema = z.object({
   id: opcional,
   padre_id: opcional,
-  nombre: z.string().trim().min(1, "Escriba el nombre.").max(60),
+  nombre: z.string().trim().min(1, "Escribe el nombre.").max(60),
   clase: z.enum(["gasto", "ingreso"]),
   tipo: z.enum(["fijo", "variable"]),
   es_esencial: z.literal("on").optional(),
@@ -21,7 +21,7 @@ export async function guardarCategoria(_: Estado, datos: FormData): Promise<Esta
   const r = esquema.safeParse(Object.fromEntries(datos));
   if (!r.success) return { error: r.error.issues[0].message };
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return { error: "Su rol es de solo lectura." };
+  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
 
   const { id, padre_id, nombre, clase, tipo } = r.data;
   const fila = {
@@ -42,6 +42,7 @@ export async function guardarCategoria(_: Estado, datos: FormData): Promise<Esta
 
 export async function archivarCategoria(datos: FormData) {
   const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return;
   await ctx.supabase
     .from("categories")
     .update({ archivada: datos.get("archivar") === "1" })
@@ -51,9 +52,10 @@ export async function archivarCategoria(datos: FormData) {
 
 export async function eliminarCategoria(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
   const { error } = await ctx.supabase.from("categories").delete().eq("id", String(datos.get("id")));
   if (error?.code === "23503") {
-    return { error: "Tiene movimientos, reglas o subcategorías. Archívela en lugar de eliminarla." };
+    return { error: "Tiene movimientos, reglas o subcategorías. Archívala en lugar de eliminarla." };
   }
   if (error) return { error: mensajeError(error) };
   revalidatePath("/categorias");

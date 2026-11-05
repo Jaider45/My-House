@@ -1,0 +1,39 @@
+import "server-only";
+import OpenAI from "openai";
+import { zodTextFormat } from "openai/helpers/zod";
+import type * as z from "zod/v4";
+import { ErrorIa, RespuestaCortada, type Archivo, type PeticionEstructurada } from "./tipos";
+
+let cliente: OpenAI | null = null;
+const openai = () => (cliente ??= new OpenAI());
+
+type Contenido = OpenAI.Responses.ResponseInputContent;
+
+const bloqueArchivo = (a: Archivo): Contenido =>
+  a.mime === "application/pdf"
+    ? { type: "input_file", filename: a.nombre || "documento.pdf", file_data: `data:application/pdf;base64,${a.base64}` }
+    : { type: "input_image", detail: "auto", image_url: `data:${a.mime};base64,${a.base64}` };
+
+/** GPT con salida estructurada (Responses API, JSON Schema estricto generado desde Zod). */
+export async function pedirEstructurado<T extends z.ZodType>(p: PeticionEstructurada<T>): Promise<z.infer<T>> {
+  const contenido: Contenido[] = [];
+  if (p.archivo) contenido.push(bloqueArchivo(p.archivo));
+  contenido.push({ type: "input_text", text: p.texto });
+  const respuesta = await openai().responses.parse({
+    model: p.modelo,
+    instructions: p.sistema,
+    input: [{ role: "user", content: contenido }],
+    max_output_tokens: p.maxTokens,
+    store: false, // datos financieros: que OpenAI no guarde la conversación
+    text: { format: zodTextFormat(p.esquema, p.nombre) },
+  });
+  if (respuesta.status === "incomplete") {
+    if (respuesta.incomplete_details?.reason === "max_output_tokens") throw new RespuestaCortada("La respuesta del modelo quedó incompleta.");
+    throw new ErrorIa("El modelo no quiso procesar ese archivo.");
+  }
+  const refusal = respuesta.output.some((o) => o.type === "message" && o.content.some((c) => c.type === "refusal"));
+  if (refusal) throw new ErrorIa("El modelo no quiso procesar ese archivo.");
+  const datos = p.esquema.safeParse(respuesta.output_parsed);
+  if (!datos.success) throw new ErrorIa("El modelo devolvió datos que no se pueden leer.");
+  return datos.data;
+}

@@ -15,9 +15,10 @@ const esquema = z.object({
   nombre: z.string().trim().min(1, "Escribe tu nombre.").max(80),
   ciudad: z.string().trim().max(60).optional(),
   ninos: z.coerce.number().int().min(0).max(10).default(0),
+  otros: z.coerce.number().int().min(0).max(10).default(0),
 });
 
-/** Paso 1: crea el hogar (con su ciudad y los niños como dependientes) y sigue a los pagos fijos. */
+/** Paso 1: crea el hogar (con su ciudad y las personas a cargo) y sigue a los pagos fijos. */
 export async function crearHogar(_: Estado, datos: FormData): Promise<Estado> {
   const r = esquema.safeParse(Object.fromEntries(datos));
   if (!r.success) return { error: r.error.issues[0].message };
@@ -25,10 +26,13 @@ export async function crearHogar(_: Estado, datos: FormData): Promise<Estado> {
   const { data: hogar, error } = await supabase.rpc("crear_hogar", { p_nombre: r.data.hogar, p_nombre_miembro: r.data.nombre });
   if (error) return { error: mensajeError(error) };
   if (r.data.ciudad) await supabase.from("households").update({ ciudad: r.data.ciudad }).eq("id", hogar);
-  if (r.data.ninos) {
-    await supabase
-      .from("members")
-      .insert(Array.from({ length: r.data.ninos }, (_, i) => ({ household_id: hogar, nombre: r.data.ninos === 1 ? "Hijo" : `Hijo ${i + 1}`, es_dependiente: true })));
+  // Personas a cargo con nombre genérico: se completan (nombre, edad, quién las tiene a cargo) en Miembros.
+  const aCargo = [
+    ...Array.from({ length: r.data.ninos }, (_, i) => ({ nombre: r.data.ninos === 1 ? "Hijo" : `Hijo ${i + 1}`, parentesco: "hijo" as const })),
+    ...Array.from({ length: r.data.otros }, (_, i) => ({ nombre: r.data.otros === 1 ? "Familiar a cargo" : `Familiar a cargo ${i + 1}`, parentesco: "otro" as const })),
+  ];
+  if (aCargo.length) {
+    await supabase.from("members").insert(aCargo.map((p) => ({ ...p, household_id: hogar, es_dependiente: true })));
   }
   await supabase.auth.refreshSession(); // el JWT nuevo trae el hogar (custom_access_token_hook)
   redirect("/onboarding?paso=2");

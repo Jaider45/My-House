@@ -44,8 +44,12 @@ export function FormularioHogar({ nombre }: { nombre: string }) {
           <span className="text-[13px] font-semibold text-cuerpo">¿Quiénes viven en la casa?</span>
           <div className="flex flex-wrap gap-3">
             <Contador etiqueta="Niños" nombre="ninos" inicial={0} />
+            <Contador etiqueta="Otros a cargo" nombre="otros" inicial={0} />
           </div>
-          <span className="text-[13px] text-tenue">Los adultos entran con su propia cuenta: los invitas en el paso 3.</span>
+          <span className="text-[13px] text-tenue">
+            «Otros a cargo»: padres, abuelos u otros familiares que dependen del hogar. Los adultos con ingresos entran con su propia cuenta:
+            los invitas en el paso 3.
+          </span>
         </div>
       </div>
       <MensajeEstado estado={estado} />

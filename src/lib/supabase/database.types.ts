@@ -223,17 +223,23 @@ isOneToOne: false
                   ]
                 },"members": {
                   Row: {
-                    "created_at": string,"es_dependiente": boolean,"household_id": string,"id": string,"nombre": string,"rol": Database["public"]['Enums']["rol_miembro"] | null,"user_id": string | null
+                    "a_cargo_de": string | null,"created_at": string,"dependiente_dian": boolean,"es_dependiente": boolean,"fecha_nacimiento": string | null,"household_id": string,"id": string,"nombre": string,"nota": string | null,"parentesco": string | null,"rol": Database["public"]['Enums']["rol_miembro"] | null,"user_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"es_dependiente"?: boolean,"household_id": string,"id"?: string,"nombre": string,"rol"?: Database["public"]['Enums']["rol_miembro"] | null,"user_id"?: string | null
+                    "a_cargo_de"?: string | null,"created_at"?: string,"dependiente_dian"?: boolean,"es_dependiente"?: boolean,"fecha_nacimiento"?: string | null,"household_id": string,"id"?: string,"nombre": string,"nota"?: string | null,"parentesco"?: string | null,"rol"?: Database["public"]['Enums']["rol_miembro"] | null,"user_id"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"es_dependiente"?: boolean,"household_id"?: string,"id"?: string,"nombre"?: string,"rol"?: Database["public"]['Enums']["rol_miembro"] | null,"user_id"?: string | null
+                    "a_cargo_de"?: string | null,"created_at"?: string,"dependiente_dian"?: boolean,"es_dependiente"?: boolean,"fecha_nacimiento"?: string | null,"household_id"?: string,"id"?: string,"nombre"?: string,"nota"?: string | null,"parentesco"?: string | null,"rol"?: Database["public"]['Enums']["rol_miembro"] | null,"user_id"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "members_a_cargo_de_household_id_fkey"
+      columns: ["a_cargo_de","household_id"]
+isOneToOne: false
+      referencedRelation: "members"
+      referencedColumns: ["id","household_id"]
+    },{
       foreignKeyName: "members_household_id_fkey"
       columns: ["household_id"]
 isOneToOne: false
@@ -359,14 +365,14 @@ isOneToOne: false
                   ]
                 },"tax_params": {
                   Row: {
-                    "anio": number,"id": string,"pais": string,"topes": NonNullable<Json>,"uvt_valor": number
+                    "anio": number,"deducciones": NonNullable<Json>,"id": string,"pais": string,"topes": NonNullable<Json>,"uvt_valor": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "anio": number,"id"?: string,"pais": string,"topes": NonNullable<Json>,"uvt_valor": number
+                    "anio": number,"deducciones"?: NonNullable<Json>,"id"?: string,"pais": string,"topes": NonNullable<Json>,"uvt_valor": number
                   }
                   Update: {
-                    "anio"?: number,"id"?: string,"pais"?: string,"topes"?: NonNullable<Json>,"uvt_valor"?: number
+                    "anio"?: number,"deducciones"?: NonNullable<Json>,"id"?: string,"pais"?: string,"topes"?: NonNullable<Json>,"uvt_valor"?: number
                   }
                   Relationships: [
                     

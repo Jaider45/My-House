@@ -7,7 +7,7 @@ import { mensajeError, type Estado } from "@/lib/acciones";
 
 const esquema = z.object({
   token: z.string().regex(/^[0-9a-f]{48}$/),
-  nombre: z.string().trim().min(1, "Escriba su nombre.").max(80),
+  nombre: z.string().trim().min(1, "Escribe tu nombre.").max(80),
 });
 
 export async function aceptarInvitacion(_: Estado, datos: FormData): Promise<Estado> {

@@ -116,17 +116,20 @@ export function Tarjeta({
   accion,
   children,
   className,
+  id,
 }: {
   titulo?: ReactNode;
   subtitulo?: ReactNode;
   accion?: ReactNode;
   children: ReactNode;
   className?: string;
+  id?: string;
 }) {
   return (
     <section
+      id={id}
       className={cx(
-        "rounded-2xl border border-borde bg-elevada p-4 text-tinta md:p-6",
+        "scroll-mt-4 rounded-2xl border border-borde bg-elevada p-4 text-tinta md:p-6",
         className,
       )}
     >

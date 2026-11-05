@@ -11,7 +11,7 @@ export function FormularioAceptar({ token, nombre }: { token: string; nombre: st
   return (
     <form action={accion} className="space-y-4">
       <input type="hidden" name="token" value={token} />
-      <Campo etiqueta="Su nombre" name="nombre" defaultValue={nombre} required maxLength={80} />
+      <Campo etiqueta="Tu nombre" name="nombre" defaultValue={nombre} required maxLength={80} />
       <MensajeEstado estado={estado} />
       <BotonEnviar className="w-full" pendiente="Uniéndome…">
         Unirme al hogar

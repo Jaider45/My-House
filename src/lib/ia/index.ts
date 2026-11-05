@@ -1,121 +1,90 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import * as z from "zod/v4";
+import type * as z from "zod/v4";
+import type { obtenerContexto } from "@/lib/sesion";
+import { leerConfigHogar } from "@/lib/hogar";
+import * as anthropic from "./anthropic";
+import * as openai from "./openai";
+import { LecturaComprobante, LecturaExtracto, mensajeComprobante, sistemaComprobante, sistemaExtracto, type ContextoLectura } from "./esquemas";
+import { NOMBRE_PROVEEDOR, resolverIa, type ConfigIa } from "./proveedores";
+import { ErrorIa, RespuestaCortada, type Archivo, type PeticionEstructurada } from "./tipos";
 
 /**
- * Lectura de comprobantes y extractos con Claude (visión + PDF, salida estructurada).
- * Requiere ANTHROPIC_API_KEY en el servidor; nunca se expone al navegador.
+ * Lectura de comprobantes y extractos con IA (visión + PDF, salida estructurada), con Claude o con GPT.
+ * Las llaves (ANTHROPIC_API_KEY, OPENAI_API_KEY) viven solo en el servidor; el hogar elige proveedor y modelo
+ * en Configuración → Hogar.
  */
 
-const MODELO = "claude-opus-5-5";
-// Si el modelo declina una solicitud, el servidor la reintenta con el modelo de respaldo que corresponda.
-const RESPALDO = { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const };
+export { LecturaComprobante, LecturaExtracto, type ContextoLectura } from "./esquemas";
+export type { Archivo } from "./tipos";
+export type { ConfigIa } from "./proveedores";
 
 export class IaNoConfigurada extends Error {
   constructor() {
-    super("Falta ANTHROPIC_API_KEY: el asistente de comprobantes no está configurado en este servidor.");
+    super("El asistente no está configurado en este servidor: falta ANTHROPIC_API_KEY u OPENAI_API_KEY.");
   }
 }
 
-let cliente: Anthropic | null = null;
-function anthropic(): Anthropic {
-  if (!process.env.ANTHROPIC_API_KEY) throw new IaNoConfigurada();
-  return (cliente ??= new Anthropic());
+type Ctx = Awaited<ReturnType<typeof obtenerContexto>>;
+
+/** Proveedor y modelo del hogar (o null si el servidor no tiene ninguna llave). */
+export async function iaDelHogar(ctx: Ctx): Promise<ConfigIa | null> {
+  const { data } = await ctx.supabase.from("households").select("config").eq("id", ctx.hogar.id).single();
+  return resolverIa(leerConfigHogar(data?.config).ia, process.env);
 }
 
-export type Archivo = { mime: string; base64: string; nombre: string };
+/** Traduce los errores de las API a algo que la familia (o quien administra) pueda resolver. */
+export function explicarError(e: unknown, ia: ConfigIa): string {
+  if (e instanceof ErrorIa) return e.message;
+  const estado = (e as { status?: number })?.status;
+  const proveedor = NOMBRE_PROVEEDOR[ia.proveedor];
+  if (estado === 401 || estado === 403) return `La llave de ${proveedor} no es válida o no tiene permiso.`;
+  if (estado === 404) return `El modelo «${ia.modelo}» no existe en ${proveedor} o tu llave no tiene acceso. Cámbialo en Configuración → Hogar.`;
+  if (estado === 400) return `${proveedor} rechazó el archivo con el modelo «${ia.modelo}». Prueba otro modelo con visión o una foto más nítida.`;
+  if (estado === 429) return `${proveedor} está limitando el uso en este momento. Intenta de nuevo en un minuto.`;
+  if (estado && estado >= 500) return `${proveedor} no está respondiendo. Intenta de nuevo en un momento.`;
+  // Los SDK validan la salida estructurada por su cuenta y lanzan su propio error si no cumple el esquema.
+  if (!estado && e instanceof Error && /parse|json|zod|schema/i.test(e.message)) return "El modelo devolvió datos que no se pueden leer. Intenta de nuevo.";
+  return "No pude comunicarme con el servicio de IA.";
+}
 
-const bloqueArchivo = (a: Archivo): Anthropic.Beta.BetaContentBlockParam =>
-  a.mime === "application/pdf"
-    ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: a.base64 } }
-    : { type: "image", source: { type: "base64", media_type: a.mime as "image/jpeg" | "image/png" | "image/webp" | "image/gif", data: a.base64 } };
-
-// ── Comprobantes ─────────────────────────────────────────────────────────────
-
-export const LecturaComprobante = z.object({
-  es_comprobante: z.boolean().describe("false si la imagen o el texto no describe un pago, compra o ingreso"),
-  tipo: z.enum(["gasto", "ingreso"]),
-  comercio: z.string().describe("Nombre corto del comercio, persona o entidad (p. ej. «Éxito Calle 80», «Enel»)"),
-  fecha: z.string().nullable().describe("Fecha del pago en formato YYYY-MM-DD, o null si no se lee"),
-  total: z.number().int().nullable().describe("Total pagado en pesos colombianos, entero y positivo, sin centavos; null si no se lee"),
-  categoria: z.string().nullable().describe("Exactamente uno de los nombres de categoría dados, o null si ninguno encaja"),
-  confianza: z.number().int().describe("0 a 100: qué tan seguro estás de comercio, total, fecha y categoría juntos"),
-  cuenta: z.string().nullable().describe("Exactamente uno de los nombres de cuenta dados si el comprobante muestra el medio de pago; si no, null"),
-  etiqueta_dian: z.string().nullable().describe("Exactamente una de las etiquetas tributarias dadas si aplica (medicina prepagada, dependientes…), o null"),
-  ambito: z.enum(["personal", "negocio"]).nullable().describe("negocio solo si es claramente un gasto o ingreso del trabajo independiente; null si no se sabe"),
-  pregunta: z.string().nullable().describe("Si falta un dato para registrarlo, la pregunta corta para la familia; si no falta nada, null"),
-});
-export type LecturaComprobante = z.infer<typeof LecturaComprobante>;
-
-export type ContextoLectura = { hoy: string; categorias: string[]; cuentas: string[]; etiquetas: string[] };
-
-const instrucciones = (c: ContextoLectura) => `Eres el asistente de comprobantes de My House, una app de finanzas de un hogar en Colombia.
-Lees facturas, recibos, capturas de transferencias (Nequi, Daviplata, bancos) y mensajes cortos, y devuelves los datos para registrar el movimiento.
-Hoy es ${c.hoy} (zona America/Bogota). Los montos están en pesos colombianos: el punto separa miles («$ 286.400» son 286400).
-Usa el total final pagado (con impuestos y propina), no subtotales. Si el año no aparece, asume el más reciente que no sea futuro.
-Categorías de gasto e ingreso del hogar: ${c.categorias.join(", ")}.
-Cuentas del hogar: ${c.cuentas.join(", ")}.
-Etiquetas tributarias: ${c.etiquetas.join(", ")}.
-Si algo no se lee con seguridad, déjalo en null y pon una pregunta corta en español (tuteo) en "pregunta".`;
+async function pedir<T extends z.ZodType>(ia: ConfigIa, p: Omit<PeticionEstructurada<T>, "modelo">): Promise<z.infer<T>> {
+  const adaptador = ia.proveedor === "openai" ? openai : anthropic;
+  try {
+    return await adaptador.pedirEstructurado({ ...p, modelo: ia.modelo });
+  } catch (e) {
+    if (e instanceof RespuestaCortada) throw e;
+    throw new ErrorIa(explicarError(e, ia));
+  }
+}
 
 /** Lee un comprobante (foto o PDF) o un mensaje de texto con un gasto. */
-export async function leerComprobante(entrada: { archivo?: Archivo; texto?: string }, contexto: ContextoLectura): Promise<LecturaComprobante> {
-  const contenido: Anthropic.Beta.BetaContentBlockParam[] = [];
-  if (entrada.archivo) contenido.push(bloqueArchivo(entrada.archivo));
-  contenido.push({
-    type: "text",
-    text: entrada.archivo
-      ? `Lee este comprobante${entrada.texto ? `. La familia escribió: «${entrada.texto}»` : ""}.`
-      : `La familia escribió: «${entrada.texto ?? ""}». Si describe un gasto o ingreso, extrae sus datos.`,
+export async function leerComprobante(ia: ConfigIa, entrada: { archivo?: Archivo; texto?: string }, contexto: ContextoLectura): Promise<LecturaComprobante> {
+  return pedir(ia, {
+    sistema: sistemaComprobante(contexto),
+    archivo: entrada.archivo,
+    texto: mensajeComprobante({ conArchivo: Boolean(entrada.archivo), texto: entrada.texto }),
+    esquema: LecturaComprobante,
+    nombre: "lectura_comprobante",
+    maxTokens: 4000,
+    esfuerzoBajo: true,
   });
-  const respuesta = await anthropic().beta.messages.parse({
-    model: MODELO,
-    max_tokens: 4000,
-    ...RESPALDO,
-    output_config: { effort: "low", format: betaZodOutputFormat(LecturaComprobante) },
-    system: instrucciones(contexto),
-    messages: [{ role: "user", content: contenido }],
-  });
-  if (respuesta.stop_reason === "refusal" || !respuesta.parsed_output) {
-    throw new Error("No pude leer ese comprobante. Intenta con una foto más nítida.");
-  }
-  return respuesta.parsed_output;
 }
 
-// ── Extractos bancarios en PDF ────────────────────────────────────────────────
-
-export const LecturaExtracto = z.object({
-  banco: z.string().nullable(),
-  filas: z
-    .array(
-      z.object({
-        fecha: z.string().describe("YYYY-MM-DD"),
-        descripcion: z.string().describe("Descripción tal como aparece en el extracto"),
-        valor: z.number().int().describe("Pesos enteros: negativo para débitos, cargos y compras; positivo para abonos y consignaciones"),
-      }),
-    )
-    .describe("Todos los movimientos del extracto, en orden; sin saldos, totales ni intereses informativos"),
-});
-export type LecturaExtracto = z.infer<typeof LecturaExtracto>;
-
 /** Extrae los movimientos de un extracto bancario o de tarjeta en PDF. */
-export async function leerExtracto(pdf: Archivo, hoy: string): Promise<LecturaExtracto> {
-  const stream = anthropic().beta.messages.stream({
-    model: MODELO,
-    max_tokens: 64000,
-    ...RESPALDO,
-    output_config: { effort: "low", format: betaZodOutputFormat(LecturaExtracto) },
-    system: `Extraes movimientos de extractos bancarios y de tarjetas de crédito de Colombia. Hoy es ${hoy}.
-Los montos van en pesos enteros (el punto separa miles). Incluye cada movimiento una sola vez, también los de varias páginas.
-No incluyas saldos iniciales o finales, totales, cupos ni resúmenes. En tarjetas, las compras y avances son negativos y los pagos a la tarjeta positivos.`,
-    messages: [{ role: "user", content: [bloqueArchivo(pdf), { type: "text", text: "Extrae todos los movimientos de este extracto." }] }],
-  });
-  const respuesta = await stream.finalMessage();
-  if (respuesta.stop_reason === "refusal") throw new Error("No pude leer ese extracto.");
-  if (respuesta.stop_reason === "max_tokens") throw new Error("El extracto es demasiado largo: divídelo por meses e impórtalo por partes.");
-  const texto = respuesta.content.find((b) => b.type === "text");
-  const datos = LecturaExtracto.safeParse(texto?.type === "text" ? JSON.parse(texto.text) : null);
-  if (!datos.success) throw new Error("No pude leer los movimientos de ese extracto.");
-  return datos.data;
+export async function leerExtracto(ia: ConfigIa, pdf: Archivo, hoy: string): Promise<LecturaExtracto> {
+  try {
+    return await pedir(ia, {
+      sistema: sistemaExtracto(hoy),
+      archivo: pdf,
+      texto: "Extrae todos los movimientos de este extracto.",
+      esquema: LecturaExtracto,
+      nombre: "lectura_extracto",
+      // GPT-4.1 admite hasta 32.768 tokens de salida; Claude, bastante más.
+      maxTokens: ia.proveedor === "openai" ? 32000 : 64000,
+      esfuerzoBajo: true,
+    });
+  } catch (e) {
+    if (e instanceof RespuestaCortada) throw new ErrorIa("El extracto es demasiado largo: divídelo por meses e impórtalo por partes.");
+    throw e;
+  }
 }

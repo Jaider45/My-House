@@ -30,7 +30,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
   const anioActual = Number(hoy().slice(0, 4));
   const anio = typeof sp.anio === "string" && /^\d{4}$/.test(sp.anio) ? Number(sp.anio) : anioActual;
 
-  const [semaforo, { data: anios }, { data: etiquetados }] = await Promise.all([
+  const [semaforo, { data: anios }, { data: etiquetados }, { data: aCargo }] = await Promise.all([
     cargarSemaforo(ctx, anio),
     ctx.supabase.from("tax_params").select("anio").eq("pais", ctx.hogar.pais).order("anio", { ascending: false }),
     ctx.supabase
@@ -40,6 +40,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
       .eq("estado", "confirmado")
       .gte("fecha", `${anio}-01-01`)
       .lte("fecha", `${anio}-12-31`),
+    ctx.supabase.from("members").select("id, nombre, a_cargo_de, dependiente_dian").eq("es_dependiente", true).order("created_at"),
   ]);
 
   const porEtiqueta = new Map<string, { total: number; cantidad: number }>();
@@ -54,6 +55,11 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
   const unidad = semaforo.ok ? semaforo.jurisdiccion.unidad : "UVT";
   // Topes distintos del año (unidades → pesos), para el panel de parámetros.
   const topes = [...new Map((persona?.topes ?? []).map((t) => [t.topeUnidades, t])).values()].sort((a, b) => a.topeUnidades - b.topeUnidades);
+  // Personas a cargo que la persona elegida reporta como dependientes (Configuración → Miembros).
+  const susDependientes = (aCargo ?? []).filter((d) => d.dependiente_dian && d.a_cargo_de === persona?.member_id);
+  const beneficio =
+    semaforo.ok && persona ? semaforo.jurisdiccion.dependientes?.beneficio(semaforo.params.uvt_valor, semaforo.params.deducciones ?? {}, susDependientes.length) : null;
+  const sinAsignar = (aCargo ?? []).filter((d) => d.dependiente_dian && !d.a_cargo_de);
 
   return (
     <>
@@ -180,6 +186,56 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
               <li>El patrimonio suma los saldos de las cuentas del titular; inmuebles y vehículos aún no se registran.</li>
             </ul>
           </Tarjeta>
+
+          {persona && beneficio && (
+            <Tarjeta
+              className="lg:col-span-2"
+              titulo={`Dependientes de ${persona.nombre}`}
+              subtitulo="Personas a cargo que reporta en su declaración: bajan el impuesto, no cambian los topes para declarar"
+              accion={
+                <Link href="/ajustes/miembros" className="text-sm font-semibold underline">
+                  Editar personas a cargo
+                </Link>
+              }
+            >
+              {susDependientes.length ? (
+                <div className="grid gap-4 md:grid-cols-[1fr_1.4fr]">
+                  <ul className="flex flex-wrap content-start gap-2">
+                    {susDependientes.map((d) => (
+                      <li key={d.id}>
+                        <Chip tono="info">{d.nombre}</Chip>
+                      </li>
+                    ))}
+                  </ul>
+                  <ul className="space-y-2 text-[15px] text-cuerpo">
+                    <li>
+                      Deducción por dependientes: hasta el <b className="text-tinta">{beneficio.porcentaje} %</b> de sus rentas de trabajo, con
+                      tope de <b className="text-tinta">{formatearCOP(beneficio.topeAnual)}</b> en {anio}.
+                    </li>
+                    <li>
+                      Adicional de <b className="text-tinta">{formatearCOP(beneficio.adicionalPorDependiente)}</b> por dependiente (máximo{" "}
+                      {beneficio.maximoDependientes}): hasta <b className="text-tinta">{formatearCOP(beneficio.adicionalTotal)}</b> con{" "}
+                      {Math.min(susDependientes.length, beneficio.maximoDependientes)}.
+                    </li>
+                    <li className="text-[13px] text-tenue">
+                      Un mismo dependiente lo reporta una sola persona. Las condiciones (edad, estudios, ingresos) y cómo se combinan ambas
+                      deducciones las confirma tu contador.
+                    </li>
+                  </ul>
+                </div>
+              ) : (
+                <Vacio>
+                  {persona.nombre} no tiene dependientes marcados. En Configuración → Miembros elige «A cargo de» y marca «Lo reporto como
+                  dependiente».
+                </Vacio>
+              )}
+              {sinAsignar.length > 0 && (
+                <p className="mt-3 text-[13px] text-tenue">
+                  Sin asignar a nadie: {sinAsignar.map((d) => d.nombre).join(", ")}.
+                </p>
+              )}
+            </Tarjeta>
+          )}
         </div>
 
         <p className="text-[13px] text-tenue">

@@ -29,8 +29,8 @@ async function Contenido({ params }: { params: Promise<{ token: string }> }) {
   ]);
   const inv = filas?.[0];
 
-  if (!inv) return <Aviso>Esta invitación no existe. Pida un enlace nuevo.</Aviso>;
-  if (!inv.vigente) return <Aviso>Esta invitación ya se usó o venció. Pida un enlace nuevo.</Aviso>;
+  if (!inv) return <Aviso>Esta invitación no existe. Pide un enlace nuevo.</Aviso>;
+  if (!inv.vigente) return <Aviso>Esta invitación ya se usó o venció. Pide un enlace nuevo.</Aviso>;
 
   const encabezado = (
     <p className="mb-4 text-sm">
@@ -61,7 +61,7 @@ async function Contenido({ params }: { params: Promise<{ token: string }> }) {
       <div className="space-y-3">
         {encabezado}
         <Aviso>
-          Usted ingresó como {user.email}. Cierre sesión e ingrese con {inv.email} para aceptar.
+          Ingresaste como {user.email}. Cierra sesión e ingresa con {inv.email} para aceptar.
         </Aviso>
       </div>
     );

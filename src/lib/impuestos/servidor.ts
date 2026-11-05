@@ -16,7 +16,7 @@ export async function cargarSemaforo(ctx: Ctx, anio: number): Promise<SemaforoAn
   if (!j) return { ok: false, motivo: `Aún no hay módulo tributario para ${ctx.hogar.pais}.` };
 
   const [{ data: params }, { data: acumulados, error }] = await Promise.all([
-    ctx.supabase.from("tax_params").select("anio, uvt_valor, topes").eq("pais", ctx.hogar.pais).eq("anio", anio).maybeSingle(),
+    ctx.supabase.from("tax_params").select("anio, uvt_valor, topes, deducciones").eq("pais", ctx.hogar.pais).eq("anio", anio).maybeSingle(),
     ctx.supabase.rpc("acumulados_tributarios", { p_household: ctx.hogar.id, p_anio: anio }),
   ]);
   if (!params) return { ok: false, motivo: `No hay valor de ${j.unidad} cargado para ${anio}.` };

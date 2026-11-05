@@ -21,6 +21,7 @@ export type MovimientoEditable = {
   tax_tag_id: string | null;
   comercio: string | null;
   nota: string | null;
+  ambito: "personal" | "negocio";
 };
 
 const TIPOS = [
@@ -73,7 +74,7 @@ export function FormularioMovimiento({ catalogos, movimiento, hoy, miembroId }: 
 
       {tipo === "transferencia" ? (
         <Selector etiqueta="Hacia la cuenta" name="cuenta_destino_id" defaultValue={movimiento?.cuenta_destino_id ?? ""} required>
-          <option value="">Elija…</option>
+          <option value="">Elige…</option>
           {catalogos.cuentas.map((c) => (
             <option key={c.id} value={c.id}>
               {c.nombre}
@@ -82,7 +83,7 @@ export function FormularioMovimiento({ catalogos, movimiento, hoy, miembroId }: 
         </Selector>
       ) : (
         <Selector key={tipo} etiqueta="Categoría" name="category_id" defaultValue={movimiento?.category_id ?? ""} required>
-          <option value="">Elija…</option>
+          <option value="">Elige…</option>
           {cats.map((c) => (
             <option key={c.id} value={c.id}>
               {c.etiqueta}
@@ -102,7 +103,7 @@ export function FormularioMovimiento({ catalogos, movimiento, hoy, miembroId }: 
         <Casilla etiqueta={`Aplicar la categoría a los demás «${movimiento.comercio}» sin categoría`} name="aplicar_similares" defaultChecked />
       )}
 
-      <details className="rounded-xl bg-mosaico p-3" open={Boolean(movimiento?.tax_tag_id || movimiento?.nota)}>
+      <details className="rounded-xl bg-mosaico p-3" open={Boolean(movimiento?.tax_tag_id || movimiento?.nota || movimiento?.ambito === "negocio")}>
         <summary className="cursor-pointer text-sm font-semibold">Más detalles</summary>
         <div className="mt-3 space-y-3">
           <Selector etiqueta="Persona (a quién se atribuye)" name="member_id" defaultValue={movimiento ? (movimiento.member_id ?? "") : miembroId}>
@@ -122,6 +123,12 @@ export function FormularioMovimiento({ catalogos, movimiento, hoy, miembroId }: 
               </option>
             ))}
           </Selector>
+          {tipo !== "transferencia" && (
+            <Selector etiqueta="Ámbito" name="ambito" defaultValue={movimiento?.ambito ?? "personal"}>
+              <option value="personal">Personal / del hogar</option>
+              <option value="negocio">Negocio (trabajo independiente)</option>
+            </Selector>
+          )}
           <AreaTexto etiqueta="Nota" name="nota" defaultValue={movimiento?.nota ?? ""} maxLength={1000} />
         </div>
       </details>

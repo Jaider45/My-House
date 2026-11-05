@@ -11,6 +11,8 @@ import { opcionesCategoria, type Categoria } from "@/lib/categorias";
 import type { CuentaOpcion } from "@/lib/catalogos";
 import type { Estado } from "@/lib/acciones";
 import { registrarRapido } from "../movimientos/acciones";
+import { camposDe, encolar, esErrorDeRed } from "@/lib/cola";
+import { EVENTO_COLA } from "@/components/cola-sin-conexion";
 import { SelectorTipo } from "../movimientos/formulario";
 
 const CLAVE_CUENTA = "myhouse:ultima-cuenta";
@@ -41,8 +43,23 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, hoy }: Props) 
     if (guardada && cuentas.some((c) => c.id === guardada)) setCuenta(guardada);
   }, [cuentas]);
 
-  const [estado, accion] = useActionState(async (previo: Estado, datos: FormData) => {
-    const r = await registrarRapido(previo, datos);
+  const [estado, accion] = useActionState(async (previo: Estado, datos: FormData): Promise<Estado> => {
+    // Sin señal (o si se cae a mitad del envío) el registro queda en este celular y se envía al volver.
+    const enCola = (): Estado => {
+      if (!encolar(localStorage, camposDe(datos))) return { error: "Hay demasiados registros esperando conexión. Conéctate para enviarlos." };
+      window.dispatchEvent(new Event(EVENTO_COLA));
+      return { ok: "Sin conexión: lo guardé en este celular y lo envío apenas vuelva la señal." };
+    };
+    let r: Estado;
+    if (!navigator.onLine) r = enCola();
+    else {
+      try {
+        r = await registrarRapido(previo, datos);
+      } catch (e) {
+        if (!esErrorDeRed(e)) throw e;
+        r = enCola();
+      }
+    }
     if (r?.ok) {
       localStorage.setItem(CLAVE_CUENTA, cuenta);
       setCategoria("");

@@ -9,11 +9,11 @@ import { hoy, parsearFecha } from "@/lib/fechas";
 
 const esquema = z.object({
   id: z.uuid().optional().or(z.literal("").transform(() => undefined)),
-  descripcion: z.string().trim().min(1, "Escriba una descripción.").max(120),
-  monto: z.coerce.number().int().positive("Escriba un monto mayor que cero."),
+  descripcion: z.string().trim().min(1, "Escribe una descripción.").max(120),
+  monto: z.coerce.number().int().positive("Escribe un monto mayor que cero."),
   tipo: z.enum(["gasto", "ingreso"]),
-  account_id: z.uuid("Elija una cuenta."),
-  category_id: z.uuid("Elija una categoría."),
+  account_id: z.uuid("Elige una cuenta."),
+  category_id: z.uuid("Elige una categoría."),
   frecuencia: z.enum(FRECUENCIAS),
   fecha_inicio: z.string().transform((v, c) => parsearFecha(v) ?? (c.addIssue({ code: "custom", message: "Fecha no válida." }), "")),
 });
@@ -39,7 +39,7 @@ export async function guardarRegla(_: Estado, datos: FormData): Promise<Estado> 
   const r = esquema.safeParse(Object.fromEntries(datos));
   if (!r.success) return { error: r.error.issues[0].message };
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return { error: "Su rol es de solo lectura." };
+  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
 
   const { id, ...campos } = r.data;
   const { ocurrencias, fecha } = primeraDesde(campos.fecha_inicio, campos.frecuencia, hoy());
@@ -58,6 +58,7 @@ export async function guardarRegla(_: Estado, datos: FormData): Promise<Estado> 
 
 export async function cambiarEstadoRegla(datos: FormData) {
   const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return;
   const id = String(datos.get("id"));
   const { data: regla } = await ctx.supabase.from("recurring_rules").select("fecha_inicio, frecuencia").eq("id", id).single();
   if (!regla) return;
@@ -67,6 +68,7 @@ export async function cambiarEstadoRegla(datos: FormData) {
 
 export async function eliminarRegla(datos: FormData) {
   const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return;
   const id = String(datos.get("id"));
   // Los programados pendientes se van con la regla; los confirmados quedan como historia.
   await ctx.supabase.from("transactions").delete().eq("recurring_rule_id", id).eq("estado", "programado");

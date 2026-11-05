@@ -28,8 +28,8 @@ export const esquemaMovimiento = z
       if (!iso) c.addIssue({ code: "custom", message: "La fecha no es válida." });
       return iso ?? "";
     }),
-    monto: z.coerce.number().int("El monto debe ser en pesos enteros.").positive("Escriba un monto mayor que cero.").max(1e13),
-    account_id: z.uuid("Elija una cuenta."),
+    monto: z.coerce.number().int("El monto debe ser en pesos enteros.").positive("Escribe un monto mayor que cero.").max(1e13),
+    account_id: z.uuid("Elige una cuenta."),
     cuenta_destino_id: uuidOpcional,
     category_id: uuidOpcional,
     member_id: uuidOpcional,
@@ -37,15 +37,16 @@ export const esquemaMovimiento = z
     comercio: textoOpcional(200),
     nota: textoOpcional(1000),
     estado: z.enum(["confirmado", "programado"]).default("confirmado"),
+    ambito: z.enum(["personal", "negocio"]).default("personal"),
     origen: z.enum(ORIGENES).default("manual"),
   })
   .superRefine((m, c) => {
     if (m.tipo === "transferencia") {
-      if (!m.cuenta_destino_id) c.addIssue({ code: "custom", path: ["cuenta_destino_id"], message: "Elija la cuenta destino." });
+      if (!m.cuenta_destino_id) c.addIssue({ code: "custom", path: ["cuenta_destino_id"], message: "Elige la cuenta destino." });
       if (m.cuenta_destino_id === m.account_id) c.addIssue({ code: "custom", path: ["cuenta_destino_id"], message: "La cuenta destino debe ser otra." });
     } else if (!m.category_id && m.origen === "manual") {
       // Lo importado puede entrar sin categoría y categorizarse después.
-      c.addIssue({ code: "custom", path: ["category_id"], message: "Elija una categoría." });
+      c.addIssue({ code: "custom", path: ["category_id"], message: "Elige una categoría." });
     }
   })
   .transform((m) =>
@@ -77,5 +78,6 @@ export function movimientoDesdeFormulario(datos: FormData) {
     tax_tag_id: v("tax_tag_id"),
     comercio: v("comercio"),
     nota: v("nota"),
+    ambito: (v("ambito") || undefined) as EntradaMovimiento["ambito"],
   });
 }

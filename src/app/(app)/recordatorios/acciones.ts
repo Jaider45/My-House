@@ -34,6 +34,7 @@ export async function guardarRecordatorio(_: Estado, datos: FormData): Promise<E
 /** Prende o apaga un recordatorio (`tipo` = recordatorio) o el aviso de un pago fijo (`tipo` = regla). */
 export async function cambiarRecordatorio(datos: FormData) {
   const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return;
   const id = String(datos.get("id"));
   const activo = datos.get("activo") === "1";
   if (datos.get("tipo") === "regla") await ctx.supabase.from("recurring_rules").update({ recordar: activo }).eq("id", id);

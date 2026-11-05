@@ -7,6 +7,8 @@ import { formatearCOP } from "@/lib/dinero";
 import { formatearFecha, hoy, mesDe } from "@/lib/fechas";
 import { opcionesCategoria, type Categoria } from "@/lib/categorias";
 import { iconoCategoria } from "@/lib/categorias/iconos";
+import { iaDelHogar } from "@/lib/ia";
+import { NOMBRE_PROVEEDOR } from "@/lib/ia/proveedores";
 import { cambiarRegla, deshacerComprobante } from "./acciones";
 import { Compositor } from "./chat";
 import { FormularioResolver } from "./formularios";
@@ -60,7 +62,7 @@ async function Contenido() {
   const ctx = await obtenerContexto(); // antes de hoy(): marca el render como dinámico
   const fecha = hoy();
   const mes = mesDe(fecha);
-  const [{ data: mensajes }, { data: recibos }, { data: reglas }, { data: categorias }, { data: cuentas }, { data: miembros }] = await Promise.all([
+  const [{ data: mensajes }, { data: recibos }, { data: reglas }, { data: categorias }, { data: cuentas }, { data: miembros }, ia] = await Promise.all([
     ctx.supabase.from("assistant_messages").select("id, autor, texto, receipt_ids, created_by, created_at").order("created_at", { ascending: false }).limit(40),
     ctx.supabase
       .from("receipts")
@@ -72,6 +74,7 @@ async function Contenido() {
     ctx.supabase.from("categories").select("id, nombre, padre_id, clase, tipo, es_esencial, excluir_de_costo_vida, archivada"),
     ctx.supabase.from("accounts").select("id, nombre").eq("archivada", false).order("created_at"),
     ctx.supabase.from("members").select("nombre, user_id"),
+    iaDelHogar(ctx),
   ]);
   const lista = (recibos ?? []) as Recibo[];
   const porId = new Map(lista.map((r) => [r.id, r]));
@@ -90,7 +93,7 @@ async function Contenido() {
   const ctaPorNombre = new Map((cuentas ?? []).map((c) => [c.nombre.toLowerCase(), c.id]));
   const opcionesCuentas = (cuentas ?? []).map((c) => ({ id: c.id, etiqueta: c.nombre }));
   const pendientes = lista.filter((r) => r.estado === "por_revisar");
-  const iaLista = !!process.env.ANTHROPIC_API_KEY;
+  const iaLista = ia !== null;
   const cuenta = (n: Recibo["estado"][]) => lista.filter((r) => n.includes(r.estado)).length;
 
   const tarjeta = (r: Recibo) => {
@@ -173,9 +176,22 @@ async function Contenido() {
         <div role="log" aria-live="polite" className="flex flex-col gap-3.5 p-3.5 md:gap-[18px] md:p-6">
           {!iaLista && (
             <Aviso tipo="info">
-              El asistente necesita una llave de la API de Anthropic en el servidor (<code>ANTHROPIC_API_KEY</code>). Mientras
-              tanto puedes ver la conversación y resolver lo pendiente.
+              El asistente necesita una llave de IA en el servidor: <code>ANTHROPIC_API_KEY</code> (Claude) u{" "}
+              <code>OPENAI_API_KEY</code> (GPT). Mientras tanto puedes ver la conversación y resolver lo pendiente.
             </Aviso>
+          )}
+          {ia && (
+            <p className="text-xs text-tenue">
+              Leyendo con {NOMBRE_PROVEEDOR[ia.proveedor]} · <code>{ia.modelo}</code>
+              {ctx.esAdmin && (
+                <>
+                  {" · "}
+                  <Link href="/ajustes/hogar#asistente" className="underline">
+                    Cambiar
+                  </Link>
+                </>
+              )}
+            </p>
           )}
           {conversacion.length === 0 && (
             <div className="flex items-start gap-2.5">

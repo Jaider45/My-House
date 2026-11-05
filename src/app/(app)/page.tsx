@@ -134,7 +134,13 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
             icono="ahorro"
             etiqueta="Ahorro del mes"
             valor={formatearCOP(ahorroProyectado)}
-            detalle={r.ingresos ? `Proyectado · ${porcentaje(Math.max(0, ahorroProyectado), r.ingresos)} % de los ingresos` : "Proyectado: ingresos menos costo de vida"}
+            detalle={
+              !r.ingresos
+                ? "Proyectado: ingresos menos costo de vida"
+                : ahorroProyectado < 0
+                  ? "Proyectado · los gastos superan los ingresos del mes"
+                  : `Proyectado · ${porcentaje(ahorroProyectado, r.ingresos)} % de los ingresos`
+            }
           />
           <Kpi
             clave

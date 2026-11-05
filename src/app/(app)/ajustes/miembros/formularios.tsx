@@ -1,10 +1,11 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Boton, Campo, Selector } from "@/components/ui";
+import { AreaTexto, Boton, Campo, Casilla, Selector } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { MensajeEstado } from "@/components/ui/estado";
-import { agregarDependiente, invitarMiembro } from "../acciones";
+import { PARENTESCOS } from "@/lib/hogar";
+import { guardarPersonaACargo, invitarMiembro } from "../acciones";
 
 export function FormularioInvitar() {
   const [estado, accion] = useActionState(invitarMiembro, null);
@@ -48,14 +49,54 @@ export function CopiarEnlace({ enlace }: { enlace: string }) {
   );
 }
 
-export function FormularioDependiente() {
-  const [estado, accion] = useActionState(agregarDependiente, null);
+export type PersonaEditable = {
+  id: string;
+  nombre: string;
+  parentesco: string | null;
+  fecha_nacimiento: string | null;
+  a_cargo_de: string | null;
+  nota: string | null;
+  dependiente_dian: boolean;
+};
+
+/** Alta o edición de una persona a cargo (hijos, padres, pareja sin ingresos…), sin acceso a la app. */
+export function FormularioPersona({ persona, adultos, hoy }: { persona?: PersonaEditable; adultos: { id: string; nombre: string }[]; hoy: string }) {
+  const [estado, accion] = useActionState(guardarPersonaACargo, null);
   return (
     <form action={accion} className="space-y-3">
-      <Campo etiqueta="Nombre" name="nombre" required maxLength={80} ayuda="Hijos u otras personas a cargo, sin acceso a la app." />
+      <input type="hidden" name="id" value={persona?.id ?? ""} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Campo etiqueta="Nombre" name="nombre" defaultValue={persona?.nombre} required maxLength={80} />
+        <Selector etiqueta="Parentesco" name="parentesco" defaultValue={persona?.parentesco ?? ""}>
+          <option value="">Sin especificar</option>
+          {Object.entries(PARENTESCOS).map(([v, t]) => (
+            <option key={v} value={v}>
+              {t}
+            </option>
+          ))}
+        </Selector>
+        <Campo etiqueta="Fecha de nacimiento" name="fecha_nacimiento" type="date" max={hoy} defaultValue={persona?.fecha_nacimiento ?? ""} />
+        <Selector etiqueta="A cargo de" name="a_cargo_de" defaultValue={persona?.a_cargo_de ?? ""}>
+          <option value="">Del hogar</option>
+          {adultos.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.nombre}
+            </option>
+          ))}
+        </Selector>
+      </div>
+      <AreaTexto
+        etiqueta="Nota (opcional)"
+        name="nota"
+        defaultValue={persona?.nota ?? ""}
+        maxLength={200}
+        rows={2}
+        placeholder="Ej.: estudia en la universidad, no tiene ingresos propios, tiene medicina prepagada."
+      />
+      <Casilla etiqueta="Lo reporto como dependiente en la declaración de renta" name="dependiente_dian" defaultChecked={persona?.dependiente_dian ?? false} />
       <MensajeEstado estado={estado} />
-      <BotonEnviar variante="secundario" className="w-full">
-        Agregar dependiente
+      <BotonEnviar variante={persona ? "primario" : "secundario"} className="w-full">
+        {persona ? "Guardar cambios" : "Agregar persona a cargo"}
       </BotonEnviar>
     </form>
   );

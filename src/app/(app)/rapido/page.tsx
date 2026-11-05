@@ -39,7 +39,7 @@ function masUsadas(filas: { category_id: string | null }[]): string[] {
 
 async function Contenido() {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return <Aviso>Su rol es de solo lectura.</Aviso>;
+  if (!ctx.puedeEditar) return <Aviso>Tu rol es de solo lectura.</Aviso>;
   const hace90 = sumarDias(hoy(), -90);
   const [catalogos, { data: recientes }] = await Promise.all([
     cargarCatalogos(ctx),
@@ -49,7 +49,7 @@ async function Contenido() {
   if (!catalogos.cuentas.length) {
     return (
       <div className="space-y-3">
-        <Aviso tipo="info">Para registrar, primero cree una cuenta (banco, efectivo o tarjeta).</Aviso>
+        <Aviso tipo="info">Para registrar, primero crea una cuenta (banco, efectivo o tarjeta).</Aviso>
         <EnlaceBoton href="/cuentas" className="w-full">
           Crear cuenta
         </EnlaceBoton>

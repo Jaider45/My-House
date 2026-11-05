@@ -4,8 +4,8 @@
 
 ### Las finanzas del hogar en orden: gastos, costo de vida y renta sin sorpresas
 
-Registra ingresos y gastos en segundos desde el celular, conoce cuánto cuesta vivir cada mes
-y llega a la declaración de renta con todo clasificado y el semáforo DIAN a la vista.
+Registra ingresos y gastos en segundos desde el celular (o mándale la foto de la factura al asistente),
+conoce cuánto cuesta vivir cada mes y llega a la declaración de renta con todo clasificado y el semáforo DIAN a la vista.
 
 [![CI](https://github.com/Jaider45/My-House/actions/workflows/ci.yml/badge.svg)](https://github.com/Jaider45/My-House/actions/workflows/ci.yml)
 ![Node](https://img.shields.io/badge/Node-24_LTS-5FA04E?logo=nodedotjs&logoColor=white)
@@ -14,13 +14,15 @@ y llega a la declaración de renta con todo clasificado y el semáforo DIAN a la
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Tailwind](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres_·_RLS-3FCF8E?logo=supabase&logoColor=white)
+![IA](https://img.shields.io/badge/IA-Claude_·_OpenAI-D97757)
 ![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?logo=pwa&logoColor=white)
 
 [Qué es](#-qué-es-my-house) ·
 [Funciones](#-funciones) ·
+[Capturas](#-capturas) ·
 [Cómo funciona](#-cómo-funciona) ·
 [Stack](#-stack) ·
-[Empezar](#-empezar-en-4-pasos) ·
+[Empezar](#-empezar-en-5-pasos) ·
 [Estructura](#-estructura-del-repositorio) ·
 [Estado](#-estado-del-proyecto) ·
 [Documentación](#-documentación)
@@ -35,14 +37,14 @@ y llega a la declaración de renta con todo clasificado y el semáforo DIAN a la
 categorice su dinero. Empieza como herramienta de una familia y está construida **multi-hogar desde el
 día uno**, para abrirse como SaaS sin reescribir.
 
-- **Para el día a día:** registrar un gasto (monto, categoría y cuenta) en menos de 10 segundos, importar
-  el extracto del banco y dejar que los pagos fijos se programen solos.
-- **Para decidir:** el costo de vida del mes, gastos fijos frente a variables, costo por persona y el
-  **número mínimo del hogar** (lo que se necesita sí o sí cada mes).
-- **Para la DIAN:** el acumulado del año de cada persona contra los topes para declarar renta, con el
-  porcentaje alcanzado, y los movimientos etiquetados para el formulario.
+- **Para el día a día:** registrar un gasto en menos de 10 segundos (también sin señal), mandarle al asistente
+  la foto de la factura, importar el extracto del banco en CSV o PDF y dejar que los pagos fijos se programen solos.
+- **Para decidir:** el costo de vida del mes, gastos fijos frente a variables, costo por persona, presupuesto
+  por categoría, deudas, metas de ahorro y el **número mínimo del hogar** (lo que se necesita sí o sí cada mes).
+- **Para la DIAN:** el acumulado del año de cada persona contra los topes para declarar renta, los movimientos
+  etiquetados para el formulario y las **personas a cargo** que cada quien reporta como dependientes.
 
-Interfaz en español, locale `es-CO`, pesos colombianos con punto de miles. El módulo tributario es
+Interfaz en español (tuteo), locale `es-CO`, pesos colombianos con punto de miles. El módulo tributario es
 intercambiable por país; Colombia es el primero.
 
 ## ✨ Funciones
@@ -52,79 +54,113 @@ intercambiable por país; Colombia es el primero.
 <td width="50%" valign="top">
 
 ### 💸 Movimientos
-- **Registro rápido** desde el botón central: teclado numérico, categorías frecuentes y última cuenta usada.
+- **Registro rápido** desde el botón central: monto, categorías frecuentes y última cuenta usada.
+- **Sin conexión:** lo que registras sin señal se guarda en el celular y se envía solo al volver.
 - Ingresos, gastos y **transferencias** entre cuentas (el pago de la tarjeta no se cuenta dos veces).
-- Cuentas de **banco, efectivo y tarjeta** con saldo calculado.
+- Ámbito **personal o negocio** (trabajo independiente), con filtro en la lista.
+- Cuentas de **banco, efectivo, billetera y tarjeta** (cupo, corte y día de pago) con saldo calculado.
 - **Categorías en árbol de dos niveles**: fijas o variables, esenciales o no.
-- Etiquetas tributarias (rentas de trabajo, medicina prepagada, intereses de vivienda, GMF…).
 
 </td>
 <td width="50%" valign="top">
 
-### 📥 Importar y automatizar
-- **Extractos CSV** con mapeo de columnas que se recuerda por cuenta.
-- **Detección de duplicados**, también cuando se cruzan extractos que se solapan.
-- **Deshacer una importación** completa en un clic.
-- **Gastos recurrentes** (arriendo, colegio, servicios) que generan los movimientos programados del mes.
+### 🤖 Asistente con IA
+- **Chat de comprobantes:** fotos, PDF, capturas de Nequi/Daviplata o texto («almuerzo 25 mil con la Visa»).
+- Lee comercio, total, fecha y medio de pago; **registra y categoriza**, o pregunta si falta algo.
+- Si el pago ya estaba registrado, **adjunta el soporte** en lugar de duplicarlo.
+- **Aprende** la categoría de cada comercio.
+- **Claude (Anthropic) u OpenAI (GPT):** cada hogar elige proveedor y modelo; las llaves viven solo en el servidor.
+- Usa el **contexto del hogar** (quiénes son, edades, personas a cargo) para categorizar mejor.
 
 </td>
 </tr>
 <tr>
 <td valign="top">
 
-### 📊 Tablero del mes
-- Ingresos, gastos **fijos frente a variables** y gasto por categoría.
-- **Costo por persona**, contando a los dependientes.
-- **Número mínimo del hogar:** fijos + variables esenciales + cuota de imprevistos (configurable).
-- Pagos programados pendientes por confirmar.
+### 📥 Importar y automatizar
+- **Extractos CSV y PDF** (el PDF lo lee la IA) con mapeo de columnas que se recuerda por cuenta.
+- **Detección de duplicados**, también cuando se cruzan extractos que se solapan.
+- **Deshacer una importación** completa en un clic.
+- **Pagos fijos** (arriendo, colegio, servicios) que generan los movimientos programados del mes.
 
 </td>
 <td valign="top">
 
-### 🚦 Semáforo DIAN
+### 📊 Tablero, presupuesto y metas
+- Ingresos, gastos **fijos frente a variables**, gráfico de 12 meses y próximos pagos.
+- **Costo por persona**, contando a las personas a cargo.
+- **Número mínimo del hogar:** fijos + variables esenciales + cuota de imprevistos (configurable).
+- **Presupuesto** por categoría con pronóstico de cierre, **deudas** con su avance y **metas de ahorro**.
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### 🚦 Renta DIAN
 - Acumulado del año **por persona** contra cada tope para declarar: patrimonio bruto, ingresos,
   consumos con tarjeta, compras y consignaciones.
 - Topes guardados en **UVT** y convertidos a pesos con la UVT del año (2025: $49.799 · 2026: $52.374).
 - Verde por debajo del 70 %, amarillo del 70 % al 99 % y rojo desde el 100 %.
+- **Dependientes:** orientación de quién cuenta (art. 387 E.T.) y topes de la deducción en pesos.
 
 </td>
-</tr>
-<tr>
 <td valign="top">
 
 ### 👨‍👩‍👧 Hogar compartido
 - Invitación por **enlace para compartir por WhatsApp**: la otra persona crea su cuenta y entra al hogar.
 - Roles: **administrador**, **editor** y **contador** (solo lectura).
-- Hijos y otras personas a cargo como **dependientes**, sin acceso a la app.
+- **Personas a cargo** (hijos, padres, pareja sin ingresos) con parentesco, edad y quién las tiene a cargo.
+- **Contexto del hogar** en texto libre para el asistente.
 
 </td>
-<td valign="top">
+</tr>
+<tr>
+<td colspan="2" valign="top">
 
 ### 🛡️ Seguridad
-- **Aislamiento por hogar con Row Level Security** en todas las tablas, comprobado con pruebas.
+- **Aislamiento por hogar con Row Level Security** en todas las tablas, comprobado con pruebas contra Postgres real.
 - **Llaves foráneas compuestas** `(id, household_id)`: ninguna fila puede apuntar a datos de otro hogar.
 - **Verificación en dos pasos (TOTP)** exigida al ingresar cuando está activa.
-- Soportes (facturas, certificados) en un bucket privado, separados por carpeta de hogar.
+- Soportes en un bucket privado por hogar · llaves de IA solo en el servidor · con OpenAI se envía `store: false`.
 - Dinero en **enteros**, nunca `float`.
 
 </td>
 </tr>
 </table>
 
+## 📸 Capturas
+
+Datos de demostración (`node scripts/sembrar-demo.mjs`).
+
+| Inicio | Renta DIAN |
+| :---: | :---: |
+| ![Inicio: indicadores del mes, número mínimo y gráfico de 12 meses](docs/capturas/inicio.png) | ![Renta DIAN: medidores por tope y dependientes](docs/capturas/renta-dian.png) |
+
+| Personas a cargo |
+| :---: |
+| ![Configuración: adultos del hogar y personas a cargo con orientación DIAN](docs/capturas/personas-a-cargo.png) |
+
+| Movimientos (celular) | Asistente de comprobantes | Registro rápido |
+| :---: | :---: | :---: |
+| ![Movimientos agrupados por día](docs/capturas/movimientos-celular.png) | ![Chat del asistente con un comprobante registrado](docs/capturas/comprobantes-celular.png) | ![Registro rápido con categorías frecuentes](docs/capturas/registro-celular.png) |
+
 ## 🔄 Cómo funciona
 
 ```mermaid
 flowchart TD
-    A["👤 Crear cuenta<br/>y hogar"] --> B["✉️ Invitar a la pareja<br/>enlace por WhatsApp"]
-    B --> C["🏦 Cuentas y categorías<br/>sembradas de una vez"]
+    A["👤 Crear cuenta y hogar<br/>con las personas a cargo"] --> B["✉️ Invitar a la pareja<br/>enlace por WhatsApp"]
+    B --> C["🏦 Cuentas, categorías<br/>y pagos fijos"]
     C --> D{"¿Cómo entra<br/>el movimiento?"}
-    D -- "Al momento" --> E["⚡ Registro rápido<br/>menos de 10 s"]
-    D -- "Del banco" --> F["📥 Extracto CSV<br/>sin duplicados"]
-    D -- "Cada mes" --> G["🔁 Recurrente<br/>se programa solo"]
-    E --> H["📊 Tablero del mes<br/>costo de vida y número mínimo"]
-    F --> H
-    G --> H
-    H --> I["🚦 Semáforo DIAN<br/>acumulado del año vs. topes"]
+    D -- "Al momento" --> E["⚡ Registro rápido<br/>también sin señal"]
+    D -- "Foto o PDF" --> F["🤖 Asistente IA<br/>Claude u OpenAI"]
+    D -- "Del banco" --> G["📥 Extracto CSV o PDF<br/>sin duplicados"]
+    D -- "Cada mes" --> H["🔁 Pago fijo<br/>se programa solo"]
+    E --> I["📊 Tablero del mes<br/>costo de vida y número mínimo"]
+    F --> I
+    G --> I
+    H --> I
+    I --> J["🚦 Renta DIAN<br/>topes y dependientes"]
 ```
 
 ## 🧱 Stack
@@ -133,12 +169,13 @@ flowchart TD
 | --- | --- |
 | **WebApp** | Next.js 16 (App Router, Cache Components, Server Actions) · React 19 · TypeScript estricto · Tailwind 4 |
 | **Datos** | Supabase: PostgreSQL 17 con Row Level Security por `household_id` · migraciones SQL versionadas |
-| **Autenticación** | Supabase Auth: correo + contraseña y TOTP (2FA) · sesión con `@supabase/ssr` |
+| **Autenticación** | Supabase Auth: correo + contraseña y TOTP (2FA) · el hogar y el rol viajan en el JWT |
+| **IA** | SDK de Anthropic (Claude, salida estructurada) y de OpenAI (Responses API, JSON Schema estricto) |
 | **Archivos** | Supabase Storage, bucket privado `soportes` |
-| **Procesos programados** | `pg_cron` en Postgres (generación diaria de recurrentes) |
+| **Procesos programados** | `pg_cron` en Postgres (generación diaria de pagos fijos) |
 | **Validación** | Zod 4 · CSV con Papa Parse en el navegador |
-| **Calidad** | Vitest (unitarias + aislamiento RLS contra Postgres real) · ESLint · `tsc` |
-| **Despliegue previsto** | Vercel + Supabase Cloud |
+| **Calidad** | Vitest (unitarias, adaptadores de IA contra API simulada y aislamiento RLS contra Postgres real) · ESLint · `tsc` |
+| **Despliegue previsto** | Vercel (`gru1`) + Supabase Cloud (São Paulo) |
 
 ### Arquitectura
 
@@ -146,29 +183,39 @@ flowchart TD
 flowchart TB
     subgraph Cliente
         W["📱 PWA<br/>Next.js en el navegador"]
+        Q["📦 Cola sin conexión<br/>localStorage"]
     end
     subgraph Vercel
         P["🛂 Proxy<br/>sesión y 2FA"]
         RSC["⚙️ Server Components<br/>y Server Actions"]
+        IA["🤖 Módulo IA<br/>proveedor del hogar"]
     end
     subgraph Supabase
         AU["🔐 Auth<br/>correo + TOTP"]
         PG[("🐘 PostgreSQL<br/>RLS por hogar")]
         ST[("🗂️ Storage<br/>soportes")]
-        CR["⏰ pg_cron<br/>recurrentes"]
+        CR["⏰ pg_cron<br/>pagos fijos"]
+    end
+    subgraph Proveedores IA
+        AN["Anthropic<br/>Claude"]
+        OA["OpenAI<br/>GPT"]
     end
     W --> P --> RSC
+    W <--> Q
     RSC -- "sesión del usuario" --> PG
-    RSC --> AU
-    W -- "2FA y archivos" --> AU
-    W --> ST
+    RSC --> ST
+    RSC --> IA
+    IA --> AN
+    IA --> OA
+    W -- "2FA" --> AU
     CR --> PG
 ```
 
 La autorización vive en la base de datos: la app consulta con la sesión del usuario y **RLS decide qué
-filas existen para él**. El proxy solo hace chequeos optimistas (sesión y 2FA) para redirigir.
+filas existen para él**. El proxy solo hace chequeos optimistas (sesión y 2FA) para redirigir, y cada acción
+revisa además el rol para dar un mensaje claro.
 
-## 🚀 Empezar en 4 pasos
+## 🚀 Empezar en 5 pasos
 
 > Requisitos: **Docker** y **Node 24**. Supabase local necesita unos 10 GB libres de disco para sus imágenes.
 
@@ -179,15 +226,28 @@ npm install
 # 2. Supabase local (Postgres, Auth, Storage y correo de pruebas) + migraciones
 npm run db:start
 
-# 3. Variables de entorno: copie .env.example a .env.local y complete con la salida de
+# 3. Variables de entorno: copia .env.example a .env.local y complétalo con la salida de
 npx supabase status -o env   # API_URL, ANON_KEY y SERVICE_ROLE_KEY
 
-# 4. WebApp
+# 4. (Opcional) Hogar de demostración con 12 meses de movimientos
+node scripts/sembrar-demo.mjs   # andres@myhouse.test · Clave-de-prueba-123
+
+# 5. WebApp
 npm run dev
 ```
 
-Abra <http://localhost:3000>, cree una cuenta y luego su hogar. En local no se exige confirmar el correo;
+Abre <http://localhost:3000>, crea una cuenta y luego tu hogar. En local no se exige confirmar el correo;
 los correos de prueba se ven en Mailpit (<http://127.0.0.1:54324>).
+
+**Asistente de IA:** agrega en `.env.local` al menos una llave, `ANTHROPIC_API_KEY` u `OPENAI_API_KEY`. Con las
+dos, cada hogar elige en **Configuración → Hogar → Asistente de IA** (proveedor y modelo). Sin llaves la app avisa
+y todo lo demás funciona.
+
+| Variable | Para qué |
+| --- | --- |
+| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | Llaves de los proveedores (solo servidor) |
+| `IA_PROVEEDOR` | Proveedor por defecto cuando hay las dos llaves (`anthropic` u `openai`) |
+| `ANTHROPIC_MODEL` / `OPENAI_MODEL` | Modelo por defecto de cada proveedor (`claude-opus-5-5`, `gpt-6.1-sol`) |
 
 Para la 2FA sirve cualquier app TOTP (Google Authenticator, Microsoft Authenticator, 1Password…).
 
@@ -198,29 +258,37 @@ My House/
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/              Ingresar, registro y verificación en dos pasos
-│   │   ├── (app)/               Pantallas con sesión: tablero, movimientos, registro rápido, DIAN, ajustes
-│   │   ├── onboarding/          Crear el hogar
+│   │   ├── (app)/               Pantallas con sesión: inicio, movimientos, comprobantes, presupuesto,
+│   │   │                        pagos fijos, deudas, renta DIAN, metas, cuentas y configuración
+│   │   ├── onboarding/          Crear el hogar en 3 pasos (personas a cargo, pagos fijos, invitación)
 │   │   ├── invitacion/[token]/  Aceptar una invitación
 │   │   └── auth/confirmar/      Enlace de confirmación de correo
-│   ├── components/              Componentes de interfaz compartidos
+│   ├── components/              Interfaz compartida (ui/, marca, cola sin conexión)
 │   ├── lib/
 │   │   ├── supabase/            Clientes servidor/navegador y tipos generados de la BD
-│   │   ├── sesion.ts            Capa de acceso: usuario, miembro y hogar del request
-│   │   ├── dinero/              Formato y lectura de pesos (es-CO)
-│   │   ├── fechas/              Fechas ISO con "hoy" en hora de Bogotá
+│   │   ├── sesion.ts            Capa de acceso: usuario, miembro y hogar del request (desde el JWT)
+│   │   ├── ia/                  Lectura con IA: esquemas, adaptadores Anthropic/OpenAI y elección de proveedor
+│   │   ├── hogar/               Configuración del hogar y personas a cargo
+│   │   ├── comprobantes/        Decidir: registrar, revisar o descartar un comprobante
+│   │   ├── cola/                Registros hechos sin conexión
+│   │   ├── dinero/ · fechas/    Pesos es-CO y fechas con "hoy" en hora de Bogotá
 │   │   ├── finanzas/            Costo de vida y número mínimo
+│   │   ├── presupuesto/ · deudas/ · metas/ · recordatorios/ · recurrentes/
 │   │   ├── importacion/         CSV, mapeo de columnas y duplicados
-│   │   ├── impuestos/           Jurisdicciones tributarias (co/)
-│   │   └── ingesta/             Punto único para crear movimientos (manual, CSV, recurrente…)
+│   │   ├── impuestos/           Jurisdicciones tributarias (co/: topes y dependientes)
+│   │   └── ingesta/             Punto único para crear movimientos (manual, CSV, recurrente, IA…)
 │   └── proxy.ts                 Sesión y exigencia de 2FA
 ├── supabase/
-│   ├── migrations/              Esquema, RLS, funciones, pg_cron y Storage
+│   ├── migrations/              Esquema, RLS, funciones, pg_cron, Storage, JWT con hogar y contexto del hogar
 │   ├── seed.sql                 Datos solo para desarrollo
-│   └── config.toml              Supabase local (TOTP activo)
-├── tests/rls/                   Aislamiento entre hogares y recurrentes contra Postgres real
-├── docs/ejemplos/               Extractos CSV de ejemplo (3 meses + uno solapado)
-├── scripts/                     Generadores de íconos y de extractos de ejemplo
-├── docs/DESPLIEGUE.md           Guía de despliegue
+│   └── config.toml              Supabase local (TOTP y hook del token activos)
+├── tests/rls/                   Aislamiento entre hogares, personas a cargo y recurrentes contra Postgres real
+├── public/sw.js                 Service worker escrito a mano (sin datos financieros en caché)
+├── scripts/                     Íconos, extractos de ejemplo y hogar de demostración
+├── docs/
+│   ├── DESPLIEGUE.md            Guía de despliegue
+│   ├── capturas/                Imágenes de este README
+│   └── ejemplos/                Extractos CSV de ejemplo (3 meses + uno solapado)
 ├── .github/workflows/ci.yml     Integración continua
 ├── CLAUDE.md                    Contexto, convenciones, comandos y decisiones del proyecto
 └── .env.example                 Variables de entorno
@@ -239,26 +307,30 @@ My House/
 | 4 | PWA instalable | ✅ |
 | 5 | Cuentas y categorías | ✅ |
 | 6 | Movimientos y registro rápido | ✅ |
-| 7 | Gastos recurrentes | ✅ |
+| 7 | Pagos fijos (recurrentes) | ✅ |
 | 8 | Importación de extractos CSV | ✅ |
 | 9 | Tablero del mes | ✅ |
 | 10 | Semáforo DIAN | ✅ |
 | 11 | Cierre: CI, autoría en BD y guía de despliegue | ✅ |
-| — | Publicar en Vercel + Supabase Cloud (requiere sus cuentas) | ⏳ [guía](docs/DESPLIEGUE.md) |
+| 12 | Diseño visual My House (celular, laptop y escritorio) | ✅ |
+| 13 | Velocidad (hogar en el JWT), presupuesto, deudas, metas, asistente de comprobantes e importación de PDF | ✅ |
+| 14 | Contexto del hogar y personas a cargo, OpenAI como proveedor, filtro personal/negocio, registro sin conexión | ✅ |
+| — | Publicar en Vercel + Supabase Cloud (requiere tus cuentas) | ⏳ [guía](docs/DESPLIEGUE.md) |
 
-**Después de la Fase 1:** lectura de facturas con IA (OCR), registro por WhatsApp, pronóstico de gastos,
-planes y suscripciones, y conexión bancaria automática. El código ya deja los puntos de entrada listos.
+**Pendiente:** envío de recordatorios por WhatsApp, correo o notificación (las fechas y canales ya se guardan),
+registro por WhatsApp, pronóstico estadístico, planes y suscripciones, y conexión bancaria automática.
 
 ## ✅ Calidad
 
-- **Pruebas unitarias** de los cálculos: formato y lectura de montos, fechas, redirecciones seguras; luego
-  número mínimo, topes UVT y duplicados de importación.
+- **Pruebas unitarias** de los cálculos: montos, fechas, número mínimo, presupuesto, deudas, metas, topes UVT,
+  dependientes, duplicados de importación, decisiones del asistente, configuración del hogar y cola sin conexión.
+- **Adaptadores de IA** probados con los SDK reales de Anthropic y OpenAI contra una API simulada local: qué se
+  envía (archivo, esquema estricto, `store: false`), cómo se valida la respuesta y cómo se explican los errores.
 - **Prueba de aislamiento contra Postgres real:** dos usuarios del mismo hogar ven lo mismo, el contador no
-  escribe, y otro hogar no puede leer, escribir, referenciar, mover filas, ver reportes, usar invitaciones
-  ajenas ni descargar soportes.
+  escribe, un editor no cambia personas a cargo ni la configuración de IA, y otro hogar no puede leer, escribir,
+  referenciar, mover filas, ver reportes, usar invitaciones ajenas ni descargar soportes.
 - **CI en cada push y pull request:** lint, tipos, pruebas, build, `npm audit` de producción y las pruebas de
   aislamiento contra un Supabase real levantado en el runner.
-- Cada incremento se cierra con lint limpio, tipos sin errores, pruebas en verde y un commit descriptivo.
 
 ```bash
 npm run check      # lint + tipos + pruebas unitarias
@@ -272,7 +344,7 @@ npm run build      # build de producción
 | --- | --- |
 | [CLAUDE.md](CLAUDE.md) | Contexto del proyecto, convenciones, comandos, decisiones y problemas conocidos del entorno local |
 | [supabase/migrations/](supabase/migrations/) | Modelo de datos, políticas RLS y funciones, comentados |
-| [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md) | Publicar en Supabase Cloud + Vercel, primer uso y mantenimiento |
+| [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md) | Publicar en Supabase Cloud + Vercel, variables (incluidas las de IA), primer uso y mantenimiento |
 | [.env.example](.env.example) | Variables de entorno y dónde obtener cada una |
 
 ---

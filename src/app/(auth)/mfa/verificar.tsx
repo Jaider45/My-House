@@ -35,7 +35,7 @@ export function VerificarMfa() {
   return (
     <div className="space-y-4">
       <form action={verificar} className="space-y-4">
-        <p className="text-sm text-tenue">Escriba el código de 6 dígitos de su app autenticadora.</p>
+        <p className="text-sm text-tenue">Escribe el código de 6 dígitos de tu app autenticadora.</p>
         <Campo
           etiqueta="Código"
           name="codigo"

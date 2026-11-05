@@ -26,7 +26,7 @@ export function FormularioIngreso() {
         Ingresar
       </BotonEnviar>
       <p className="text-center text-sm text-tenue">
-        ¿No tiene cuenta?{" "}
+        ¿No tienes cuenta?{" "}
         <Link className="font-semibold text-tinta" href={conSiguiente("/registro", siguiente)}>
           Crear cuenta
         </Link>
@@ -42,7 +42,7 @@ export function FormularioRegistro() {
   return (
     <form action={accion} className="space-y-4">
       <input type="hidden" name="siguiente" value={siguiente} />
-      <Campo etiqueta="Su nombre" name="nombre" autoComplete="given-name" required maxLength={80} />
+      <Campo etiqueta="Tu nombre" name="nombre" autoComplete="given-name" required maxLength={80} />
       <Campo etiqueta="Correo" name="email" type="email" autoComplete="email" required defaultValue={params.get("email") ?? ""} />
       <Campo
         etiqueta="Contraseña"

@@ -57,7 +57,7 @@ export function FormularioRegla({ regla, cuentas, categorias, hoy }: Props) {
         ))}
       </Selector>
       <Selector key={tipo} etiqueta="Categoría" name="category_id" defaultValue={regla?.category_id ?? ""} required>
-        <option value="">Elija…</option>
+        <option value="">Elige…</option>
         {opcionesCategoria(categorias, tipo).map((c) => (
           <option key={c.id} value={c.id}>
             {c.etiqueta}

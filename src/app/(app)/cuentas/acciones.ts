@@ -66,6 +66,7 @@ export async function guardarCuenta(_: Estado, datos: FormData): Promise<Estado>
 
 export async function archivarCuenta(datos: FormData) {
   const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return;
   const archivar = datos.get("archivar") === "1";
   await ctx.supabase.from("accounts").update({ archivada: archivar }).eq("id", String(datos.get("id")));
   revalidatePath("/cuentas");
@@ -75,6 +76,7 @@ export async function archivarCuenta(datos: FormData) {
 export async function eliminarCuenta(_: Estado, datos: FormData): Promise<Estado> {
   const id = String(datos.get("id"));
   const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
   const { count } = await ctx.supabase
     .from("transactions")
     .select("id", { count: "exact", head: true })

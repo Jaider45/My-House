@@ -11,7 +11,7 @@ const credenciales = z.object({
     .string()
     .trim()
     .toLowerCase()
-    .pipe(z.email("Escriba un correo válido.")),
+    .pipe(z.email("Escribe un correo válido.")),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres."),
 });
 
@@ -26,7 +26,7 @@ export async function ingresar(_: Estado, datos: FormData): Promise<Estado> {
 
 export async function registrarse(_: Estado, datos: FormData): Promise<Estado> {
   const r = credenciales
-    .extend({ nombre: z.string().trim().min(1, "Escriba su nombre.").max(80) })
+    .extend({ nombre: z.string().trim().min(1, "Escribe tu nombre.").max(80) })
     .safeParse(Object.fromEntries(datos));
   if (!r.success) return { error: r.error.issues[0].message };
 
@@ -42,7 +42,7 @@ export async function registrarse(_: Estado, datos: FormData): Promise<Estado> {
   });
   if (error) return { error: mensajeError(error) };
   if (!data.session) {
-    return { ok: "Le enviamos un correo para confirmar su cuenta. Ábralo desde este dispositivo." };
+    return { ok: "Te enviamos un correo para confirmar tu cuenta. Ábrelo desde este dispositivo." };
   }
   redirect(siguiente);
 }

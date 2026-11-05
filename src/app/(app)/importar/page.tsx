@@ -22,7 +22,7 @@ export default function Importar() {
 
 async function Contenido() {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return <Aviso>Su rol es de solo lectura.</Aviso>;
+  if (!ctx.puedeEditar) return <Aviso>Tu rol es de solo lectura.</Aviso>;
   const [catalogos, { data: cuentas }, { data: lotes }] = await Promise.all([
     cargarCatalogos(ctx),
     ctx.supabase.from("accounts").select("id, nombre, mapeo_csv").eq("archivada", false).order("created_at"),

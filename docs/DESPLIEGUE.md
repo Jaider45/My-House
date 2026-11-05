@@ -41,6 +41,13 @@ Guía para publicar My House por primera vez. Toma unos 20 minutos. Al final la 
    | `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto de Supabase |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Llave `anon` |
    | `NEXT_PUBLIC_SITE_URL` | URL de producción, sin `/` al final |
+   | `ANTHROPIC_API_KEY` | Llave de Anthropic para el asistente con Claude (opcional) |
+   | `OPENAI_API_KEY` | Llave de OpenAI para el asistente con GPT (opcional) |
+   | `IA_PROVEEDOR`, `ANTHROPIC_MODEL`, `OPENAI_MODEL` | Opcionales: proveedor y modelos por defecto |
+
+   El asistente de comprobantes y la importación de PDF necesitan **al menos una** de las dos llaves. Con las dos,
+   cada hogar elige proveedor y modelo en Configuración → Hogar → Asistente de IA. Las llaves solo viven en el
+   servidor; la base guarda únicamente qué proveedor y modelo eligió el hogar. Con OpenAI se envía `store: false`.
 
    **No** agregue `SUPABASE_SERVICE_ROLE_KEY` en Vercel: la app no la usa (solo las pruebas locales).
 3. Despliegue. Si cambia la URL (dominio propio), actualice `NEXT_PUBLIC_SITE_URL` y las URLs de Supabase.

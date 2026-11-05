@@ -1,4 +1,4 @@
-import type { Acumulados, JurisdiccionTributaria, ParametrosAnio, ResultadoTope, Semaforo } from "../tipos";
+import type { Acumulados, DependientesTributarios, JurisdiccionTributaria, ParametrosAnio, ResultadoTope, Semaforo } from "../tipos";
 
 /** Umbral del amarillo: a partir del 70 % del tope. */
 export const UMBRAL_AMARILLO = 0.7;
@@ -18,7 +18,44 @@ export function semaforo(acumulado: number, tope: number): Semaforo {
   return "verde";
 }
 
+/**
+ * Dependientes según el parágrafo 2 del art. 387 del Estatuto Tributario. Es orientación: la condición
+ * (estudios, ingresos del dependiente, dictamen de dependencia) la verifica quien declara o su contador.
+ */
+export const dependientesColombia: DependientesTributarios = {
+  orientacion({ parentesco, edad }) {
+    const ingresos = "si sus ingresos del año son menores a 260 UVT o depende económicamente por una condición física o psicológica";
+    switch (parentesco) {
+      case "hijo":
+        if (edad === null) return { podria: true, texto: "Sí, si es menor de 18 años o tiene entre 18 y 23 y tú le pagas los estudios. Agrega la fecha de nacimiento." };
+        if (edad < 18) return { podria: true, texto: "Sí: hijo menor de 18 años." };
+        if (edad <= 23) return { podria: true, texto: "Sí, si tú le pagas estudios en una institución formal (18 a 23 años)." };
+        return { podria: true, texto: "Solo si depende económicamente por una condición física o psicológica certificada (mayor de 23 años)." };
+      case "pareja":
+        return { podria: true, texto: `Sí, ${ingresos}.` };
+      case "padre_madre":
+      case "hermano":
+        return { podria: true, texto: `Sí, ${ingresos}.` };
+      default:
+        return { podria: false, texto: "Otros familiares no cuentan como dependientes para la DIAN." };
+    }
+  },
+  beneficio(uvt, d, reportados) {
+    if (!d.dependientes_pct || !d.dependientes_tope_anual) return null;
+    const adicional = (d.dependiente_adicional ?? 0) * uvt;
+    const maximo = d.dependientes_max ?? 0;
+    return {
+      porcentaje: d.dependientes_pct,
+      topeAnual: d.dependientes_tope_anual * uvt,
+      adicionalPorDependiente: adicional,
+      maximoDependientes: maximo,
+      adicionalTotal: adicional * Math.min(Math.max(reportados, 0), maximo),
+    };
+  },
+};
+
 export const colombia: JurisdiccionTributaria = {
+  dependientes: dependientesColombia,
   pais: "CO",
   autoridad: "DIAN",
   unidad: "UVT",

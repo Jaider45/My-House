@@ -33,6 +33,8 @@ const INFERIOR: Enlace[] = [
   },
 ];
 
+const SIN_BOTON_FLOTANTE = ["/rapido", "/comprobantes"];
+
 const esActivo = (ruta: string | null, e: Enlace) =>
   ruta !== null && [e.href, ...(e.tambien ?? [])].some((h) => (h === "/" ? ruta === "/" : ruta === h || ruta.startsWith(`${h}/`)));
 
@@ -81,15 +83,18 @@ export function BarraNavegacion({ ruta }: { ruta: string | null }) {
         </aside>
       </div>
 
-      <Link
-        href="/rapido"
-        aria-label="Registrar"
-        className="fixed right-5 bottom-[calc(88px+env(safe-area-inset-bottom))] z-30 inline-flex size-14 items-center justify-center rounded-full bg-teja text-white shadow-lg lg:hidden"
-      >
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-      </Link>
+      {/* En registro rápido sobra y en el asistente tapa el botón de enviar del chat. */}
+      {!(ruta && SIN_BOTON_FLOTANTE.some((r) => ruta.startsWith(r))) && (
+        <Link
+          href="/rapido"
+          aria-label="Registrar"
+          className="fixed right-5 bottom-[calc(88px+env(safe-area-inset-bottom))] z-30 inline-flex size-14 items-center justify-center rounded-full bg-teja text-white shadow-lg lg:hidden"
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </Link>
+      )}
       <nav
         aria-label="Navegación principal"
         className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-borde bg-elevada px-1 pt-1.5 pb-[max(10px,env(safe-area-inset-bottom))] lg:hidden"

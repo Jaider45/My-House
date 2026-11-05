@@ -18,7 +18,7 @@ export async function guardarMovimiento(_: Estado, datos: FormData): Promise<Est
   const r = movimientoDesdeFormulario(datos);
   if (!r.ok) return { error: r.error };
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return { error: "Su rol es de solo lectura." };
+  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
 
   const id = String(datos.get("id") ?? "");
   // Al editar se conserva el origen; guardar a mano un programado lo confirma.
@@ -34,6 +34,7 @@ export async function guardarMovimiento(_: Estado, datos: FormData): Promise<Est
     tax_tag_id: m.tax_tag_id,
     comercio: m.comercio,
     nota: m.nota,
+    ambito: m.ambito,
     estado: "confirmado" as const,
   };
   const { error } = id
@@ -57,7 +58,7 @@ export async function guardarMovimiento(_: Estado, datos: FormData): Promise<Est
 /** Registro rápido: guarda y se queda en la pantalla para el siguiente. */
 export async function registrarRapido(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return { error: "Su rol es de solo lectura." };
+  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
   datos.set("member_id", ctx.miembro.id);
   const r = movimientoDesdeFormulario(datos);
   if (!r.ok) return { error: r.error };
@@ -69,6 +70,7 @@ export async function registrarRapido(_: Estado, datos: FormData): Promise<Estad
 
 export async function eliminarMovimiento(datos: FormData) {
   const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return;
   const { data } = await ctx.supabase
     .from("transactions")
     .delete()
@@ -81,6 +83,7 @@ export async function eliminarMovimiento(datos: FormData) {
 
 export async function confirmarMovimiento(datos: FormData) {
   const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return;
   await ctx.supabase.from("transactions").update({ estado: "confirmado" }).eq("id", String(datos.get("id")));
   refrescar();
 }

@@ -129,7 +129,7 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
   const selectorColumna = (etiqueta: string, campo: keyof Mapeo, opcional = false) => (
     <Selector etiqueta={etiqueta} value={(mapeo?.[campo] as string) ?? ""} onChange={(e) => cambiarMapeo({ [campo]: e.target.value })}>
       {opcional && <option value="">(ninguna)</option>}
-      {!opcional && <option value="">Elija…</option>}
+      {!opcional && <option value="">Elige…</option>}
       {columnas.map((c) => (
         <option key={c} value={c}>
           {c}
