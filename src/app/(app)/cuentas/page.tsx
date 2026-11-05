@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import { Barra, Boton, Cargando, Chip, EnlaceBoton, Kpi, Tarjeta, Titulo, Vacio, cx } from "@/components/ui";
+import { Barra, Boton, Chip, EnlaceBoton, Kpi, Tarjeta, Titulo, Vacio, cx } from "@/components/ui";
 import { Icono, type NombreIcono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP, porcentaje } from "@/lib/dinero";
@@ -21,9 +20,7 @@ export default function Cuentas({ searchParams }: PageProps<"/cuentas">) {
   return (
     <>
       <Titulo subtitulo="Dónde está la plata de la casa y cuánto deben las tarjetas">Cuentas y tarjetas</Titulo>
-      <Suspense fallback={<Cargando texto="Cargando las cuentas…" />}>
-        <Contenido searchParams={searchParams} />
-      </Suspense>
+      <Contenido searchParams={searchParams} />
     </>
   );
 }

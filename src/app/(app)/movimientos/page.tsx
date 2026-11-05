@@ -1,17 +1,5 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import {
-  Boton,
-  Cargando,
-  Chip,
-  CuadroIcono,
-  EnlaceBoton,
-  SelectorMes,
-  Titulo,
-  Vacio,
-  cx,
-  type Tono,
-} from "@/components/ui";
+import { Boton, Chip, CuadroIcono, EnlaceBoton, SelectorMes, Titulo, Vacio, cx, type Tono } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { cargarCatalogos } from "@/lib/catalogos";
 import { formatearCOP } from "@/lib/dinero";
@@ -54,9 +42,7 @@ export default function Movimientos({
   searchParams,
 }: PageProps<"/movimientos">) {
   return (
-    <Suspense fallback={<Cargando texto="Cargando movimientos…" />}>
-      <Contenido searchParams={searchParams} />
-    </Suspense>
+    <Contenido searchParams={searchParams} />
   );
 }
 

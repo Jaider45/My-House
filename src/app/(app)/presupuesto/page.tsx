@@ -1,5 +1,4 @@
-import { Suspense } from "react";
-import { Barra, Boton, Cargando, Chip, CuadroIcono, EnlaceBoton, Kpi, SelectorMes, Titulo, Vacio, cx, type Tono } from "@/components/ui";
+import { Barra, Boton, Chip, CuadroIcono, EnlaceBoton, Kpi, SelectorMes, Titulo, Vacio, cx, type Tono } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP, formatearMiles, porcentaje } from "@/lib/dinero";
 import { formatearMes, hoy, mesDe, rangoMes, sumarMeses } from "@/lib/fechas";
@@ -20,9 +19,7 @@ const SEMAFORO: Record<Semaforo, { tono: Tono; texto: string; barra: "ok" | "ale
 
 export default function Presupuesto({ searchParams }: PageProps<"/presupuesto">) {
   return (
-    <Suspense fallback={<Cargando texto="Cargando el presupuesto…" />}>
-      <Contenido searchParams={searchParams} />
-    </Suspense>
+    <Contenido searchParams={searchParams} />
   );
 }
 

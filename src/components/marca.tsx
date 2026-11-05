@@ -1,3 +1,7 @@
+"use client";
+
+// Componente de cliente a propósito: los trazos (~60 KB) viajan una vez en el JS (que el navegador guarda) en vez de
+// ir dentro de los datos de cada pantalla, que es lo que pasa con un SVG armado en el servidor.
 import type { CSSProperties } from "react";
 import { ICONOS, TRAZOS } from "./marca-datos";
 

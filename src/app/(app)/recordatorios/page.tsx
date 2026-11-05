@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import { Cargando, Chip, Tarjeta, Titulo, cx } from "@/components/ui";
+import { Chip, Tarjeta, Titulo, cx } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP } from "@/lib/dinero";
 import { formatearMes, hoy, sumarDias } from "@/lib/fechas";
@@ -18,9 +17,7 @@ export default function Recordatorios() {
         ← Pagos fijos
       </Link>
       <Titulo subtitulo="Las fechas importantes, para que nada se venza">Recordatorios de pago</Titulo>
-      <Suspense fallback={<Cargando texto="Cargando los recordatorios…" />}>
-        <Contenido />
-      </Suspense>
+      <Contenido />
     </>
   );
 }

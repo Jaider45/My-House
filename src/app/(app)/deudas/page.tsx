@@ -1,5 +1,4 @@
-import { Suspense } from "react";
-import { Barra, Cargando, Chip, CuadroIcono, Tarjeta, Titulo, Vacio, type Tono } from "@/components/ui";
+import { Barra, Chip, CuadroIcono, Tarjeta, Titulo, Vacio, type Tono } from "@/components/ui";
 import { Icono, type NombreIcono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP } from "@/lib/dinero";
@@ -13,9 +12,7 @@ export default function Deudas() {
   return (
     <>
       <Titulo subtitulo="Cuánto deben, cuánto llevan pagado y cuándo terminan">Deudas del hogar</Titulo>
-      <Suspense fallback={<Cargando texto="Cargando las deudas…" />}>
-        <Contenido />
-      </Suspense>
+      <Contenido />
     </>
   );
 }

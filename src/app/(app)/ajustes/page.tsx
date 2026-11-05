@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import { Boton, Cargando, Chip, FilaLista, Tarjeta, Titulo } from "@/components/ui";
+import { Boton, Chip, FilaLista, Tarjeta, Titulo } from "@/components/ui";
 import type { NombreIcono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
 import { cerrarSesion } from "@/app/(auth)/acciones";
@@ -31,9 +30,7 @@ export default function Ajustes() {
       <PestanasConfiguracion actual="/ajustes" />
       <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
         <div className="flex flex-col gap-4 md:gap-5">
-          <Suspense fallback={<Cargando compacto />}>
-            <Encabezado />
-          </Suspense>
+          <Encabezado />
           <form action={cerrarSesion}>
             <Boton type="submit" variante="secundario" className="w-full">
               Cerrar sesión

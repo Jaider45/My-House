@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import { Aviso, Cargando, Chip, CuadroIcono, EnlaceBoton, FilaLista, Tarjeta, Titulo, cx, type Tono } from "@/components/ui";
+import { Aviso, Chip, CuadroIcono, EnlaceBoton, FilaLista, Tarjeta, Titulo, cx, type Tono } from "@/components/ui";
 import { Logo } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP } from "@/lib/dinero";
@@ -19,9 +18,7 @@ export default function Comprobantes() {
   return (
     <>
       <Titulo subtitulo="Sube fotos, PDF o capturas: los leo, los registro en Movimientos y los categorizo">Asistente de comprobantes</Titulo>
-      <Suspense fallback={<Cargando texto="Cargando la conversación…" />}>
-        <Contenido />
-      </Suspense>
+      <Contenido />
     </>
   );
 }

@@ -1,5 +1,4 @@
-import { Suspense } from "react";
-import { Cargando, Tarjeta, Titulo } from "@/components/ui";
+import { Tarjeta, Titulo } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { leerConfigHogar } from "@/lib/hogar";
 import { MODELO_POR_DEFECTO, MODELOS_SUGERIDOS, NOMBRE_PROVEEDOR, proveedoresDisponibles, resolverIa } from "@/lib/ia/proveedores";
@@ -13,9 +12,7 @@ export default function Hogar() {
     <>
       <Titulo subtitulo="El hogar, quién entra, con qué cuentas y con qué valores">Configuración</Titulo>
       <PestanasConfiguracion actual="/ajustes/hogar" />
-      <Suspense fallback={<Cargando compacto />}>
-        <Contenido />
-      </Suspense>
+      <Contenido />
     </>
   );
 }

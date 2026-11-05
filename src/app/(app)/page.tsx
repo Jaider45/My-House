@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import { Aviso, Barra, Cargando, Chip, CuadroIcono, EnlaceBoton, FilaLista, Kpi, SelectorMes, Tarjeta, Titulo, Vacio, cx } from "@/components/ui";
+import { Aviso, Barra, Chip, CuadroIcono, EnlaceBoton, FilaLista, Kpi, SelectorMes, Tarjeta, Titulo, Vacio, cx } from "@/components/ui";
 import { Icono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP, formatearCorto, porcentaje } from "@/lib/dinero";
@@ -12,9 +11,7 @@ import { cargarSemaforo, type SemaforoAnio } from "@/lib/impuestos/servidor";
 
 export default function Inicio({ searchParams }: PageProps<"/">) {
   return (
-    <Suspense fallback={<Cargando texto="Cargando el resumen del mes…" />}>
-      <Tablero searchParams={searchParams} />
-    </Suspense>
+    <Tablero searchParams={searchParams} />
   );
 }
 

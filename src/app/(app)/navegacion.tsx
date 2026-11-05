@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { Icono, Logo, type NombreIcono } from "@/components/marca";
 import { cx } from "@/components/ui";
@@ -37,6 +37,23 @@ const SIN_BOTON_FLOTANTE = ["/rapido", "/comprobantes"];
 
 const esActivo = (ruta: string | null, e: Enlace) =>
   ruta !== null && [e.href, ...(e.tambien ?? [])].some((h) => (h === "/" ? ruta === "/" : ruta === h || ruta.startsWith(`${h}/`)));
+
+/**
+ * Barra fina arriba mientras carga la pantalla elegida. Las pantallas no tienen esqueleto propio: React deja la
+ * anterior hasta que la nueva llega. Aparece tras 150 ms para no parpadear en las navegaciones rápidas.
+ */
+function Pendiente() {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden
+      className={cx(
+        "pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 bg-teja transition-opacity",
+        pending ? "animate-pulse opacity-100 delay-150" : "opacity-0",
+      )}
+    />
+  );
+}
 
 /** Navegación con el ítem activo según la ruta (usePathname: va detrás de <Suspense>). */
 export function Navegacion() {
@@ -76,6 +93,7 @@ export function BarraNavegacion({ ruta }: { ruta: string | null }) {
                 >
                   <Icono nombre={e.icono} tamano={20} relleno={activo} />
                   <span className="sr-only xl:not-sr-only">{e.texto}</span>
+                  <Pendiente />
                 </Link>
               );
             })}
@@ -121,6 +139,7 @@ export function BarraNavegacion({ ruta }: { ruta: string | null }) {
                 <Icono nombre={e.icono} tamano={22} relleno={activo} />
               )}
               {e.texto}
+              <Pendiente />
             </Link>
           );
         })}

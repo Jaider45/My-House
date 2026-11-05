@@ -1,5 +1,4 @@
-import { Suspense } from "react";
-import { Aviso, Boton, Cargando, EnlaceBoton, Tarjeta, Titulo, Vacio } from "@/components/ui";
+import { Aviso, Boton, EnlaceBoton, Tarjeta, Titulo, Vacio } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { cargarCatalogos } from "@/lib/catalogos";
 import { formatearFecha } from "@/lib/fechas";
@@ -13,9 +12,7 @@ export default function Importar() {
   return (
     <>
       <Titulo subtitulo="Trae el mes completo desde el PDF o CSV de tu banco, sin duplicados">Importar extracto</Titulo>
-      <Suspense fallback={<Cargando />}>
-        <Contenido />
-      </Suspense>
+      <Contenido />
     </>
   );
 }

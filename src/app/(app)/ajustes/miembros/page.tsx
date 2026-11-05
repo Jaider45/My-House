@@ -1,5 +1,4 @@
-import { Suspense } from "react";
-import { Boton, Cargando, Chip, Tarjeta, Titulo, Vacio } from "@/components/ui";
+import { Boton, Chip, Tarjeta, Titulo, Vacio } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearFecha, hoy } from "@/lib/fechas";
 import { edad, PARENTESCOS, type Parentesco } from "@/lib/hogar";
@@ -17,9 +16,7 @@ export default function Miembros() {
     <>
       <Titulo subtitulo="El hogar, quién entra, con qué cuentas y con qué valores">Configuración</Titulo>
       <PestanasConfiguracion actual="/ajustes/miembros" />
-      <Suspense fallback={<Cargando />}>
-        <Contenido />
-      </Suspense>
+      <Contenido />
     </>
   );
 }

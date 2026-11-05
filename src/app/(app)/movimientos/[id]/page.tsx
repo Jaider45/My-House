@@ -1,6 +1,5 @@
-import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { Aviso, Boton, Cargando, Tarjeta, Titulo } from "@/components/ui";
+import { Aviso, Boton, Tarjeta, Titulo } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { cargarCatalogos } from "@/lib/catalogos";
 import { formatearCOP } from "@/lib/dinero";
@@ -23,9 +22,7 @@ export default function Detalle({ params }: PageProps<"/movimientos/[id]">) {
   return (
     <>
       <Titulo>Movimiento</Titulo>
-      <Suspense fallback={<Cargando />}>
-        <Contenido params={params} />
-      </Suspense>
+      <Contenido params={params} />
     </>
   );
 }

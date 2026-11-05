@@ -1,5 +1,4 @@
-import { Suspense } from "react";
-import { Aviso, Cargando, EnlaceBoton, Tarjeta, Titulo } from "@/components/ui";
+import { Aviso, EnlaceBoton, Tarjeta, Titulo } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { cargarCatalogos } from "@/lib/catalogos";
 import { hoy } from "@/lib/fechas";
@@ -12,9 +11,7 @@ export default function Nuevo() {
     <>
       <Titulo>Nuevo movimiento</Titulo>
       <Tarjeta>
-        <Suspense fallback={<Cargando compacto />}>
-          <Contenido />
-        </Suspense>
+        <Contenido />
       </Tarjeta>
     </>
   );

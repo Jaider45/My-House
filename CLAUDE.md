@@ -85,9 +85,16 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     invitación o editar hogar/rol propio se llama `auth.refreshSession()`. Vercel en `gru1`, junto a Supabase.
     `crearClienteServidor()` llama `await connection()`: todo lo que toca Supabase se renderiza por request
     (supabase-js usa `Date.now()` y Cache Components lo rechaza en prerender).
-    Navegación: `<Link>` precarga el esqueleto (App Shell) de cada pantalla; `staleTimes.dynamic: 30` reutiliza en
-    el navegador lo visitado hace < 30 s. Toda acción que guarda debe llamar `revalidatePath` (vacía esa caché).
-    La primera visita no baja de ~300 ms: React espera ese tiempo antes de reemplazar el "Cargando…".
+    Navegación: `staleTimes.dynamic: 30` reutiliza en el navegador lo visitado hace < 30 s. Toda acción que guarda
+    debe llamar `revalidatePath` (vacía esa caché).
+    **Las páginas no llevan `<Suspense>` propio**: el único está en `(app)/layout.tsx` (cubre la carga directa). Al
+    navegar, React deja la pantalla anterior hasta que la nueva llega (~80–200 ms) con una barra fina
+    (`useLinkStatus` en `navegacion.tsx`). Con esqueleto por página React lo retiene ≥ 300 ms aunque los datos
+    lleguen en 40 ms (medido: 315 → ~100 ms). Por eso `instantInsights.validationLevel: "manual-warning"`.
+    `src/components/marca.tsx` es componente de cliente: si los SVG se arman en el servidor, sus trazos (~150 KB)
+    viajan en los datos de cada pantalla.
+    Desarrollo: `next dev` en el disco G: (HDD) es 5–10× más lento que producción; para sentir la velocidad real,
+    `npm run build && npm start`.
 16. Autoría (`created_by`, `creada_por`) la fija un trigger con `auth.uid()`; el cliente no puede falsearla.
     `npm audit` en CI solo para producción: el tooling de ESLint arrastra `minimatch` <11 sin arreglo compatible.
 17. Sesión y 2FA se chequean en `src/proxy.ts` (optimista); la autorización real es RLS.

@@ -1,5 +1,4 @@
-import { Suspense } from "react";
-import { Barra, Cargando, Chip, CuadroIcono, Tarjeta, Titulo, Vacio, cx, type Tono } from "@/components/ui";
+import { Barra, Chip, CuadroIcono, Tarjeta, Titulo, Vacio, cx, type Tono } from "@/components/ui";
 import { Icono, type NombreIcono } from "@/components/marca";
 import { ICONOS } from "@/components/marca-datos";
 import { obtenerContexto } from "@/lib/sesion";
@@ -21,9 +20,7 @@ export default function Metas() {
   return (
     <>
       <Titulo subtitulo="Para qué ahorra la casa y si van a tiempo">Metas de ahorro</Titulo>
-      <Suspense fallback={<Cargando texto="Cargando las metas…" />}>
-        <Contenido />
-      </Suspense>
+      <Contenido />
     </>
   );
 }

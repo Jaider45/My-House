@@ -1,5 +1,4 @@
-import { Suspense } from "react";
-import { Aviso, Boton, Cargando, Chip, CuadroIcono, EnlaceBoton, SelectorMes, Tarjeta, Titulo, Vacio, cx, type Tono } from "@/components/ui";
+import { Aviso, Boton, Chip, CuadroIcono, EnlaceBoton, SelectorMes, Tarjeta, Titulo, Vacio, cx, type Tono } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { cargarCatalogos } from "@/lib/catalogos";
 import { formatearCOP, formatearCorto } from "@/lib/dinero";
@@ -15,9 +14,7 @@ export const metadata = { title: "Pagos fijos" };
 
 export default function Recurrentes({ searchParams }: PageProps<"/recurrentes">) {
   return (
-    <Suspense fallback={<Cargando texto="Cargando los pagos fijos…" />}>
-      <Contenido searchParams={searchParams} />
-    </Suspense>
+    <Contenido searchParams={searchParams} />
   );
 }
 

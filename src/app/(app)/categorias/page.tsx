@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import { Boton, Cargando, Tarjeta, Titulo } from "@/components/ui";
+import { Boton, Tarjeta, Titulo } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { construirArbol, type Categoria } from "@/lib/categorias";
 import { archivarCategoria } from "./acciones";
@@ -14,9 +13,7 @@ export default function Categorias({ searchParams }: PageProps<"/categorias">) {
     <>
       <Titulo subtitulo="El hogar, quién entra, con qué cuentas y con qué valores">Configuración</Titulo>
       <PestanasConfiguracion actual="/categorias" />
-      <Suspense fallback={<Cargando />}>
-        <Contenido searchParams={searchParams} />
-      </Suspense>
+      <Contenido searchParams={searchParams} />
     </>
   );
 }

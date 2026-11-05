@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import { Aviso, Cargando, Chip, Tarjeta, Titulo, Vacio, cx } from "@/components/ui";
+import { Aviso, Chip, Tarjeta, Titulo, Vacio, cx } from "@/components/ui";
 import { Icono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP } from "@/lib/dinero";
@@ -14,9 +13,7 @@ type Params = Record<string, string | string[] | undefined>;
 
 export default function Impuestos({ searchParams }: PageProps<"/impuestos">) {
   return (
-    <Suspense fallback={<Cargando texto="Calculando los topes del año…" />}>
-      <Contenido searchParams={searchParams} />
-    </Suspense>
+    <Contenido searchParams={searchParams} />
   );
 }
 

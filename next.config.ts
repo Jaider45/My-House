@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
     // Volver a una pantalla visitada hace menos de 30 s no consulta el servidor. Toda acción que guarda llama
     // revalidatePath, que vacía esta caché del navegador: lo propio se ve al instante; lo de otro miembro, ≤ 30 s.
     staleTimes: { dynamic: 30 },
+    // Las pantallas no tienen esqueleto propio a propósito: al navegar React deja la anterior hasta que la nueva
+    // llega (~100 ms) en vez de mostrar "Cargando…" y retenerlo 300 ms. Next lo reporta como navegación no
+    // instantánea; solo se validan los segmentos que exporten `instant`.
+    instantInsights: { validationLevel: "manual-warning" },
     // Comprobantes (fotos comprimidas en el navegador) y extractos en PDF: hasta 5 archivos de ~10 MB.
     serverActions: { bodySizeLimit: "30mb" },
   },

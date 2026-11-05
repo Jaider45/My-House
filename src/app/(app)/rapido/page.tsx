@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import { Aviso, Cargando, EnlaceBoton } from "@/components/ui";
+import { Aviso, EnlaceBoton } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { cargarCatalogos } from "@/lib/catalogos";
 import { hoy, sumarDias } from "@/lib/fechas";
@@ -22,9 +21,7 @@ export default function Rapido() {
         </Link>
       </div>
       <div className="px-5 pt-2 pb-5 md:px-6 md:pb-6">
-        <Suspense fallback={<Cargando compacto />}>
-          <Contenido />
-        </Suspense>
+        <Contenido />
       </div>
     </section>
   );
