@@ -5,32 +5,61 @@ import { z } from "zod";
 import { obtenerContexto } from "@/lib/sesion";
 import { mensajeError, type Estado } from "@/lib/acciones";
 
+const opcional = <T extends z.ZodType>(e: T) => e.optional().or(z.literal("").transform(() => undefined));
+const dia = opcional(z.coerce.number().int().min(1, "Día entre 1 y 31.").max(31, "Día entre 1 y 31."));
+
 const esquema = z.object({
-  id: z.uuid().optional().or(z.literal("").transform(() => undefined)),
-  tipo: z.enum(["banco", "efectivo", "tarjeta"]),
-  nombre: z.string().trim().min(1, "Póngale un nombre a la cuenta.").max(80),
+  id: opcional(z.uuid()),
+  tipo: z.enum(["banco", "efectivo", "tarjeta", "billetera"]),
+  nombre: z.string().trim().min(1, "Ponle un nombre a la cuenta.").max(80),
+  entidad: opcional(z.string().trim().max(60)),
+  ultimos4: opcional(z.string().regex(/^\d{4}$/, "Los últimos 4 dígitos son 4 números.")),
   saldo: z.coerce.number().int().min(0),
-  titular: z.uuid().optional().or(z.literal("").transform(() => undefined)),
+  cupo: z.coerce.number().int().min(0).optional(),
+  dia_corte: dia,
+  dia_pago: dia,
+  titular: opcional(z.uuid()),
+  recordar: z.literal("on").optional(),
 });
 
 export async function guardarCuenta(_: Estado, datos: FormData): Promise<Estado> {
   const r = esquema.safeParse(Object.fromEntries(datos));
   if (!r.success) return { error: r.error.issues[0].message };
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return { error: "Su rol es de solo lectura." };
+  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
 
-  const { id, tipo, nombre, saldo, titular } = r.data;
+  const { id, tipo, nombre, entidad, ultimos4, saldo, cupo, dia_corte, dia_pago, titular, recordar } = r.data;
+  const tarjeta = tipo === "tarjeta";
   // En tarjetas el saldo inicial es la deuda: se guarda negativa.
   const fila = {
     tipo,
     nombre,
-    saldo_inicial: tipo === "tarjeta" ? -saldo : saldo,
+    entidad: entidad ?? null,
+    ultimos4: ultimos4 ?? null,
+    saldo_inicial: tarjeta ? -saldo : saldo,
+    cupo: tarjeta && cupo ? cupo : null,
+    dia_corte: tarjeta ? (dia_corte ?? null) : null,
+    dia_pago: tarjeta ? (dia_pago ?? null) : null,
     titular_member_id: titular ?? null,
   };
   const { error } = id
     ? await ctx.supabase.from("accounts").update(fila).eq("id", id)
     : await ctx.supabase.from("accounts").insert({ ...fila, household_id: ctx.hogar.id });
   if (error) return { error: mensajeError(error) };
+
+  if (!id && tarjeta && recordar && dia_pago) {
+    // Recordatorio mensual del pago, 3 días antes, desde el próximo día de pago.
+    const hoy = new Date();
+    const proximo = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth() + (hoy.getUTCDate() > dia_pago ? 1 : 0), dia_pago));
+    await ctx.supabase.from("reminders").insert({
+      household_id: ctx.hogar.id,
+      nombre: `Pago ${nombre}`,
+      fecha: proximo.toISOString().slice(0, 10),
+      repetir: "mensual",
+      avisos: [3],
+      canales: ["notificacion"],
+    });
+  }
   revalidatePath("/cuentas");
   return { ok: id ? "Cuenta actualizada." : "Cuenta creada." };
 }
@@ -50,7 +79,7 @@ export async function eliminarCuenta(_: Estado, datos: FormData): Promise<Estado
     .from("transactions")
     .select("id", { count: "exact", head: true })
     .or(`account_id.eq.${id},cuenta_destino_id.eq.${id}`);
-  if (count) return { error: `Tiene ${count} movimientos. Archívela en lugar de eliminarla.` };
+  if (count) return { error: `Tiene ${count} movimientos. Archívala en lugar de eliminarla.` };
   const { error } = await ctx.supabase.from("accounts").delete().eq("id", id);
   if (error) return { error: mensajeError(error) };
   revalidatePath("/cuentas");

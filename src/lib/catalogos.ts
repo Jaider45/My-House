@@ -3,7 +3,7 @@ import type { Contexto } from "@/lib/sesion";
 import type { crearClienteServidor } from "@/lib/supabase/server";
 import type { Categoria } from "@/lib/categorias";
 
-export type CuentaOpcion = { id: string; nombre: string; tipo: "banco" | "efectivo" | "tarjeta"; titular_member_id: string | null };
+export type CuentaOpcion = { id: string; nombre: string; tipo: "banco" | "efectivo" | "tarjeta" | "billetera"; titular_member_id: string | null };
 export type Opcion = { id: string; nombre: string };
 export type Catalogos = {
   cuentas: CuentaOpcion[];

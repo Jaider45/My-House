@@ -101,7 +101,14 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
     <>
       <Titulo
         subtitulo="Lo que la casa paga todos los meses, día por día"
-        accion={<SelectorMes etiqueta={formatearMes(mes).replace(" de ", " ")} anterior={`/recurrentes?mes=${sumarMeses(mes, -1)}`} siguiente={`/recurrentes?mes=${sumarMeses(mes, 1)}`} />}
+        accion={
+          <>
+            <SelectorMes etiqueta={formatearMes(mes).replace(" de ", " ")} anterior={`/recurrentes?mes=${sumarMeses(mes, -1)}`} siguiente={`/recurrentes?mes=${sumarMeses(mes, 1)}`} />
+            <EnlaceBoton href="/recordatorios" variante="secundario">
+              Recordatorios
+            </EnlaceBoton>
+          </>
+        }
       >
         {`Pagos fijos de ${nombreMes}`}
       </Titulo>

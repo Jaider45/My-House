@@ -9,19 +9,28 @@ type Enlace = { href: string; texto: string; icono: NombreIcono; tambien?: strin
 
 const LATERAL: Enlace[] = [
   { href: "/", texto: "Inicio", icono: "resumen" },
-  { href: "/movimientos", texto: "Movimientos", icono: "cuentas", tambien: ["/rapido"] },
-  { href: "/recurrentes", texto: "Pagos fijos", icono: "calendario" },
+  { href: "/movimientos", texto: "Movimientos", icono: "egresos", tambien: ["/rapido", "/importar"] },
+  { href: "/comprobantes", texto: "Comprobantes", icono: "documentos" },
+  { href: "/presupuesto", texto: "Presupuesto", icono: "casa" },
+  { href: "/recurrentes", texto: "Pagos fijos", icono: "calendario", tambien: ["/recordatorios"] },
+  { href: "/deudas", texto: "Deudas", icono: "deducciones" },
   { href: "/impuestos", texto: "Renta DIAN", icono: "declaracion-renta" },
-  { href: "/importar", texto: "Importar extracto", icono: "documentos" },
-  { href: "/ajustes", texto: "Configuración", icono: "configuracion", tambien: ["/cuentas", "/categorias"] },
+  { href: "/metas", texto: "Metas de ahorro", icono: "ahorro" },
+  { href: "/cuentas", texto: "Cuentas y tarjetas", icono: "cuentas" },
+  { href: "/ajustes", texto: "Configuración", icono: "configuracion", tambien: ["/categorias"] },
 ];
 
 const INFERIOR: Enlace[] = [
   LATERAL[0],
   LATERAL[1],
-  LATERAL[2],
   LATERAL[3],
-  { href: "/ajustes", texto: "Más", icono: "configuracion", tambien: ["/cuentas", "/categorias", "/importar"] },
+  LATERAL[4],
+  {
+    href: "/ajustes",
+    texto: "Más",
+    icono: "configuracion",
+    tambien: ["/categorias", "/comprobantes", "/deudas", "/impuestos", "/metas", "/cuentas"],
+  },
 ];
 
 const esActivo = (ruta: string | null, e: Enlace) =>
@@ -39,7 +48,7 @@ export function BarraNavegacion({ ruta }: { ruta: string | null }) {
       <div className="sticky top-0 hidden h-dvh shrink-0 py-4 pl-4 lg:flex">
         <aside
           aria-label="Navegación principal"
-          className="flex w-[72px] flex-col items-center gap-6 rounded-2xl border border-borde bg-elevada px-3 py-6 xl:w-[300px] xl:items-stretch xl:px-4"
+          className="flex w-[72px] flex-col items-center gap-6 overflow-y-auto rounded-2xl border border-borde bg-elevada px-3 py-6 xl:w-[300px] xl:items-stretch xl:px-4"
         >
           <Link href="/" className="flex min-h-10 items-center xl:px-2" aria-label="Inicio">
             <span className="xl:hidden">

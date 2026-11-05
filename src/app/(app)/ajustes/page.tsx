@@ -9,12 +9,16 @@ import { PestanasConfiguracion } from "./pestanas";
 export const metadata = { title: "Configuración" };
 
 const SECCIONES: { href: string; titulo: string; texto: string; icono: NombreIcono }[] = [
+  { href: "/comprobantes", titulo: "Comprobantes", texto: "Fotos y PDF que se registran solos", icono: "documentos" },
+  { href: "/deudas", titulo: "Deudas", texto: "Cuánto deben y cuándo terminan", icono: "deducciones" },
+  { href: "/metas", titulo: "Metas de ahorro", texto: "Para qué ahorra la casa", icono: "ahorro" },
+  { href: "/impuestos", titulo: "Renta DIAN", texto: "Topes para declarar y soportes", icono: "declaracion-renta" },
+  { href: "/cuentas", titulo: "Cuentas y tarjetas", texto: "Bancos, billeteras, tarjetas y efectivo", icono: "cuentas" },
+  { href: "/recordatorios", titulo: "Recordatorios", texto: "Fechas de pago para que nada se venza", icono: "alertas" },
+  { href: "/importar", titulo: "Importar extracto", texto: "PDF o CSV del banco, sin duplicados", icono: "egresos" },
   { href: "/ajustes/hogar", titulo: "Hogar", texto: "Nombre y cuota de imprevistos", icono: "casa" },
   { href: "/ajustes/miembros", titulo: "Miembros", texto: "Pareja, hijos, contador e invitaciones", icono: "familia" },
-  { href: "/cuentas", titulo: "Cuentas", texto: "Bancos, efectivo y tarjetas, con su titular", icono: "cuentas" },
   { href: "/categorias", titulo: "Categorías", texto: "Árbol de gastos e ingresos", icono: "resumen" },
-  { href: "/recurrentes", titulo: "Pagos fijos", texto: "Arriendo, colegio, servicios…", icono: "calendario" },
-  { href: "/importar", titulo: "Importar extracto", texto: "CSV del banco, sin duplicados", icono: "documentos" },
   { href: "/ajustes/seguridad", titulo: "Seguridad", texto: "Verificación en dos pasos", icono: "certificados" },
 ];
 
@@ -36,7 +40,7 @@ export default function Ajustes() {
             </Boton>
           </form>
         </div>
-        <Tarjeta className="lg:col-span-2" titulo="Secciones" subtitulo="Todo lo que define cómo My House lleva las cuentas del hogar">
+        <Tarjeta className="lg:col-span-2" titulo="Todo My House" subtitulo="Las secciones del hogar y su configuración">
           <div className="grid md:grid-cols-2 md:gap-x-6">
             {SECCIONES.map((s) => (
               <Link key={s.href} href={s.href} className="block rounded-lg hover:bg-mosaico/60">

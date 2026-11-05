@@ -5,7 +5,6 @@ const PESTANAS = [
   { href: "/ajustes", texto: "Resumen" },
   { href: "/ajustes/hogar", texto: "Hogar" },
   { href: "/ajustes/miembros", texto: "Miembros" },
-  { href: "/cuentas", texto: "Cuentas" },
   { href: "/categorias", texto: "Categorías" },
   { href: "/ajustes/seguridad", texto: "Seguridad" },
 ] as const;

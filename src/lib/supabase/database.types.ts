@@ -7,14 +7,14 @@ export type Database = {
           Tables: {
             "accounts": {
                   Row: {
-                    "archivada": boolean,"created_at": string,"household_id": string,"id": string,"mapeo_csv": Json | null,"nombre": string,"saldo_inicial": number,"tipo": Database["public"]['Enums']["cuenta_tipo"],"titular_member_id": string | null
+                    "archivada": boolean,"created_at": string,"cupo": number | null,"dia_corte": number | null,"dia_pago": number | null,"entidad": string | null,"household_id": string,"id": string,"mapeo_csv": Json | null,"nombre": string,"saldo_inicial": number,"tipo": Database["public"]['Enums']["cuenta_tipo"],"titular_member_id": string | null,"ultimos4": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "archivada"?: boolean,"created_at"?: string,"household_id": string,"id"?: string,"mapeo_csv"?: Json | null,"nombre": string,"saldo_inicial"?: number,"tipo": Database["public"]['Enums']["cuenta_tipo"],"titular_member_id"?: string | null
+                    "archivada"?: boolean,"created_at"?: string,"cupo"?: number | null,"dia_corte"?: number | null,"dia_pago"?: number | null,"entidad"?: string | null,"household_id": string,"id"?: string,"mapeo_csv"?: Json | null,"nombre": string,"saldo_inicial"?: number,"tipo": Database["public"]['Enums']["cuenta_tipo"],"titular_member_id"?: string | null,"ultimos4"?: string | null
                   }
                   Update: {
-                    "archivada"?: boolean,"created_at"?: string,"household_id"?: string,"id"?: string,"mapeo_csv"?: Json | null,"nombre"?: string,"saldo_inicial"?: number,"tipo"?: Database["public"]['Enums']["cuenta_tipo"],"titular_member_id"?: string | null
+                    "archivada"?: boolean,"created_at"?: string,"cupo"?: number | null,"dia_corte"?: number | null,"dia_pago"?: number | null,"entidad"?: string | null,"household_id"?: string,"id"?: string,"mapeo_csv"?: Json | null,"nombre"?: string,"saldo_inicial"?: number,"tipo"?: Database["public"]['Enums']["cuenta_tipo"],"titular_member_id"?: string | null,"ultimos4"?: string | null
                   }
                   Relationships: [
                     {
@@ -29,6 +29,26 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "members"
       referencedColumns: ["id","household_id"]
+    }
+                  ]
+                },"assistant_messages": {
+                  Row: {
+                    "autor": string,"created_at": string,"created_by": string | null,"household_id": string,"id": string,"receipt_ids": (string)[],"texto": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "autor": string,"created_at"?: string,"created_by"?: string | null,"household_id": string,"id"?: string,"receipt_ids"?: (string)[],"texto"?: string
+                  }
+                  Update: {
+                    "autor"?: string,"created_at"?: string,"created_by"?: string | null,"household_id"?: string,"id"?: string,"receipt_ids"?: (string)[],"texto"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "assistant_messages_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
     }
                   ]
                 },"attachments": {
@@ -59,14 +79,14 @@ isOneToOne: false
                   ]
                 },"budgets_goals": {
                   Row: {
-                    "category_id": string | null,"created_at": string,"fecha_objetivo": string | null,"household_id": string,"id": string,"monto": number,"nombre": string | null,"periodo": Database["public"]['Enums']["periodo"],"tipo": Database["public"]['Enums']["meta_tipo"]
+                    "ahorrado_inicial": number,"aporte_mensual": number | null,"category_id": string | null,"created_at": string,"es_emergencia": boolean,"fecha_objetivo": string | null,"household_id": string,"icono": string | null,"id": string,"monto": number,"nombre": string | null,"periodo": Database["public"]['Enums']["periodo"],"tipo": Database["public"]['Enums']["meta_tipo"]
                   }
                   ComputedFields: never
                   Insert: {
-                    "category_id"?: string | null,"created_at"?: string,"fecha_objetivo"?: string | null,"household_id": string,"id"?: string,"monto": number,"nombre"?: string | null,"periodo": Database["public"]['Enums']["periodo"],"tipo": Database["public"]['Enums']["meta_tipo"]
+                    "ahorrado_inicial"?: number,"aporte_mensual"?: number | null,"category_id"?: string | null,"created_at"?: string,"es_emergencia"?: boolean,"fecha_objetivo"?: string | null,"household_id": string,"icono"?: string | null,"id"?: string,"monto": number,"nombre"?: string | null,"periodo": Database["public"]['Enums']["periodo"],"tipo": Database["public"]['Enums']["meta_tipo"]
                   }
                   Update: {
-                    "category_id"?: string | null,"created_at"?: string,"fecha_objetivo"?: string | null,"household_id"?: string,"id"?: string,"monto"?: number,"nombre"?: string | null,"periodo"?: Database["public"]['Enums']["periodo"],"tipo"?: Database["public"]['Enums']["meta_tipo"]
+                    "ahorrado_inicial"?: number,"aporte_mensual"?: number | null,"category_id"?: string | null,"created_at"?: string,"es_emergencia"?: boolean,"fecha_objetivo"?: string | null,"household_id"?: string,"icono"?: string | null,"id"?: string,"monto"?: number,"nombre"?: string | null,"periodo"?: Database["public"]['Enums']["periodo"],"tipo"?: Database["public"]['Enums']["meta_tipo"]
                   }
                   Relationships: [
                     {
@@ -109,16 +129,42 @@ isOneToOne: false
       referencedColumns: ["id","household_id"]
     }
                   ]
-                },"households": {
+                },"debts": {
                   Row: {
-                    "config": NonNullable<Json>,"created_at": string,"id": string,"moneda": string,"nombre": string,"pais": string,"plan": string
+                    "archivada": boolean,"created_at": string,"cuota": number | null,"cuotas_total": number | null,"detalle": string | null,"dia_pago": number | null,"fecha_limite": string | null,"household_id": string,"id": string,"member_id": string | null,"monto": number,"nombre": string,"pagado_inicial": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "config"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"moneda"?: string,"nombre": string,"pais"?: string,"plan"?: string
+                    "archivada"?: boolean,"created_at"?: string,"cuota"?: number | null,"cuotas_total"?: number | null,"detalle"?: string | null,"dia_pago"?: number | null,"fecha_limite"?: string | null,"household_id": string,"id"?: string,"member_id"?: string | null,"monto": number,"nombre": string,"pagado_inicial"?: number
                   }
                   Update: {
-                    "config"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"moneda"?: string,"nombre"?: string,"pais"?: string,"plan"?: string
+                    "archivada"?: boolean,"created_at"?: string,"cuota"?: number | null,"cuotas_total"?: number | null,"detalle"?: string | null,"dia_pago"?: number | null,"fecha_limite"?: string | null,"household_id"?: string,"id"?: string,"member_id"?: string | null,"monto"?: number,"nombre"?: string,"pagado_inicial"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "debts_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "debts_member_id_household_id_fkey"
+      columns: ["member_id","household_id"]
+isOneToOne: false
+      referencedRelation: "members"
+      referencedColumns: ["id","household_id"]
+    }
+                  ]
+                },"households": {
+                  Row: {
+                    "ciudad": string | null,"config": NonNullable<Json>,"created_at": string,"id": string,"moneda": string,"nombre": string,"pais": string,"plan": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "ciudad"?: string | null,"config"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"moneda"?: string,"nombre": string,"pais"?: string,"plan"?: string
+                  }
+                  Update: {
+                    "ciudad"?: string | null,"config"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"moneda"?: string,"nombre"?: string,"pais"?: string,"plan"?: string
                   }
                   Relationships: [
                     
@@ -195,16 +241,68 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"recurring_rules": {
+                },"merchant_rules": {
                   Row: {
-                    "account_id": string,"activa": boolean,"category_id": string,"created_at": string,"descripcion": string,"fecha_inicio": string,"frecuencia": Database["public"]['Enums']["frecuencia"],"household_id": string,"id": string,"member_id": string | null,"monto": number,"ocurrencias": number,"proxima_fecha": string,"tipo": Database["public"]['Enums']["mov_tipo"]
+                    "activa": boolean,"ambito": Database["public"]['Enums']["ambito"] | null,"category_id": string,"created_at": string,"household_id": string,"id": string,"patron": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"activa"?: boolean,"category_id": string,"created_at"?: string,"descripcion": string,"fecha_inicio": string,"frecuencia": Database["public"]['Enums']["frecuencia"],"household_id": string,"id"?: string,"member_id"?: string | null,"monto": number,"ocurrencias"?: number,"proxima_fecha": string,"tipo"?: Database["public"]['Enums']["mov_tipo"]
+                    "activa"?: boolean,"ambito"?: Database["public"]['Enums']["ambito"] | null,"category_id": string,"created_at"?: string,"household_id": string,"id"?: string,"patron": string
                   }
                   Update: {
-                    "account_id"?: string,"activa"?: boolean,"category_id"?: string,"created_at"?: string,"descripcion"?: string,"fecha_inicio"?: string,"frecuencia"?: Database["public"]['Enums']["frecuencia"],"household_id"?: string,"id"?: string,"member_id"?: string | null,"monto"?: number,"ocurrencias"?: number,"proxima_fecha"?: string,"tipo"?: Database["public"]['Enums']["mov_tipo"]
+                    "activa"?: boolean,"ambito"?: Database["public"]['Enums']["ambito"] | null,"category_id"?: string,"created_at"?: string,"household_id"?: string,"id"?: string,"patron"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "merchant_rules_category_id_household_id_fkey"
+      columns: ["category_id","household_id"]
+isOneToOne: false
+      referencedRelation: "categories"
+      referencedColumns: ["id","household_id"]
+    },{
+      foreignKeyName: "merchant_rules_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"receipts": {
+                  Row: {
+                    "archivo_path": string | null,"created_at": string,"created_by": string | null,"datos": NonNullable<Json>,"estado": Database["public"]['Enums']["comprobante_estado"],"household_id": string,"id": string,"mime": string | null,"nombre_archivo": string | null,"pregunta": string | null,"transaction_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archivo_path"?: string | null,"created_at"?: string,"created_by"?: string | null,"datos"?: NonNullable<Json>,"estado"?: Database["public"]['Enums']["comprobante_estado"],"household_id": string,"id"?: string,"mime"?: string | null,"nombre_archivo"?: string | null,"pregunta"?: string | null,"transaction_id"?: string | null
+                  }
+                  Update: {
+                    "archivo_path"?: string | null,"created_at"?: string,"created_by"?: string | null,"datos"?: NonNullable<Json>,"estado"?: Database["public"]['Enums']["comprobante_estado"],"household_id"?: string,"id"?: string,"mime"?: string | null,"nombre_archivo"?: string | null,"pregunta"?: string | null,"transaction_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "receipts_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "receipts_transaction_id_household_id_fkey"
+      columns: ["transaction_id","household_id"]
+isOneToOne: false
+      referencedRelation: "transactions"
+      referencedColumns: ["id","household_id"]
+    }
+                  ]
+                },"recurring_rules": {
+                  Row: {
+                    "account_id": string,"activa": boolean,"category_id": string,"created_at": string,"descripcion": string,"fecha_inicio": string,"frecuencia": Database["public"]['Enums']["frecuencia"],"household_id": string,"id": string,"member_id": string | null,"monto": number,"ocurrencias": number,"proxima_fecha": string,"recordar": boolean,"tipo": Database["public"]['Enums']["mov_tipo"]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_id": string,"activa"?: boolean,"category_id": string,"created_at"?: string,"descripcion": string,"fecha_inicio": string,"frecuencia": Database["public"]['Enums']["frecuencia"],"household_id": string,"id"?: string,"member_id"?: string | null,"monto": number,"ocurrencias"?: number,"proxima_fecha": string,"recordar"?: boolean,"tipo"?: Database["public"]['Enums']["mov_tipo"]
+                  }
+                  Update: {
+                    "account_id"?: string,"activa"?: boolean,"category_id"?: string,"created_at"?: string,"descripcion"?: string,"fecha_inicio"?: string,"frecuencia"?: Database["public"]['Enums']["frecuencia"],"household_id"?: string,"id"?: string,"member_id"?: string | null,"monto"?: number,"ocurrencias"?: number,"proxima_fecha"?: string,"recordar"?: boolean,"tipo"?: Database["public"]['Enums']["mov_tipo"]
                   }
                   Relationships: [
                     {
@@ -239,6 +337,26 @@ isOneToOne: false
       referencedColumns: ["id","household_id"]
     }
                   ]
+                },"reminders": {
+                  Row: {
+                    "activo": boolean,"avisos": (number)[],"canales": (string)[],"created_at": string,"fecha": string,"household_id": string,"id": string,"monto": number | null,"nombre": string,"repetir": Database["public"]['Enums']["repeticion"]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activo"?: boolean,"avisos"?: (number)[],"canales"?: (string)[],"created_at"?: string,"fecha": string,"household_id": string,"id"?: string,"monto"?: number | null,"nombre": string,"repetir"?: Database["public"]['Enums']["repeticion"]
+                  }
+                  Update: {
+                    "activo"?: boolean,"avisos"?: (number)[],"canales"?: (string)[],"created_at"?: string,"fecha"?: string,"household_id"?: string,"id"?: string,"monto"?: number | null,"nombre"?: string,"repetir"?: Database["public"]['Enums']["repeticion"]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reminders_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"tax_params": {
                   Row: {
                     "anio": number,"id": string,"pais": string,"topes": NonNullable<Json>,"uvt_valor": number
@@ -269,14 +387,14 @@ isOneToOne: false
                   ]
                 },"transactions": {
                   Row: {
-                    "account_id": string,"category_id": string | null,"comercio": string | null,"created_at": string,"created_by": string | null,"cuenta_destino_id": string | null,"estado": Database["public"]['Enums']["mov_estado"],"fecha": string,"household_id": string,"id": string,"import_batch_id": string | null,"import_hash": string | null,"member_id": string | null,"monto": number,"nota": string | null,"origen": Database["public"]['Enums']["mov_origen"],"recurring_rule_id": string | null,"tax_tag_id": string | null,"tipo": Database["public"]['Enums']["mov_tipo"],"updated_at": string
+                    "account_id": string,"ambito": Database["public"]['Enums']["ambito"],"category_id": string | null,"comercio": string | null,"created_at": string,"created_by": string | null,"cuenta_destino_id": string | null,"debt_id": string | null,"estado": Database["public"]['Enums']["mov_estado"],"fecha": string,"goal_id": string | null,"household_id": string,"id": string,"import_batch_id": string | null,"import_hash": string | null,"member_id": string | null,"monto": number,"nota": string | null,"origen": Database["public"]['Enums']["mov_origen"],"recurring_rule_id": string | null,"tax_tag_id": string | null,"tipo": Database["public"]['Enums']["mov_tipo"],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"category_id"?: string | null,"comercio"?: string | null,"created_at"?: string,"created_by"?: string | null,"cuenta_destino_id"?: string | null,"estado"?: Database["public"]['Enums']["mov_estado"],"fecha": string,"household_id": string,"id"?: string,"import_batch_id"?: string | null,"import_hash"?: string | null,"member_id"?: string | null,"monto": number,"nota"?: string | null,"origen"?: Database["public"]['Enums']["mov_origen"],"recurring_rule_id"?: string | null,"tax_tag_id"?: string | null,"tipo": Database["public"]['Enums']["mov_tipo"],"updated_at"?: string
+                    "account_id": string,"ambito"?: Database["public"]['Enums']["ambito"],"category_id"?: string | null,"comercio"?: string | null,"created_at"?: string,"created_by"?: string | null,"cuenta_destino_id"?: string | null,"debt_id"?: string | null,"estado"?: Database["public"]['Enums']["mov_estado"],"fecha": string,"goal_id"?: string | null,"household_id": string,"id"?: string,"import_batch_id"?: string | null,"import_hash"?: string | null,"member_id"?: string | null,"monto": number,"nota"?: string | null,"origen"?: Database["public"]['Enums']["mov_origen"],"recurring_rule_id"?: string | null,"tax_tag_id"?: string | null,"tipo": Database["public"]['Enums']["mov_tipo"],"updated_at"?: string
                   }
                   Update: {
-                    "account_id"?: string,"category_id"?: string | null,"comercio"?: string | null,"created_at"?: string,"created_by"?: string | null,"cuenta_destino_id"?: string | null,"estado"?: Database["public"]['Enums']["mov_estado"],"fecha"?: string,"household_id"?: string,"id"?: string,"import_batch_id"?: string | null,"import_hash"?: string | null,"member_id"?: string | null,"monto"?: number,"nota"?: string | null,"origen"?: Database["public"]['Enums']["mov_origen"],"recurring_rule_id"?: string | null,"tax_tag_id"?: string | null,"tipo"?: Database["public"]['Enums']["mov_tipo"],"updated_at"?: string
+                    "account_id"?: string,"ambito"?: Database["public"]['Enums']["ambito"],"category_id"?: string | null,"comercio"?: string | null,"created_at"?: string,"created_by"?: string | null,"cuenta_destino_id"?: string | null,"debt_id"?: string | null,"estado"?: Database["public"]['Enums']["mov_estado"],"fecha"?: string,"goal_id"?: string | null,"household_id"?: string,"id"?: string,"import_batch_id"?: string | null,"import_hash"?: string | null,"member_id"?: string | null,"monto"?: number,"nota"?: string | null,"origen"?: Database["public"]['Enums']["mov_origen"],"recurring_rule_id"?: string | null,"tax_tag_id"?: string | null,"tipo"?: Database["public"]['Enums']["mov_tipo"],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -308,6 +426,18 @@ isOneToOne: false
       columns: ["cuenta_destino_id","household_id"]
 isOneToOne: false
       referencedRelation: "accounts"
+      referencedColumns: ["id","household_id"]
+    },{
+      foreignKeyName: "transactions_debt_id_household_id_fkey"
+      columns: ["debt_id","household_id"]
+isOneToOne: false
+      referencedRelation: "debts"
+      referencedColumns: ["id","household_id"]
+    },{
+      foreignKeyName: "transactions_goal_id_household_id_fkey"
+      columns: ["goal_id","household_id"]
+isOneToOne: false
+      referencedRelation: "budgets_goals"
       referencedColumns: ["id","household_id"]
     },{
       foreignKeyName: "transactions_household_id_fkey"
@@ -372,6 +502,9 @@ isOneToOne: false
 "crear_hogar":
 { Args: { "p_nombre": string,"p_nombre_miembro": string }; Returns: string
                            },
+"custom_access_token_hook":
+{ Args: { "event": Json }; Returns: Json
+                           },
 "generar_recurrentes_hogar":
 { Args: { "p_household": string }; Returns: number
                            },
@@ -387,7 +520,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "adjunto_tipo": "factura"|"certificado"|"extracto","categoria_clase": "gasto"|"ingreso","categoria_tipo": "fijo"|"variable","cuenta_tipo": "banco"|"efectivo"|"tarjeta","frecuencia": "semanal"|"quincenal"|"mensual"|"bimestral"|"trimestral"|"semestral"|"anual","meta_tipo": "presupuesto"|"meta","mov_estado": "confirmado"|"programado","mov_origen": "manual"|"importacion"|"recurrente"|"ocr"|"whatsapp"|"banco","mov_tipo": "ingreso"|"gasto"|"transferencia","periodo": "mensual"|"anual"|"unico","rol_miembro": "admin"|"editor"|"contador"
+            "adjunto_tipo": "factura"|"certificado"|"extracto","ambito": "personal"|"negocio","categoria_clase": "gasto"|"ingreso","categoria_tipo": "fijo"|"variable","comprobante_estado": "procesando"|"registrado"|"soporte"|"por_revisar"|"descartado"|"error","cuenta_tipo": "banco"|"efectivo"|"tarjeta"|"billetera","frecuencia": "semanal"|"quincenal"|"mensual"|"bimestral"|"trimestral"|"semestral"|"anual","meta_tipo": "presupuesto"|"meta","mov_estado": "confirmado"|"programado","mov_origen": "manual"|"importacion"|"recurrente"|"ocr"|"whatsapp"|"banco","mov_tipo": "ingreso"|"gasto"|"transferencia","periodo": "mensual"|"anual"|"unico","repeticion": "una_vez"|"mensual"|"anual","rol_miembro": "admin"|"editor"|"contador"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -503,7 +636,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "adjunto_tipo": ["factura", "certificado", "extracto"],"categoria_clase": ["gasto", "ingreso"],"categoria_tipo": ["fijo", "variable"],"cuenta_tipo": ["banco", "efectivo", "tarjeta"],"frecuencia": ["semanal", "quincenal", "mensual", "bimestral", "trimestral", "semestral", "anual"],"meta_tipo": ["presupuesto", "meta"],"mov_estado": ["confirmado", "programado"],"mov_origen": ["manual", "importacion", "recurrente", "ocr", "whatsapp", "banco"],"mov_tipo": ["ingreso", "gasto", "transferencia"],"periodo": ["mensual", "anual", "unico"],"rol_miembro": ["admin", "editor", "contador"]
+            "adjunto_tipo": ["factura", "certificado", "extracto"],"ambito": ["personal", "negocio"],"categoria_clase": ["gasto", "ingreso"],"categoria_tipo": ["fijo", "variable"],"comprobante_estado": ["procesando", "registrado", "soporte", "por_revisar", "descartado", "error"],"cuenta_tipo": ["banco", "efectivo", "tarjeta", "billetera"],"frecuencia": ["semanal", "quincenal", "mensual", "bimestral", "trimestral", "semestral", "anual"],"meta_tipo": ["presupuesto", "meta"],"mov_estado": ["confirmado", "programado"],"mov_origen": ["manual", "importacion", "recurrente", "ocr", "whatsapp", "banco"],"mov_tipo": ["ingreso", "gasto", "transferencia"],"periodo": ["mensual", "anual", "unico"],"repeticion": ["una_vez", "mensual", "anual"],"rol_miembro": ["admin", "editor", "contador"]
           }
         }
 } as const
