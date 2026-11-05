@@ -50,6 +50,7 @@ export async function cambiarRol(datos: FormData) {
   if (!r.success) return;
   const ctx = await obtenerContexto();
   await ctx.supabase.from("members").update({ rol: r.data.rol }).eq("id", r.data.id);
+  if (r.data.id === ctx.miembro.id) await ctx.supabase.auth.refreshSession();
   revalidatePath("/ajustes/miembros");
 }
 
@@ -73,6 +74,7 @@ export async function guardarHogar(_: Estado, datos: FormData): Promise<Estado> 
     .update({ nombre: r.data.nombre, config: { cuota_imprevistos_pct: r.data.cuota } })
     .eq("id", ctx.hogar.id);
   if (error) return { error: mensajeError(error) };
+  await ctx.supabase.auth.refreshSession(); // el nombre y la cuota viajan en el JWT
   revalidatePath("/", "layout");
   return { ok: "Cambios guardados." };
 }

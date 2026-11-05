@@ -22,13 +22,18 @@ Guía para publicar My House por primera vez. Toma unos 20 minutos. Al final la 
 5. **Authentication → URL Configuration:**
    - *Site URL:* la URL de producción (por ejemplo `https://myhouse.vercel.app`).
    - *Redirect URLs:* agregue `https://myhouse.vercel.app/**` (y la de previews de Vercel si las usa).
-6. **Project Settings → API:** copie la URL del proyecto y la llave `anon` (pública).
-7. Opcional pero recomendado: **Authentication → SMTP** con un proveedor propio (Resend, Brevo…). El correo
+6. **Authentication → Hooks → Customize Access Token (JWT) Claims:** actívelo con la función de Postgres
+   `public.custom_access_token_hook`. Pone el hogar y el rol en el token: las páginas no consultan la base para
+   saber quién es el usuario (sin él la app funciona, pero cada página hace una consulta más).
+7. **Project Settings → API:** copie la URL del proyecto y la llave `anon` (pública).
+8. Opcional pero recomendado: **Authentication → SMTP** con un proveedor propio (Resend, Brevo…). El correo
    integrado de Supabase tiene un límite bajo de envíos por hora.
 
 ## 2. Vercel
 
 1. Importe el repositorio `Jaider45/My-House` en <https://vercel.com/new> (framework: Next.js, sin cambios).
+   `vercel.json` fija la región `gru1` (São Paulo), la misma de Supabase: cada consulta cruza la ciudad y no el
+   continente (~5 ms en vez de ~120 ms).
 2. Variables de entorno (Production y Preview):
 
    | Variable | Valor |

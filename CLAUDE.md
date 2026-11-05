@@ -77,7 +77,11 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
 12. Next 16 con `cacheComponents` activo (será obligatorio en la próxima versión mayor).
 13. `@types/node@24` (coincide con Node 24 y lo exige Vitest 5).
 14. Un usuario opera un hogar (el primero al que pertenece). El selector de hogares queda para el SaaS.
-15. `crearClienteServidor()` llama `await connection()`: todo lo que toca Supabase se renderiza por request
+15. Velocidad: el JWT trae el hogar, el miembro y el rol (`public.custom_access_token_hook`, activado en
+    `config.toml` y en el panel de Supabase Cloud). `obtenerContexto()` los lee con `getClaims()` (verificación local
+    con la llave pública, sin red) y solo consulta la base si el token no los trae. Tras crear hogar, aceptar
+    invitación o editar hogar/rol propio se llama `auth.refreshSession()`. Vercel en `gru1`, junto a Supabase.
+    `crearClienteServidor()` llama `await connection()`: todo lo que toca Supabase se renderiza por request
     (supabase-js usa `Date.now()` y Cache Components lo rechaza en prerender).
 16. Autoría (`created_by`, `creada_por`) la fija un trigger con `auth.uid()`; el cliente no puede falsearla.
     `npm audit` en CI solo para producción: el tooling de ESLint arrastra `minimatch` <11 sin arreglo compatible.

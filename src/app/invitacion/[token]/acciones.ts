@@ -16,5 +16,6 @@ export async function aceptarInvitacion(_: Estado, datos: FormData): Promise<Est
   const supabase = await crearClienteServidor();
   const { error } = await supabase.rpc("aceptar_invitacion", { p_token: r.data.token, p_nombre: r.data.nombre });
   if (error) return { error: mensajeError(error) };
+  await supabase.auth.refreshSession(); // el JWT nuevo trae el hogar (custom_access_token_hook)
   redirect("/");
 }

@@ -16,5 +16,6 @@ export async function crearHogar(_: Estado, datos: FormData): Promise<Estado> {
   const supabase = await crearClienteServidor();
   const { error } = await supabase.rpc("crear_hogar", { p_nombre: r.data.hogar, p_nombre_miembro: r.data.nombre });
   if (error) return { error: mensajeError(error) };
+  await supabase.auth.refreshSession(); // el JWT nuevo trae el hogar (custom_access_token_hook)
   redirect("/");
 }
