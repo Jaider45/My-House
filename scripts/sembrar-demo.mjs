@@ -282,4 +282,4 @@ ok(
 );
 
 console.log(`Hogar de demostración listo: ${movimientos.length} movimientos.`);
-console.log(`Ingrese con ${CORREOS.andres} o ${CORREOS.camila} · contraseña ${CLAVE}`);
+console.log(`Ingresa con ${CORREOS.andres} o ${CORREOS.camila} · contraseña ${CLAVE}`);
