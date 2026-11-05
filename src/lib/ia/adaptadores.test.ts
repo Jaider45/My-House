@@ -108,6 +108,19 @@ describe("OpenAI", () => {
     responder = () => ({ json: respuestaOpenAI('{"banco":', { status: "incomplete", incomplete_details: { reason: "max_output_tokens" } }) });
     await expect(leerExtracto({ proveedor: "openai", modelo: "gpt-4.1" }, pdf, "2026-11-05")).rejects.toThrow("demasiado largo");
   });
+
+  // Respuesta real de una cuenta sin créditos (2026-11-05). El SDK reintenta los 429 antes de rendirse.
+  it("distingue la cuenta sin saldo de un límite temporal", { timeout: 20000 }, async () => {
+    const { leerComprobante } = await import(".");
+    const ia = { proveedor: "openai", modelo: "gpt-4.1" } as const;
+    responder = () => ({
+      estado: 429,
+      json: { error: { message: "You have no credits remaining.", type: "insufficient_quota", param: null, code: "credit_balance_exhausted" } },
+    });
+    await expect(leerComprobante(ia, { texto: "almuerzo 25 mil" }, contexto)).rejects.toThrow("Tu cuenta de OpenAI (GPT) no tiene saldo");
+    responder = () => ({ estado: 429, json: { error: { message: "Rate limit reached", type: "requests", code: "rate_limit_exceeded" } } });
+    await expect(leerComprobante(ia, { texto: "almuerzo 25 mil" }, contexto)).rejects.toThrow("está limitando el uso");
+  });
 });
 
 /** Respuesta de Messages en streaming (SSE) con un único bloque de texto. */
@@ -146,6 +159,14 @@ describe("Anthropic", () => {
     responder = () => ({ estado: 401, json: { type: "error", error: { type: "authentication_error", message: "invalid x-api-key" } } });
     await expect(leerComprobante({ proveedor: "anthropic", modelo: "claude-opus-5-5" }, { texto: "x" }, contexto)).rejects.toThrow(
       "La llave de Anthropic (Claude) no es válida",
+    );
+
+    responder = () => ({
+      estado: 400,
+      json: { type: "error", error: { type: "invalid_request_error", message: "Your credit balance is too low to access the Anthropic API." } },
+    });
+    await expect(leerComprobante({ proveedor: "anthropic", modelo: "claude-opus-5-5" }, { texto: "x" }, contexto)).rejects.toThrow(
+      "Tu cuenta de Anthropic (Claude) no tiene saldo",
     );
   });
 

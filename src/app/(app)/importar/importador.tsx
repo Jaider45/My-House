@@ -74,7 +74,7 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
       setTexto({ nombre: file.name, contenido });
       setSaltar(0);
       setMapeo({ ...sugerirMapeo(["Fecha", "Descripción", "Valor"]), gastosNegativos: true });
-      setMensaje({ tipo: "ok", texto: `Leí ${r.filas.length} movimientos${r.banco ? ` del extracto de ${r.banco}` : ""}. Revísalos y analiza los duplicados.` });
+      setMensaje({ tipo: "ok", texto: `Leí ${r.filas.length} movimientos${r.banco ? ` del extracto de ${r.banco.replace(/\.+$/, "")}` : ""}. Revísalos y analiza los duplicados.` });
     });
   }
 

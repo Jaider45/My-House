@@ -37,6 +37,12 @@ export function explicarError(e: unknown, ia: ConfigIa): string {
   if (e instanceof ErrorIa) return e.message;
   const estado = (e as { status?: number })?.status;
   const proveedor = NOMBRE_PROVEEDOR[ia.proveedor];
+  // Sin saldo: OpenAI responde 429 (insufficient_quota / credit_balance_exhausted) y Anthropic 400 ("credit balance
+  // is too low"). No es un límite temporal: reintentar no sirve.
+  const detalle = e as { code?: unknown; type?: unknown; message?: unknown };
+  const textoError = [detalle?.code, detalle?.type, detalle?.message].filter((x) => typeof x === "string").join(" ");
+  if ((estado === 429 || estado === 400 || estado === 402) && /insufficient_quota|credit|billing/i.test(textoError))
+    return `Tu cuenta de ${proveedor} no tiene saldo. Agrega créditos en su panel de facturación y vuelve a intentarlo.`;
   if (estado === 401 || estado === 403) return `La llave de ${proveedor} no es válida o no tiene permiso.`;
   if (estado === 404) return `El modelo «${ia.modelo}» no existe en ${proveedor} o tu llave no tiene acceso. Cámbialo en Configuración → Hogar.`;
   if (estado === 400) return `${proveedor} rechazó el archivo con el modelo «${ia.modelo}». Prueba otro modelo con visión o una foto más nítida.`;

@@ -72,7 +72,7 @@ async function Contenido() {
             ))}
           </ul>
         ) : (
-          <Vacio>Aún no ha importado extractos.</Vacio>
+          <Vacio>Aún no has importado extractos.</Vacio>
         )}
       </Tarjeta>
     </div>
