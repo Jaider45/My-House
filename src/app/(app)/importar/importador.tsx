@@ -7,7 +7,7 @@ import { formatearCOP } from "@/lib/dinero";
 import { formatearFecha } from "@/lib/fechas";
 import { opcionesCategoria, type Categoria } from "@/lib/categorias";
 import { detectarEncabezado, leerFilas, sugerirMapeo, type Clasificacion, type Mapeo } from "@/lib/importacion";
-import { analizarImportacion, importarMovimientos } from "./acciones";
+import { analizarImportacion, importarMovimientos, leerExtractoPdf } from "./acciones";
 
 type Cuenta = { id: string; nombre: string; mapeo_csv: Mapeo | null };
 type Archivo = { nombre: string; columnas: string[]; filas: Record<string, string>[] };
@@ -63,9 +63,25 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
     return guardado && columnas.includes(guardado.fecha) ? guardado : sugerirMapeo(columnas);
   }
 
+  /** PDF: el servidor extrae las filas y se arma un CSV equivalente (Fecha, Descripción, Valor con signo). */
+  function leerPdf(file: File) {
+    iniciar(async () => {
+      const datos = new FormData();
+      datos.append("archivo", file);
+      const r = await leerExtractoPdf(datos);
+      if (r.error || !r.filas) return setMensaje({ tipo: "error", texto: r.error ?? "No pude leer el PDF." });
+      const contenido = Papa.unparse({ fields: ["Fecha", "Descripción", "Valor"], data: r.filas.map((f) => [f.fecha, f.descripcion, String(f.valor)]) });
+      setTexto({ nombre: file.name, contenido });
+      setSaltar(0);
+      setMapeo({ ...sugerirMapeo(["Fecha", "Descripción", "Valor"]), gastosNegativos: true });
+      setMensaje({ tipo: "ok", texto: `Leí ${r.filas.length} movimientos${r.banco ? ` del extracto de ${r.banco}` : ""}. Revísalos y analiza los duplicados.` });
+    });
+  }
+
   async function elegirArchivo(file: File | undefined) {
     reiniciarRevision();
     if (!file) return setTexto(undefined);
+    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) return leerPdf(file);
     const contenido = await leerTexto(file);
     const fila = detectarEncabezado(celdas(contenido));
     setTexto({ nombre: file.name, contenido });
@@ -143,13 +159,16 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
             ))}
           </Selector>
           <label className="block space-y-1">
-            <span className="text-sm font-medium">Extracto en CSV</span>
+            <span className="text-[13px] font-semibold text-cuerpo">Extracto en PDF o CSV</span>
             <input
               type="file"
-              accept=".csv,text/csv"
+              accept=".pdf,application/pdf,.csv,text/csv"
               onChange={(e) => elegirArchivo(e.target.files?.[0])}
-              className="block w-full text-sm file:mr-3 file:min-h-11 file:rounded-xl file:border-0 file:bg-monte file:px-4 file:font-semibold file:text-white"
+              className="block w-full text-sm file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-monte file:px-4 file:font-semibold file:text-arena"
             />
+            <span className="block text-[13px] text-tenue">
+              {pendiente && !archivo ? "Leyendo el PDF… puede tardar unos segundos por página." : "El PDF lo leo con IA; el CSV se lee aquí mismo, sin salir del celular."}
+            </span>
           </label>
           {archivo && (
             <Campo

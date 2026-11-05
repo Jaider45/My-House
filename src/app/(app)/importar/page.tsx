@@ -12,7 +12,7 @@ export const metadata = { title: "Importar extracto" };
 export default function Importar() {
   return (
     <>
-      <Titulo>Importar extracto</Titulo>
+      <Titulo subtitulo="Trae el mes completo desde el PDF o CSV de tu banco, sin duplicados">Importar extracto</Titulo>
       <Suspense fallback={<Cargando />}>
         <Contenido />
       </Suspense>
@@ -47,8 +47,8 @@ async function Contenido() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-tenue">
-        Descargue el extracto en CSV desde la banca en línea. Se detectan los movimientos que ya estaban (aunque los
-        extractos se solapen) y se recuerda el formato de cada cuenta.
+        Descarga el extracto desde la banca en línea, en PDF (el formato habitual) o CSV. Se detectan los movimientos que
+        ya estaban (aunque los extractos se solapen) y se recuerda el formato de cada cuenta.
       </p>
       <Importador
         cuentas={cuentas.map((c) => ({ ...c, mapeo_csv: c.mapeo_csv as Mapeo | null }))}

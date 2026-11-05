@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    // Comprobantes (fotos comprimidas en el navegador) y extractos en PDF: hasta 5 archivos de ~10 MB.
+    serverActions: { bodySizeLimit: "30mb" },
+  },
   async headers() {
     return [
       {

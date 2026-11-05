@@ -6,7 +6,8 @@ import { obtenerContexto } from "@/lib/sesion";
 import { mensajeError } from "@/lib/acciones";
 import { clasificar, huellas, normalizarDescripcion, type Clasificacion, type FilaLeida } from "@/lib/importacion";
 import { validarMovimiento } from "@/lib/ingesta";
-import { sumarDias } from "@/lib/fechas";
+import { hoy, sumarDias } from "@/lib/fechas";
+import { leerExtracto } from "@/lib/ia";
 
 const MAX_FILAS = 5000;
 
@@ -150,4 +151,25 @@ export async function deshacerLote(datos: FormData) {
   revalidatePath("/importar");
   revalidatePath("/movimientos");
   revalidatePath("/");
+}
+
+/**
+ * Lee un extracto en PDF con el modelo y devuelve sus filas (fecha, descripción, valor con signo) para que el
+ * importador las trate igual que un CSV: mismo mapeo, mismas huellas y la misma detección de duplicados.
+ */
+export async function leerExtractoPdf(datos: FormData): Promise<{ filas?: { fecha: string; descripcion: string; valor: number }[]; banco?: string | null; error?: string }> {
+  const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
+  const archivo = datos.get("archivo");
+  if (!(archivo instanceof File) || archivo.type !== "application/pdf") return { error: "Elige un archivo PDF." };
+  if (archivo.size > 20 * 1024 * 1024) return { error: "El PDF pesa más de 20 MB: divídelo por meses." };
+  try {
+    const base64 = Buffer.from(await archivo.arrayBuffer()).toString("base64");
+    const { banco, filas } = await leerExtracto({ mime: "application/pdf", base64, nombre: archivo.name }, hoy());
+    if (!filas.length) return { error: "No encontré movimientos en ese PDF. ¿Es un extracto?" };
+    if (filas.length > MAX_FILAS) return { error: `El extracto tiene más de ${MAX_FILAS} movimientos: divídelo.` };
+    return { banco, filas };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "No pude leer el PDF." };
+  }
 }

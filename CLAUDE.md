@@ -106,8 +106,20 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     Los componentes de `src/components/ui` ya traen los estilos: no usar colores de Tailwind (`zinc`, `teal`…).
     Cuidado: dos utilidades de la misma propiedad en un elemento (p. ej. `hidden` + `inline-flex` de `clasesBoton`)
     no se resuelven por orden; envolver en un `<span className="hidden lg:contents">` o usar `!`.
-    Pantallas del diseño sin datos todavía (Presupuesto, Deudas, Metas de ahorro, ámbito Personal/Negocio,
-    pronóstico, carpeta de soportes) quedan fuera hasta tener su modelo.
+22. Módulos (migración `modulos`): presupuesto = pagos fijos de la categoría + adicional (`budgets_goals` tipo
+    `presupuesto`); pronóstico de cierre = max(real + programado, fijos) + ritmo del gasto variable
+    (`src/lib/presupuesto`). Deudas (`debts`): pagado = `pagado_inicial` + movimientos con `debt_id`; un abono es un
+    gasto en Deudas. Metas (`budgets_goals` tipo `meta`): ahorrado = `ahorrado_inicial` + movimientos con `goal_id`
+    (gasto en «Ahorro e inversión», fuera del costo de vida). Recordatorios guardan fechas y canales; el envío por
+    WhatsApp, correo o notificación queda para cuando se conecten esos servicios.
+23. IA (`src/lib/ia`, `claude-opus-5-5`, salida estructurada con Zod y `fallbacks: "default"`): el asistente de
+    comprobantes lee fotos, PDF o texto; `src/lib/comprobantes` decide (registrar, revisar o descartar; confianza
+    mínima 70; reglas aprendidas por comercio en `merchant_rules`). Duplicado = mismo tipo y monto a ±2 días: se
+    adjunta como soporte en lugar de crear otro movimiento. Los extractos en PDF se convierten en filas
+    (fecha, descripción, valor) que el importador trata como CSV. Requiere `ANTHROPIC_API_KEY` (solo servidor);
+    sin ella la app avisa y lo demás funciona. Las fotos se comprimen a 1600 px en el navegador antes de subirlas.
+24. Datos de prueba: `node scripts/sembrar-demo.mjs` crea el hogar de demostración (andres@ y camila@myhouse.test,
+    clave de las pruebas RLS) con 12 meses de movimientos. Solo contra Supabase local.
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
@@ -134,6 +146,7 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] 10. Semáforo DIAN
 - [x] 11. Cierre: CI, autoría en BD, guía de despliegue (`docs/DESPLIEGUE.md`)
 - [x] 12. Diseño visual del sistema My House (navegación, Inicio, Movimientos, Pagos fijos, Renta DIAN, Configuración)
+- [x] 13. Velocidad (JWT con hogar), pantallas del diseño, asistente de comprobantes e importación de PDF
 - [ ] Publicar en Supabase Cloud + Vercel (requiere las cuentas del usuario)
 
 ### Criterios de terminado de la Fase 1 (verificados el 2026-11-04 en local)

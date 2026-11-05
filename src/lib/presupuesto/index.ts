@@ -26,14 +26,15 @@ export type FilaPresupuesto = EntradaCategoria & {
 };
 
 /**
- * Pronóstico de cierre de una categoría: lo pagado + lo programado + el ritmo del gasto variable en los días
- * que faltan. Variable = real − fijos (lo que no viene de pagos fijos). Si el mes ya cerró, es lo real.
+ * Pronóstico de cierre de una categoría: lo pagado + lo programado (nunca menos que los pagos fijos del mes,
+ * porque los fijos se programan solo 7 días antes) + el ritmo del gasto variable en los días que faltan.
+ * Variable = real − fijos (lo que no viene de pagos fijos). Si el mes ya cerró, es lo real.
  */
 export function pronosticar(c: EntradaCategoria, dia: number, diasMes: number): number {
   if (dia >= diasMes) return c.real + c.programado;
   const variable = Math.max(0, c.real - c.fijos);
   const ritmo = dia > 0 ? Math.round((variable / dia) * (diasMes - dia)) : 0;
-  return c.real + c.programado + ritmo;
+  return Math.max(c.real + c.programado, c.fijos + variable) + ritmo;
 }
 
 /** Excedido si lo real ya pasó el presupuesto; atento si el pronóstico lo pasa; si no, en rango. */

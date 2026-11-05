@@ -72,6 +72,19 @@ beforeAll(async () => {
   }).select("id").single();
   if (m.error) throw m.error;
   movimientoA = m.data.id;
+
+  // Una fila de cada módulo nuevo en el hogar A, para comprobar que Carla no la ve.
+  for (const [tabla, fila] of [
+    ["debts", { nombre: "Deuda A", monto: 1000 }],
+    ["reminders", { nombre: "Recordatorio A", fecha: "2026-12-01" }],
+    ["receipts", { nombre_archivo: "a.jpg", mime: "image/jpeg" }],
+    ["assistant_messages", { autor: "usuario", texto: "hola" }],
+    ["merchant_rules", { patron: "exito", category_id: categoriaA }],
+    ["budgets_goals", { tipo: "meta", nombre: "Meta A", monto: 1000, periodo: "unico" }],
+  ] as const) {
+    const { error } = await ana.from(tabla).insert({ household_id: hogarA, ...fila });
+    if (error) throw new Error(`${tabla}: ${error.message}`);
+  }
 });
 
 afterAll(async () => {
@@ -127,7 +140,7 @@ describe("autoría", () => {
 });
 
 describe("otro hogar no ve nada", () => {
-  it.each(["households", "members", "accounts", "categories", "transactions", "invitations", "account_balances"])(
+  it.each(["households", "members", "accounts", "categories", "transactions", "invitations", "account_balances", "budgets_goals", "debts", "reminders", "receipts", "assistant_messages", "merchant_rules"])(
     "%s del hogar A es invisible para Carla",
     async (tabla) => {
       const columna = tabla === "households" ? "id" : "household_id";

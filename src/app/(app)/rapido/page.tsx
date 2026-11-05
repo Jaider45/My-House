@@ -60,7 +60,10 @@ async function Contenido() {
   return (
     <>
       <RegistroRapido cuentas={catalogos.cuentas} categorias={catalogos.categorias} frecuentes={masUsadas(recientes ?? [])} hoy={hoy()} />
-      <p className="mt-5 border-t border-divisor pt-4 text-center text-sm">
+      <p className="mt-5 flex flex-col gap-2 border-t border-divisor pt-4 text-center text-sm">
+        <Link href="/comprobantes" className="font-semibold hover:underline">
+          Subir foto o PDF de un comprobante →
+        </Link>
         <Link href="/movimientos/nuevo" className="font-semibold hover:underline">
           Transferencia, otra fecha o más detalles →
         </Link>

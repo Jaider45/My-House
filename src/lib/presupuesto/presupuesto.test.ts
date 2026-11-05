@@ -13,6 +13,10 @@ describe("pronosticar", () => {
     expect(pronosticar({ ...base, real: 1_200_000, programado: 100_000 }, 10, 30)).toBe(1_300_000);
   });
 
+  it("cuenta los pagos fijos que aún no se programan", () => {
+    expect(pronosticar({ ...base, real: 0, programado: 0 }, 4, 30)).toBe(1_200_000);
+  });
+
   it("con el mes cerrado es lo real", () => {
     expect(pronosticar({ ...base, real: 1_700_000 }, 30, 30)).toBe(1_700_000);
   });
