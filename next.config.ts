@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {
+    // Volver a una pantalla visitada hace menos de 30 s no consulta el servidor. Toda acción que guarda llama
+    // revalidatePath, que vacía esta caché del navegador: lo propio se ve al instante; lo de otro miembro, ≤ 30 s.
+    staleTimes: { dynamic: 30 },
     // Comprobantes (fotos comprimidas en el navegador) y extractos en PDF: hasta 5 archivos de ~10 MB.
     serverActions: { bodySizeLimit: "30mb" },
   },

@@ -83,6 +83,9 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     invitación o editar hogar/rol propio se llama `auth.refreshSession()`. Vercel en `gru1`, junto a Supabase.
     `crearClienteServidor()` llama `await connection()`: todo lo que toca Supabase se renderiza por request
     (supabase-js usa `Date.now()` y Cache Components lo rechaza en prerender).
+    Navegación: `<Link>` precarga el esqueleto (App Shell) de cada pantalla; `staleTimes.dynamic: 30` reutiliza en
+    el navegador lo visitado hace < 30 s. Toda acción que guarda debe llamar `revalidatePath` (vacía esa caché).
+    La primera visita no baja de ~300 ms: React espera ese tiempo antes de reemplazar el "Cargando…".
 16. Autoría (`created_by`, `creada_por`) la fija un trigger con `auth.uid()`; el cliente no puede falsearla.
     `npm audit` en CI solo para producción: el tooling de ESLint arrastra `minimatch` <11 sin arreglo compatible.
 17. Sesión y 2FA se chequean en `src/proxy.ts` (optimista); la autorización real es RLS.
