@@ -25,9 +25,9 @@ export function FormularioIngreso() {
       <BotonEnviar className="w-full" pendiente="Ingresando…">
         Ingresar
       </BotonEnviar>
-      <p className="text-center text-sm text-zinc-500">
+      <p className="text-center text-sm text-tenue">
         ¿No tiene cuenta?{" "}
-        <Link className="font-semibold text-teal-700" href={conSiguiente("/registro", siguiente)}>
+        <Link className="font-semibold text-tinta" href={conSiguiente("/registro", siguiente)}>
           Crear cuenta
         </Link>
       </p>
@@ -57,9 +57,9 @@ export function FormularioRegistro() {
       <BotonEnviar className="w-full" pendiente="Creando…">
         Crear cuenta
       </BotonEnviar>
-      <p className="text-center text-sm text-zinc-500">
+      <p className="text-center text-sm text-tenue">
         ¿Ya tiene cuenta?{" "}
-        <Link className="font-semibold text-teal-700" href={conSiguiente("/ingresar", siguiente)}>
+        <Link className="font-semibold text-tinta" href={conSiguiente("/ingresar", siguiente)}>
           Ingresar
         </Link>
       </p>

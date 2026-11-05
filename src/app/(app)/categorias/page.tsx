@@ -5,13 +5,15 @@ import { obtenerContexto } from "@/lib/sesion";
 import { construirArbol, type Categoria } from "@/lib/categorias";
 import { archivarCategoria } from "./acciones";
 import { BotonEliminarCategoria, FormularioCategoria } from "./formulario";
+import { PestanasConfiguracion } from "@/app/(app)/ajustes/pestanas";
 
 export const metadata = { title: "Categorías" };
 
 export default function Categorias({ searchParams }: PageProps<"/categorias">) {
   return (
     <>
-      <Titulo>Categorías</Titulo>
+      <Titulo subtitulo="El hogar, quién entra, con qué cuentas y con qué valores">Configuración</Titulo>
+      <PestanasConfiguracion actual="/categorias" />
       <Suspense fallback={<Cargando />}>
         <Contenido searchParams={searchParams} />
       </Suspense>
@@ -22,10 +24,10 @@ export default function Categorias({ searchParams }: PageProps<"/categorias">) {
 function Etiquetas({ c }: { c: Categoria }) {
   return (
     <span className="flex flex-wrap gap-1 text-[11px]">
-      <span className="rounded-full bg-zinc-100 px-2 py-0.5 dark:bg-zinc-800">{c.tipo}</span>
-      {c.es_esencial && <span className="rounded-full bg-teal-100 px-2 py-0.5 text-teal-800 dark:bg-teal-950 dark:text-teal-200">esencial</span>}
-      {c.excluir_de_costo_vida && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800 dark:bg-amber-950 dark:text-amber-200">no es costo de vida</span>}
-      {c.archivada && <span className="rounded-full bg-zinc-200 px-2 py-0.5 dark:bg-zinc-700">archivada</span>}
+      <span className="rounded-full bg-mosaico px-2 py-0.5">{c.tipo}</span>
+      {c.es_esencial && <span className="rounded-full bg-seleccion px-2 py-0.5 text-tinta">esencial</span>}
+      {c.excluir_de_costo_vida && <span className="rounded-full bg-alerta-fondo px-2 py-0.5 text-alerta-tinta">no es costo de vida</span>}
+      {c.archivada && <span className="rounded-full bg-pista px-2 py-0.5">archivada</span>}
     </span>
   );
 }
@@ -33,7 +35,7 @@ function Etiquetas({ c }: { c: Categoria }) {
 function Editar({ c, puedeEditar }: { c: Categoria; puedeEditar: boolean }) {
   if (!puedeEditar) return null;
   return (
-    <div className="mt-3 space-y-3 rounded-xl bg-zinc-50 p-3 dark:bg-zinc-950">
+    <div className="mt-3 space-y-3 rounded-xl bg-mosaico p-3">
       <FormularioCategoria categoria={c} clase={c.clase} />
       <form action={archivarCategoria}>
         <input type="hidden" name="id" value={c.id} />
@@ -60,7 +62,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
     <Link
       href={valor === "gasto" ? "/categorias" : "/categorias?clase=ingreso"}
       className={`flex-1 rounded-lg py-2 text-center text-sm font-semibold ${
-        clase === valor ? "bg-white shadow dark:bg-zinc-800" : "text-zinc-500"
+        clase === valor ? "bg-elevada text-tinta shadow-[0_0_0_1px_var(--color-borde)]" : "text-tenue"
       }`}
     >
       {texto}
@@ -69,13 +71,13 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
 
   return (
     <div className="space-y-4">
-      <nav className="flex gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
+      <nav className="flex gap-1 rounded-xl bg-mosaico p-1">
         {pestana("gasto", "Gastos")}
         {pestana("ingreso", "Ingresos")}
       </nav>
 
       <Tarjeta>
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+        <ul className="divide-y divide-divisor">
           {arbol.map((raiz) => (
             <li key={raiz.id} className={`py-2 ${raiz.archivada ? "opacity-50" : ""}`}>
               <details>
@@ -87,7 +89,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
               </details>
 
               {raiz.hijas.length > 0 && (
-                <ul className="mt-1 ml-4 border-l border-zinc-200 pl-3 dark:border-zinc-800">
+                <ul className="mt-1 ml-4 border-l border-borde pl-3">
                   {raiz.hijas.map((h) => (
                     <li key={h.id} className={`py-1 ${h.archivada ? "opacity-50" : ""}`}>
                       <details>
@@ -104,7 +106,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
 
               {ctx.puedeEditar && !raiz.archivada && (
                 <details className="mt-1 ml-4">
-                  <summary className="cursor-pointer text-xs font-semibold text-teal-700">+ Subcategoría</summary>
+                  <summary className="cursor-pointer text-xs font-semibold text-tinta">+ Subcategoría</summary>
                   <div className="mt-2">
                     <FormularioCategoria clase={clase} padre={raiz} />
                   </div>

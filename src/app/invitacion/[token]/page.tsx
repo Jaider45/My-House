@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { Aviso, Cargando, EnlaceBoton, Tarjeta } from "@/components/ui";
+import { MarcoMarca } from "@/components/marco-marca";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { FormularioAceptar } from "./formulario";
 
@@ -9,14 +10,13 @@ const ROLES = { admin: "administrador", editor: "editor", contador: "contador (s
 
 export default function Invitacion({ params }: PageProps<"/invitacion/[token]">) {
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-4 py-10">
-      <p className="text-center text-2xl font-bold">My House</p>
+    <MarcoMarca>
       <Tarjeta titulo="Invitación a un hogar">
-        <Suspense fallback={<Cargando />}>
+        <Suspense fallback={<Cargando compacto />}>
           <Contenido params={params} />
         </Suspense>
       </Tarjeta>
-    </main>
+    </MarcoMarca>
   );
 }
 

@@ -19,6 +19,17 @@ export function formatearMiles(pesos: number): string {
   return formatoNumero.format(pesos);
 }
 
+const formatoDecimal = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 });
+
+/** Etiqueta corta para ejes y calendarios: 15000000 → "$15 M", 1250000 → "$1,3 M", 450000 → "$450 mil". */
+export function formatearCorto(pesos: number): string {
+  const signo = pesos < 0 ? "−" : "";
+  const n = Math.abs(pesos);
+  if (n >= 1_000_000) return `${signo}$${formatoDecimal.format(n / 1_000_000)} M`;
+  if (n >= 1_000) return `${signo}$${Math.round(n / 1_000)} mil`;
+  return `${signo}$${n}`;
+}
+
 /** Para el teclado del registro rápido: conserva solo dígitos. "1.234.5a" → 12345 */
 export function digitosAMonto(texto: string): number {
   const digitos = texto.replace(/\D/g, "").replace(/^0+/, "");

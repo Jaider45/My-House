@@ -1,25 +1,30 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { Aviso, Cargando, Tarjeta, Titulo, Vacio } from "@/components/ui";
+import { Aviso, Cargando, Chip, Tarjeta, Titulo, Vacio, cx } from "@/components/ui";
+import { Icono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP } from "@/lib/dinero";
 import { hoy } from "@/lib/fechas";
-import { cargarSemaforo, COLOR_SEMAFORO } from "@/lib/impuestos/servidor";
+import { cargarSemaforo, COLOR_SEMAFORO, type SemaforoPersona } from "@/lib/impuestos/servidor";
+import type { ResultadoTope } from "@/lib/impuestos/tipos";
 
-export const metadata = { title: "Semáforo DIAN" };
+export const metadata = { title: "Renta DIAN" };
+
+type Params = Record<string, string | string[] | undefined>;
 
 export default function Impuestos({ searchParams }: PageProps<"/impuestos">) {
   return (
-    <>
-      <Titulo>Semáforo DIAN</Titulo>
-      <Suspense fallback={<Cargando />}>
-        <Contenido searchParams={searchParams} />
-      </Suspense>
-    </>
+    <Suspense fallback={<Cargando texto="Calculando los topes del año…" />}>
+      <Contenido searchParams={searchParams} />
+    </Suspense>
   );
 }
 
-async function Contenido({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+const enlace = (anio: number, persona?: string) => `/impuestos?${new URLSearchParams({ anio: String(anio), ...(persona && { persona }) })}`;
+const claseSegmento = (activo: boolean) =>
+  cx("inline-flex h-9 items-center rounded-lg px-3.5 text-sm font-semibold", activo ? "bg-elevada text-tinta shadow-[0_0_0_1px_var(--color-borde)]" : "text-cuerpo");
+
+async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
   const ctx = await obtenerContexto(); // antes de hoy(): marca el render como dinámico
   const sp = await searchParams;
   const anioActual = Number(hoy().slice(0, 4));
@@ -37,97 +42,207 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
       .lte("fecha", `${anio}-12-31`),
   ]);
 
-  const porEtiqueta = new Map<string, number>();
+  const porEtiqueta = new Map<string, { total: number; cantidad: number }>();
   for (const t of etiquetados ?? []) {
     const nombre = t.tax_tags?.nombre ?? "Otra";
-    porEtiqueta.set(nombre, (porEtiqueta.get(nombre) ?? 0) + t.monto);
+    const previo = porEtiqueta.get(nombre) ?? { total: 0, cantidad: 0 };
+    porEtiqueta.set(nombre, { total: previo.total + t.monto, cantidad: previo.cantidad + 1 });
   }
 
+  const personas = semaforo.ok ? semaforo.personas : [];
+  const persona = personas.find((p) => p.member_id === sp.persona) ?? personas.find((p) => p.estado === "rojo") ?? personas[0];
+  const unidad = semaforo.ok ? semaforo.jurisdiccion.unidad : "UVT";
+  // Topes distintos del año (unidades → pesos), para el panel de parámetros.
+  const topes = [...new Map((persona?.topes ?? []).map((t) => [t.topeUnidades, t])).values()].sort((a, b) => a.topeUnidades - b.topeUnidades);
+
   return (
-    <div className="space-y-4">
-      <nav className="flex gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
-        {(anios ?? []).map(({ anio: a }) => (
-          <Link
-            key={a}
-            href={`/impuestos?anio=${a}`}
-            className={`flex-1 rounded-lg py-2 text-center text-sm font-semibold ${a === anio ? "bg-white shadow dark:bg-zinc-800" : "text-zinc-500"}`}
-          >
-            {a}
-          </Link>
-        ))}
-      </nav>
-
-      {!semaforo.ok ? (
-        <Aviso tipo="info">{semaforo.motivo}</Aviso>
-      ) : (
-        <>
-          <p className="text-sm text-zinc-500">
-            Acumulado de {anio} de cada persona contra los topes para declarar renta. {semaforo.jurisdiccion.unidad} {anio}:{" "}
-            {formatearCOP(semaforo.params.uvt_valor)}. Si alcanza cualquiera de los topes, la persona debe declarar en {anio + 1}.
-          </p>
-          <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
-            {(["verde", "amarillo", "rojo"] as const).map((s) => (
-              <span key={s} className="flex items-center gap-1">
-                <span className={`size-2.5 rounded-full ${COLOR_SEMAFORO[s].punto}`} /> {COLOR_SEMAFORO[s].texto}
-              </span>
-            ))}
-          </div>
-
-          {semaforo.personas.length === 0 && <Vacio>No hay personas adultas en el hogar.</Vacio>}
-          {semaforo.personas.map((p) => (
-            <Tarjeta
-              key={p.member_id}
-              titulo={
-                <span className="flex items-center gap-2">
-                  <span className={`size-3 rounded-full ${COLOR_SEMAFORO[p.estado].punto}`} aria-hidden />
+    <>
+      <Titulo
+        subtitulo={`Quién debe declarar en ${anio + 1} y qué soportes tener listos`}
+        accion={
+          personas.length > 1 && (
+            <div role="group" aria-label="Persona" className="inline-flex gap-1 rounded-[10px] bg-mosaico p-1">
+              {personas.map((p) => (
+                <Link key={p.member_id} href={enlace(anio, p.member_id)} aria-current={p === persona ? "true" : undefined} className={claseSegmento(p === persona)}>
                   {p.nombre}
-                </span>
-              }
-              accion={<span className="text-xs text-zinc-500">{COLOR_SEMAFORO[p.estado].texto}</span>}
-            >
-              <ul className="space-y-3">
-                {p.topes.map((t) => (
-                  <li key={t.clave} className="space-y-1">
-                    <div className="flex items-baseline justify-between gap-2 text-sm">
-                      <span className="font-medium">{t.nombre}</span>
-                      <span className="font-semibold tabular-nums">{t.porcentaje} %</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                      <div className={`h-full rounded-full ${COLOR_SEMAFORO[t.semaforo].barra}`} style={{ width: `${Math.min(100, t.porcentaje)}%` }} />
-                    </div>
-                    <p className="text-xs text-zinc-500">
-                      {formatearCOP(t.acumulado)} de {formatearCOP(t.tope)} ({t.topeUnidades.toLocaleString("es-CO")} {semaforo.jurisdiccion.unidad}) · {t.ayuda}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </Tarjeta>
-          ))}
-
-          <Aviso tipo="info">
-            Se atribuye cada movimiento a la persona elegida en él o, si no, al titular de la cuenta. Asigne titular a
-            cada cuenta en <Link href="/cuentas" className="underline">Cuentas</Link>. El semáforo es una guía; confirme
-            con su contador.
-          </Aviso>
-        </>
-      )}
-
-      <Tarjeta titulo={`Para la declaración ${anio}`}>
-        {porEtiqueta.size ? (
-          <ul className="divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-            {[...porEtiqueta.entries()]
-              .sort((a, b) => b[1] - a[1])
-              .map(([nombre, total]) => (
-                <li key={nombre} className="flex justify-between py-2">
-                  <span>{nombre}</span>
-                  <span className="tabular-nums">{formatearCOP(total)}</span>
-                </li>
+                </Link>
               ))}
-          </ul>
-        ) : (
-          <Vacio>Marque movimientos con una etiqueta DIAN (medicina prepagada, intereses de vivienda…) en «Más detalles».</Vacio>
+            </div>
+          )
+        }
+      >
+        {`Renta DIAN · año gravable ${anio}`}
+      </Titulo>
+
+      <div className="space-y-4 md:space-y-5">
+        <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
+          <Tarjeta>
+            <p className="mb-2 text-[13px] leading-[18px] font-semibold text-cuerpo">Año gravable</p>
+            <nav aria-label="Año gravable" className="mb-4 flex flex-wrap gap-1 rounded-[10px] bg-mosaico p-1">
+              {(anios ?? []).map(({ anio: a }) => (
+                <Link key={a} href={enlace(a)} aria-current={a === anio ? "true" : undefined} className={cx(claseSegmento(a === anio), "flex-1 justify-center")}>
+                  {a}
+                </Link>
+              ))}
+            </nav>
+            {semaforo.ok && (
+              <dl className="space-y-3 text-[15px]">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-cuerpo">
+                    {unidad} {anio}
+                  </dt>
+                  <dd className="font-bold">{formatearCOP(semaforo.params.uvt_valor)}</dd>
+                </div>
+                {topes.map((t) => (
+                  <div key={t.topeUnidades} className="flex justify-between gap-3">
+                    <dt className="text-cuerpo">
+                      Tope · {t.topeUnidades.toLocaleString("es-CO")} {unidad}
+                    </dt>
+                    <dd className="font-bold">{formatearCOP(t.tope)}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </Tarjeta>
+          <div className="lg:col-span-2">{!semaforo.ok ? <Aviso tipo="info">{semaforo.motivo}</Aviso> : persona ? <AvisoPersona persona={persona} anio={anio} unidad={unidad} /> : null}</div>
+        </div>
+
+        {semaforo.ok && !persona && <Vacio>No hay personas adultas en el hogar.</Vacio>}
+        {persona && (
+          <section aria-label="Topes de la DIAN">
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-[17px] leading-[22px] font-bold md:text-xl md:leading-[26px]">Topes de {persona.nombre}</h2>
+                <p className="mt-0.5 text-sm text-tenue">Acumulado del año con los movimientos registrados</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(["verde", "amarillo", "rojo"] as const).map((s) => (
+                  <Chip key={s} tono={COLOR_SEMAFORO[s].tono}>
+                    {COLOR_SEMAFORO[s].etiqueta}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-5">
+              {persona.topes.map((t) => (
+                <Medidor key={t.clave} tope={t} />
+              ))}
+            </div>
+          </section>
         )}
-      </Tarjeta>
+
+        <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
+          <section className="overflow-hidden rounded-2xl border border-borde bg-elevada lg:col-span-2">
+            <div className="px-4 pt-4 md:px-6 md:pt-5">
+              <h2 className="text-[17px] leading-[22px] font-bold md:text-xl md:leading-[26px]">Totales por etiqueta tributaria</h2>
+              <p className="mt-0.5 text-sm text-tenue">Lo que el contador va a necesitar, ya sumado</p>
+            </div>
+            {porEtiqueta.size ? (
+              <div className="mt-3 overflow-x-auto">
+                <table className="tabla">
+                  <thead>
+                    <tr>
+                      <th className="pl-4! md:pl-6!">Etiqueta</th>
+                      <th className="der hidden md:table-cell">Movimientos</th>
+                      <th className="der pr-4! md:pr-6!">Total {anio}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...porEtiqueta.entries()]
+                      .sort((a, b) => b[1].total - a[1].total)
+                      .map(([nombre, { total, cantidad }]) => (
+                        <tr key={nombre}>
+                          <td className="pl-4! font-semibold whitespace-normal! md:pl-6!">{nombre}</td>
+                          <td className="der hidden text-cuerpo md:table-cell">{cantidad}</td>
+                          <td className="der pr-4! font-semibold md:pr-6!">{formatearCOP(total)}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="px-4 pb-4 md:px-6 md:pb-6">
+                <Vacio>Marca movimientos con una etiqueta DIAN (medicina prepagada, intereses de vivienda…) en «Más detalles».</Vacio>
+              </div>
+            )}
+          </section>
+
+          <Tarjeta titulo="Cómo se calcula" subtitulo="Para que los topes reflejen a cada persona">
+            <ul className="space-y-3 text-[15px] text-cuerpo">
+              <li>Cada movimiento cuenta para la persona elegida en él o, si no tiene, para el titular de la cuenta.</li>
+              <li>
+                Asigna el titular de cada cuenta en{" "}
+                <Link href="/cuentas" className="font-semibold text-tinta underline">
+                  Cuentas
+                </Link>
+                .
+              </li>
+              <li>El patrimonio suma los saldos de las cuentas del titular; inmuebles y vehículos aún no se registran.</li>
+            </ul>
+          </Tarjeta>
+        </div>
+
+        <p className="text-[13px] text-tenue">
+          Cálculo orientativo con base en lo que registras en My House. La decisión final de declarar es tuya y de tu contador.
+        </p>
+      </div>
+    </>
+  );
+}
+
+function AvisoPersona({ persona, anio, unidad }: { persona: SemaforoPersona; anio: number; unidad: string }) {
+  const rebasados = persona.topes.filter((t) => t.semaforo === "rojo");
+  const cerca = persona.topes.filter((t) => t.semaforo === "amarillo");
+  const lista = (ts: ResultadoTope[]) => ts.map((t) => `${t.nombre.toLowerCase()} (${t.porcentaje} %)`).join(", ");
+  const { titulo, texto, clases } = {
+    rojo: {
+      titulo: `${persona.nombre} debe declarar en ${anio + 1}`,
+      texto: `Superó ${rebasados.length === 1 ? "el tope de" : "los topes de"} ${lista(rebasados)}.${cerca.length ? ` Además, ${cerca.length === 1 ? "otro tope está cerca" : "otros topes están cerca"}: ${lista(cerca)}.` : ""}`,
+      clases: "bg-error-fondo text-error-tinta",
+    },
+    amarillo: {
+      titulo: `${persona.nombre} está cerca de un tope`,
+      texto: `Cerca: ${lista(cerca)}. Si alcanza cualquiera, deberá declarar en ${anio + 1}.`,
+      clases: "bg-alerta-fondo text-alerta-tinta",
+    },
+    verde: {
+      titulo: `${persona.nombre} sigue bajo los topes de ${anio}`,
+      texto: `Ningún acumulado llega al 70 % de su tope en ${unidad}. My House te avisa si eso cambia.`,
+      clases: "bg-ok-fondo text-ok-tinta",
+    },
+  }[persona.estado];
+  return (
+    <section aria-label={`Estado de ${persona.nombre}`} className={cx("flex h-full items-start gap-4 rounded-2xl px-5 py-4", clases)}>
+      <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-white">
+        <Icono nombre="declaracion-renta" tamano={22} acento={false} />
+      </span>
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <strong className="text-xl leading-[26px]">{titulo}</strong>
+        <span className="text-sm">{texto}</span>
+        <span className="text-sm">El plazo depende de los dos últimos dígitos de la cédula, según el calendario que publique la DIAN.</span>
+      </div>
+    </section>
+  );
+}
+
+/** Medidor semicircular del porcentaje del tope (en celular, en fila). */
+function Medidor({ tope: t }: { tope: ResultadoTope }) {
+  const c = COLOR_SEMAFORO[t.semaforo];
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-borde bg-elevada px-3.5 py-3 text-left md:flex-col md:gap-1.5 md:p-[18px] md:pb-4 md:text-center">
+      <svg viewBox="0 0 128 76" className="h-[52px] w-[84px] shrink-0 md:h-[76px] md:w-32" role="img" aria-label={`${t.nombre}: ${t.porcentaje} por ciento del tope, ${c.etiqueta}`}>
+        <path d="M12 68 A52 52 0 0 1 116 68" fill="none" stroke="#ebe6de" strokeWidth="12" strokeLinecap="round" />
+        <path d="M12 68 A52 52 0 0 1 116 68" fill="none" stroke={c.color} strokeWidth="12" strokeLinecap="round" pathLength={100} strokeDasharray={`${Math.min(100, t.porcentaje)} 100`} />
+        <text x="64" y="64" textAnchor="middle" fontSize="20" fontWeight="700" fill="#143d33">
+          {t.porcentaje} %
+        </text>
+      </svg>
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-1 md:items-center">
+        <span className="flex items-center text-sm leading-[18px] font-bold md:min-h-9">{t.nombre}</span>
+        <span className="text-lg leading-6 font-bold">{formatearCOP(t.acumulado)}</span>
+        <span className="text-[13px] leading-[18px] text-tenue">de {formatearCOP(t.tope)}</span>
+        <Chip tono={c.tono}>{c.etiqueta}</Chip>
+      </div>
     </div>
   );
 }

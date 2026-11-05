@@ -46,7 +46,7 @@ async function Contenido() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-tenue">
         Descargue el extracto en CSV desde la banca en línea. Se detectan los movimientos que ya estaban (aunque los
         extractos se solapen) y se recuerda el formato de cada cuenta.
       </p>
@@ -56,12 +56,12 @@ async function Contenido() {
       />
       <Tarjeta titulo="Importaciones recientes">
         {lotes?.length ? (
-          <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          <ul className="divide-y divide-divisor">
             {lotes.map((l) => (
               <li key={l.id} className="flex items-center justify-between gap-2 py-2">
                 <span className="min-w-0 text-sm">
                   <span className="block truncate font-medium">{l.archivo_nombre}</span>
-                  <span className="text-xs text-zinc-500">
+                  <span className="text-xs text-tenue">
                     {l.accounts?.nombre} · {l.filas_importadas} movimientos · {formatearFecha(l.created_at.slice(0, 10))}
                   </span>
                 </span>

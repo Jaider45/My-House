@@ -3,11 +3,11 @@ import { BarraNavegacion, Navegacion } from "./navegacion";
 
 export default function LayoutApp({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 pt-5 pb-28">{children}</main>
+    <div className="flex min-h-dvh flex-1">
       <Suspense fallback={<BarraNavegacion ruta={null} />}>
         <Navegacion />
       </Suspense>
-    </>
+      <main className="min-w-0 flex-1 px-4 pt-4 pb-32 md:px-6 md:pt-5 lg:px-8 lg:pt-6 lg:pb-12 xl:px-10 xl:pt-7 xl:pb-16">{children}</main>
+    </div>
   );
 }

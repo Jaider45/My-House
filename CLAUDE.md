@@ -94,6 +94,16 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     no importado de igual tipo y monto a ±2 días (se presenta desmarcado). Lo importado puede quedar sin
     categoría; se sugiere la de comercios ya categorizados. Deshacer = borrar el lote (cascada).
     Extractos de ejemplo: `node scripts/generar-extractos.mjs` → `docs/ejemplos/`.
+21. Diseño visual: sistema "My House" (lienzo de pantallas en claude.ai). Tokens en `src/app/globals.css` (`@theme`:
+    `monte`, `teja`, `arena`, `pagina`, `elevada`, `tinta`, `cuerpo`, `tenue`, `ok/alerta/error` + `-fondo`/`-tinta`),
+    fuente Figtree, solo modo claro. Íconos y logo en `src/components/marca.tsx` (datos generados en `marca-datos.ts`;
+    el ícono de categoría sale de `src/lib/categorias/iconos.ts`). Tamaños: celular < 768 (barra inferior + botón
+    flotante), laptop ≥ 1024 (barra lateral colapsada), escritorio ≥ 1440 (`xl`, barra lateral completa).
+    Los componentes de `src/components/ui` ya traen los estilos: no usar colores de Tailwind (`zinc`, `teal`…).
+    Cuidado: dos utilidades de la misma propiedad en un elemento (p. ej. `hidden` + `inline-flex` de `clasesBoton`)
+    no se resuelven por orden; envolver en un `<span className="hidden lg:contents">` o usar `!`.
+    Pantallas del diseño sin datos todavía (Presupuesto, Deudas, Metas de ahorro, ámbito Personal/Negocio,
+    pronóstico, carpeta de soportes) quedan fuera hasta tener su modelo.
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
@@ -119,6 +129,7 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] 9. Dashboard del mes
 - [x] 10. Semáforo DIAN
 - [x] 11. Cierre: CI, autoría en BD, guía de despliegue (`docs/DESPLIEGUE.md`)
+- [x] 12. Diseño visual del sistema My House (navegación, Inicio, Movimientos, Pagos fijos, Renta DIAN, Configuración)
 - [ ] Publicar en Supabase Cloud + Vercel (requiere las cuentas del usuario)
 
 ### Criterios de terminado de la Fase 1 (verificados el 2026-11-04 en local)

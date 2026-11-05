@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fechaOcurrencia, montoMensual, primeraDesde } from ".";
+import { fechaOcurrencia, fechasEnRango, montoMensual, primeraDesde } from ".";
 
 describe("fechaOcurrencia", () => {
   it("mensual desde el 31 no se corre: usa el último día y vuelve al 31", () => {
@@ -33,5 +33,16 @@ describe("montoMensual", () => {
     expect(montoMensual(1_200_000, "anual")).toBe(100_000);
     expect(montoMensual(100_000, "semanal")).toBe(433_333);
     expect(montoMensual(300_000, "trimestral")).toBe(100_000);
+  });
+});
+
+describe("fechasEnRango", () => {
+  it("lista las ocurrencias del mes desde la n-ésima", () => {
+    expect(fechasEnRango("2026-01-31", "mensual", 0, "2026-02-01", "2026-02-28")).toEqual(["2026-02-28"]);
+    expect(fechasEnRango("2026-11-01", "semanal", 0, "2026-11-01", "2026-11-30")).toEqual(["2026-11-01", "2026-11-08", "2026-11-15", "2026-11-22", "2026-11-29"]);
+  });
+
+  it("omite las ocurrencias ya generadas", () => {
+    expect(fechasEnRango("2026-11-01", "semanal", 2, "2026-11-01", "2026-11-30")).toEqual(["2026-11-15", "2026-11-22", "2026-11-29"]);
   });
 });

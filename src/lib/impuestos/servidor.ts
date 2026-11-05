@@ -30,8 +30,9 @@ export async function cargarSemaforo(ctx: Ctx, anio: number): Promise<SemaforoAn
   return { ok: true, anio, jurisdiccion: j, params: p, personas };
 }
 
-export const COLOR_SEMAFORO: Record<Semaforo, { punto: string; barra: string; texto: string }> = {
-  verde: { punto: "bg-emerald-500", barra: "bg-emerald-500", texto: "Lejos del tope" },
-  amarillo: { punto: "bg-amber-500", barra: "bg-amber-500", texto: "Cerca del tope (70 % o más)" },
-  rojo: { punto: "bg-red-600", barra: "bg-red-600", texto: "Alcanzó el tope: debe declarar" },
+/** Presentación del semáforo: tono de chip, color del medidor (hex, va en SVG) y textos. */
+export const COLOR_SEMAFORO: Record<Semaforo, { tono: "ok" | "alerta" | "error"; color: string; etiqueta: string; texto: string }> = {
+  verde: { tono: "ok", color: "#1f7a55", etiqueta: "Bajo el tope", texto: "Lejos del tope" },
+  amarillo: { tono: "alerta", color: "#d9a21b", etiqueta: "Cerca", texto: "Cerca del tope (70 % o más)" },
+  rojo: { tono: "error", color: "#c2431f", etiqueta: "Obligado", texto: "Alcanzó el tope: debe declarar" },
 };

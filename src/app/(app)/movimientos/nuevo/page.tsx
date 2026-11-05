@@ -12,7 +12,7 @@ export default function Nuevo() {
     <>
       <Titulo>Nuevo movimiento</Titulo>
       <Tarjeta>
-        <Suspense fallback={<Cargando />}>
+        <Suspense fallback={<Cargando compacto />}>
           <Contenido />
         </Suspense>
       </Tarjeta>

@@ -76,6 +76,13 @@ export function formatearFecha(fecha: string): string {
   return formatoCorto.format(new Date(`${fecha}T00:00:00Z`)).replace(/\./g, "");
 }
 
+const formatoDia = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", timeZone: "UTC" });
+
+/** "2026-11-04" → "4 nov" */
+export function formatearDia(fecha: string): string {
+  return formatoDia.format(new Date(`${fecha}T00:00:00Z`)).replace(/\./g, "").replace(" de ", " ");
+}
+
 /** "2026-11" → "noviembre de 2026" */
 export function formatearMes(mes: string): string {
   return formatoMes.format(new Date(`${mes}-01T00:00:00Z`));

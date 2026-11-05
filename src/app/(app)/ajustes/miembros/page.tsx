@@ -4,6 +4,7 @@ import { obtenerContexto } from "@/lib/sesion";
 import { formatearFecha } from "@/lib/fechas";
 import { cambiarRol, quitarMiembro, revocarInvitacion } from "../acciones";
 import { CopiarEnlace, FormularioDependiente, FormularioInvitar } from "./formularios";
+import { PestanasConfiguracion } from "@/app/(app)/ajustes/pestanas";
 
 export const metadata = { title: "Miembros" };
 
@@ -12,7 +13,8 @@ const ROLES = { admin: "Administrador", editor: "Editor", contador: "Contador" }
 export default function Miembros() {
   return (
     <>
-      <Titulo>Miembros</Titulo>
+      <Titulo subtitulo="El hogar, quién entra, con qué cuentas y con qué valores">Configuración</Titulo>
+      <PestanasConfiguracion actual="/ajustes/miembros" />
       <Suspense fallback={<Cargando />}>
         <Contenido />
       </Suspense>
@@ -32,15 +34,15 @@ async function Contenido() {
   return (
     <div className="space-y-4">
       <Tarjeta titulo="Personas del hogar">
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+        <ul className="divide-y divide-divisor">
           {miembros?.map((m) => (
             <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
               <span>
                 <span className="block font-medium">
                   {m.nombre}
-                  {m.user_id === ctx.userId && <span className="text-zinc-500"> (usted)</span>}
+                  {m.user_id === ctx.userId && <span className="text-tenue"> (usted)</span>}
                 </span>
-                <span className="text-sm text-zinc-500">
+                <span className="text-sm text-tenue">
                   {m.es_dependiente ? "Dependiente" : m.rol ? ROLES[m.rol] : "Sin acceso"}
                 </span>
               </span>
@@ -49,7 +51,7 @@ async function Contenido() {
                   {m.user_id && (
                     <form action={cambiarRol} className="flex gap-1">
                       <input type="hidden" name="id" value={m.id} />
-                      <select name="rol" defaultValue={m.rol ?? "editor"} className="rounded-lg border border-zinc-300 bg-transparent px-2 text-sm dark:border-zinc-700">
+                      <select name="rol" defaultValue={m.rol ?? "editor"} className="rounded-lg border border-control bg-transparent px-2 text-sm">
                         {Object.entries(ROLES).map(([v, t]) => (
                           <option key={v} value={v}>
                             {t}

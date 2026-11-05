@@ -51,7 +51,7 @@ export function DosPasos() {
       setMensaje({ tipo: "ok", texto: "Verificación en dos pasos desactivada." });
     });
 
-  if (activo === undefined) return <p className="text-sm text-zinc-500">Consultando…</p>;
+  if (activo === undefined) return <p className="text-sm text-tenue">Consultando…</p>;
 
   return (
     <div className="space-y-4">
@@ -59,7 +59,7 @@ export function DosPasos() {
       {activo ? (
         <>
           <p className="text-sm">
-            Estado: <strong className="text-emerald-700">activa</strong>. Al ingresar se le pide el código de su app
+            Estado: <strong className="text-ok-tinta">activa</strong>. Al ingresar se le pide el código de su app
             autenticadora.
           </p>
           <Boton variante="peligro" onClick={desactivar} disabled={pendiente}>
@@ -73,7 +73,7 @@ export function DosPasos() {
           </p>
           {/* eslint-disable-next-line @next/next/no-img-element -- data URI SVG generado por Supabase */}
           <img src={inscripcion.qr} alt="Código QR para la app autenticadora" className="mx-auto size-48 rounded-lg bg-white p-2" />
-          <p className="text-center text-xs break-all text-zinc-500">Clave manual: {inscripcion.secreto}</p>
+          <p className="text-center text-xs break-all text-tenue">Clave manual: {inscripcion.secreto}</p>
           <p className="text-sm">2. Escriba el código de 6 dígitos que muestra la app.</p>
           <Campo etiqueta="Código" name="codigo" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required />
           <Boton type="submit" className="w-full" disabled={pendiente}>

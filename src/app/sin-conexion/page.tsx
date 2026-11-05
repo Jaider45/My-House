@@ -7,12 +7,12 @@ export default function SinConexion() {
         📡
       </p>
       <h1 className="text-xl font-bold">Sin conexión</h1>
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-tenue">
         My House necesita internet para mostrar y guardar sus movimientos. Revise la conexión e intente de nuevo.
       </p>
       {/* Recarga completa a propósito: esta página se sirve desde la caché del service worker. */}
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-      <a href="/" className="mt-2 font-semibold text-teal-700">
+      <a href="/" className="mt-2 font-semibold text-tinta">
         Reintentar
       </a>
     </main>

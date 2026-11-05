@@ -1,29 +1,32 @@
-// Genera los íconos de la PWA desde un SVG. Uso: node scripts/generar-iconos.mjs
+// Genera los íconos de la PWA con el ícono de app del sistema de diseño. Uso: node scripts/generar-iconos.mjs
+// (Node 24 importa el .ts directamente: solo tiene datos.)
 import sharp from "sharp";
 import { writeFile } from "node:fs/promises";
+import { TRAZOS } from "../src/components/marca-datos.ts";
 
-const casa = (escala) => `
-  <g transform="translate(256 256) scale(${escala}) translate(-256 -256)" fill="none" stroke="#fff"
-     stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M112 236 256 120l144 116"/>
-    <path d="M148 212v168h216V212"/>
-    <path d="M226 380v-84h60v84" fill="#fff"/>
-  </g>`;
+const isotipo = (escala) => {
+  const lado = 256 * escala;
+  const borde = (1024 - lado) / 2;
+  return `<g transform="translate(${borde} ${borde}) scale(${escala})">
+    <path d="${TRAZOS.Q1}" fill="#faf5ee"/><path d="${TRAZOS.Q2}" fill="#e0643c"/></g>`;
+};
 
-// Normal: esquinas redondeadas. Maskable: fondo completo y dibujo dentro de la zona segura (80 %).
-const normal = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#0f766e"/>${casa(1)}</svg>`;
-const maskable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#0f766e"/>${casa(0.78)}</svg>`;
+// Normal: esquinas al 22 %. Maskable: fondo completo y el dibujo dentro de la zona segura (80 %).
+const normal = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="225" fill="#143d33"/>${isotipo(2.48)}</svg>`;
+const maskable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#143d33"/>${isotipo(2.1)}</svg>`;
 
 await writeFile("public/iconos/icono.svg", normal);
+await writeFile("src/app/icon.svg", normal);
 const salidas = [
-  [normal, 192, "icono-192.png"],
-  [normal, 512, "icono-512.png"],
-  [maskable, 512, "icono-maskable-512.png"],
-  [maskable, 180, "apple-touch-icon.png"],
+  [normal, 192, "public/iconos/icono-192.png"],
+  [normal, 512, "public/iconos/icono-512.png"],
+  [maskable, 512, "public/iconos/icono-maskable-512.png"],
+  [maskable, 180, "public/iconos/apple-touch-icon.png"],
+  [maskable, 180, "src/app/apple-icon.png"],
 ];
-for (const [svg, tam, nombre] of salidas) {
-  await sharp(Buffer.from(svg)).resize(tam, tam).png().toFile(`public/iconos/${nombre}`);
+for (const [svg, tam, ruta] of salidas) {
+  await sharp(Buffer.from(svg)).resize(tam, tam).png().toFile(ruta);
 }
-console.log("Íconos generados en public/iconos");
+console.log("Íconos generados en public/iconos y src/app");

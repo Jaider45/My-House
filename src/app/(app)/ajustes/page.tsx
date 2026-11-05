@@ -1,60 +1,72 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { Boton, Cargando, Tarjeta, Titulo } from "@/components/ui";
+import { Boton, Cargando, Chip, FilaLista, Tarjeta, Titulo } from "@/components/ui";
+import type { NombreIcono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
 import { cerrarSesion } from "@/app/(auth)/acciones";
+import { PestanasConfiguracion } from "./pestanas";
 
-export const metadata = { title: "Más" };
+export const metadata = { title: "Configuración" };
 
-const SECCIONES = [
-  { href: "/cuentas", titulo: "Cuentas", texto: "Bancos, efectivo y tarjetas" },
-  { href: "/categorias", titulo: "Categorías", texto: "Árbol de gastos e ingresos" },
-  { href: "/recurrentes", titulo: "Gastos recurrentes", texto: "Arriendo, colegio, servicios…" },
-  { href: "/importar", titulo: "Importar extracto", texto: "CSV del banco" },
-  { href: "/ajustes/miembros", titulo: "Miembros", texto: "Pareja, hijos e invitaciones" },
-  { href: "/ajustes/hogar", titulo: "Hogar", texto: "Nombre y cuota de imprevistos" },
-  { href: "/ajustes/seguridad", titulo: "Seguridad", texto: "Verificación en dos pasos" },
+const SECCIONES: { href: string; titulo: string; texto: string; icono: NombreIcono }[] = [
+  { href: "/ajustes/hogar", titulo: "Hogar", texto: "Nombre y cuota de imprevistos", icono: "casa" },
+  { href: "/ajustes/miembros", titulo: "Miembros", texto: "Pareja, hijos, contador e invitaciones", icono: "familia" },
+  { href: "/cuentas", titulo: "Cuentas", texto: "Bancos, efectivo y tarjetas, con su titular", icono: "cuentas" },
+  { href: "/categorias", titulo: "Categorías", texto: "Árbol de gastos e ingresos", icono: "resumen" },
+  { href: "/recurrentes", titulo: "Pagos fijos", texto: "Arriendo, colegio, servicios…", icono: "calendario" },
+  { href: "/importar", titulo: "Importar extracto", texto: "CSV del banco, sin duplicados", icono: "documentos" },
+  { href: "/ajustes/seguridad", titulo: "Seguridad", texto: "Verificación en dos pasos", icono: "certificados" },
 ];
+
+const ROLES = { admin: "Administrador", editor: "Editor", contador: "Contador · solo lectura" } as const;
 
 export default function Ajustes() {
   return (
     <>
-      <Titulo>Más</Titulo>
-      <Suspense fallback={<Cargando />}>
-        <Encabezado />
-      </Suspense>
-      <ul className="divide-y divide-zinc-200 overflow-hidden rounded-2xl bg-white ring-1 ring-zinc-200 dark:divide-zinc-800 dark:bg-zinc-900 dark:ring-zinc-800">
-        {SECCIONES.map((s) => (
-          <li key={s.href}>
-            <Link href={s.href} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800">
-              <span>
-                <span className="block font-medium">{s.titulo}</span>
-                <span className="block text-sm text-zinc-500">{s.texto}</span>
-              </span>
-              <span aria-hidden className="text-zinc-400">
-                ›
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-      <form action={cerrarSesion} className="mt-6">
-        <Boton type="submit" variante="secundario" className="w-full">
-          Cerrar sesión
-        </Boton>
-      </form>
+      <Titulo subtitulo="El hogar, quién entra, con qué cuentas y con qué valores">Configuración</Titulo>
+      <PestanasConfiguracion actual="/ajustes" />
+      <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
+        <div className="flex flex-col gap-4 md:gap-5">
+          <Suspense fallback={<Cargando compacto />}>
+            <Encabezado />
+          </Suspense>
+          <form action={cerrarSesion}>
+            <Boton type="submit" variante="secundario" className="w-full">
+              Cerrar sesión
+            </Boton>
+          </form>
+        </div>
+        <Tarjeta className="lg:col-span-2" titulo="Secciones" subtitulo="Todo lo que define cómo My House lleva las cuentas del hogar">
+          <div className="grid md:grid-cols-2 md:gap-x-6">
+            {SECCIONES.map((s) => (
+              <Link key={s.href} href={s.href} className="block rounded-lg hover:bg-mosaico/60">
+                <FilaLista icono={s.icono} titulo={s.titulo} detalle={s.texto} valor={<span aria-hidden className="text-tenue">›</span>} />
+              </Link>
+            ))}
+          </div>
+        </Tarjeta>
+      </div>
     </>
   );
 }
 
 async function Encabezado() {
   const ctx = await obtenerContexto();
+  const iniciales = ctx.miembro.nombre
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
   return (
-    <Tarjeta className="mb-4">
-      <p className="font-semibold">{ctx.hogar.nombre}</p>
-      <p className="text-sm text-zinc-500">
-        {ctx.miembro.nombre} · {ctx.email} · {ctx.miembro.rol}
-      </p>
+    <Tarjeta titulo={ctx.hogar.nombre} subtitulo="Todos ven el mismo hogar; cada rol decide qué puede cambiar">
+      <div className="flex flex-wrap items-center gap-3.5">
+        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-monte font-bold text-arena">{iniciales}</span>
+        <span className="flex min-w-0 flex-1 flex-col">
+          <b className="text-[15px]">{ctx.miembro.nombre}</b>
+          <span className="truncate text-[13px] text-tenue">{ctx.email}</span>
+        </span>
+        <Chip tono="info">{ROLES[ctx.miembro.rol as keyof typeof ROLES] ?? ctx.miembro.rol}</Chip>
+      </div>
     </Tarjeta>
   );
 }

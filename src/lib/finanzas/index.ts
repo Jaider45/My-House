@@ -8,6 +8,8 @@ export type TotalCategoria = {
   tipo: "ingreso" | "gasto" | "transferencia";
   estado: "confirmado" | "programado";
   total: number;
+  /** Número de movimientos (la RPC lo trae; las pruebas pueden omitirlo). */
+  cantidad?: number;
 };
 
 export type PorCategoria = { id: string | null; nombre: string; total: number };

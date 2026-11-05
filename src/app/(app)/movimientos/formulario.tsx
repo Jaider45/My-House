@@ -31,7 +31,7 @@ const TIPOS = [
 
 export function SelectorTipo({ tipo, onCambio, incluirTransferencia = true }: { tipo: string; onCambio: (t: MovimientoEditable["tipo"]) => void; incluirTransferencia?: boolean }) {
   return (
-    <div role="radiogroup" className="flex gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
+    <div role="radiogroup" aria-label="Tipo" className="inline-flex gap-1 self-start rounded-[10px] bg-mosaico p-1">
       {TIPOS.filter((t) => incluirTransferencia || t.valor !== "transferencia").map((t) => (
         <button
           key={t.valor}
@@ -39,14 +39,8 @@ export function SelectorTipo({ tipo, onCambio, incluirTransferencia = true }: { 
           role="radio"
           aria-checked={tipo === t.valor}
           onClick={() => onCambio(t.valor)}
-          className={`min-h-10 flex-1 rounded-lg text-sm font-semibold ${
-            tipo === t.valor
-              ? t.valor === "ingreso"
-                ? "bg-emerald-600 text-white"
-                : t.valor === "gasto"
-                  ? "bg-red-600 text-white"
-                  : "bg-white shadow dark:bg-zinc-800"
-              : "text-zinc-500"
+          className={`h-9 rounded-lg px-3.5 text-sm font-semibold ${
+            tipo === t.valor ? "bg-elevada text-tinta shadow-[0_0_0_1px_var(--color-borde)]" : "text-cuerpo"
           }`}
         >
           {t.texto}
@@ -62,7 +56,7 @@ export function FormularioMovimiento({ catalogos, movimiento, hoy, miembroId }: 
   const cats = tipo === "transferencia" ? [] : opcionesCategoria(catalogos.categorias, tipo);
 
   return (
-    <form action={accion} className="space-y-4">
+    <form action={accion} className="flex flex-col gap-4">
       <input type="hidden" name="id" value={movimiento?.id ?? ""} />
       <input type="hidden" name="tipo" value={tipo} />
       <SelectorTipo tipo={tipo} onCambio={setTipo} />
@@ -108,7 +102,7 @@ export function FormularioMovimiento({ catalogos, movimiento, hoy, miembroId }: 
         <Casilla etiqueta={`Aplicar la categoría a los demás «${movimiento.comercio}» sin categoría`} name="aplicar_similares" defaultChecked />
       )}
 
-      <details className="rounded-xl bg-zinc-50 p-3 dark:bg-zinc-950" open={Boolean(movimiento?.tax_tag_id || movimiento?.nota)}>
+      <details className="rounded-xl bg-mosaico p-3" open={Boolean(movimiento?.tax_tag_id || movimiento?.nota)}>
         <summary className="cursor-pointer text-sm font-semibold">Más detalles</summary>
         <div className="mt-3 space-y-3">
           <Selector etiqueta="Persona (a quién se atribuye)" name="member_id" defaultValue={movimiento ? (movimiento.member_id ?? "") : miembroId}>

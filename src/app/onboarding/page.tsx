@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Cargando, Tarjeta } from "@/components/ui";
+import { MarcoMarca } from "@/components/marco-marca";
 import { obtenerUsuario } from "@/lib/sesion";
 import { FormularioHogar } from "./formulario";
 
@@ -8,20 +9,20 @@ export const metadata = { title: "Crear hogar" };
 
 export default function Onboarding() {
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-4 py-10">
-      <div className="text-center">
-        <p className="text-2xl font-bold">Bienvenido a My House</p>
-        <p className="text-sm text-zinc-500">
-          Cree su hogar. Después podrá invitar a su pareja desde Ajustes. Si alguien ya lo invitó, abra el enlace
-          que le compartió.
+    <MarcoMarca>
+      <div>
+        <h1 className="text-[28px] leading-[34px] font-bold">Bienvenido a My House</h1>
+        <p className="mt-1 text-base text-cuerpo">
+          Cree su hogar. Después podrá invitar a su pareja desde Configuración. Si alguien ya lo invitó, abra el
+          enlace que le compartió.
         </p>
       </div>
       <Tarjeta titulo="Su hogar">
-        <Suspense fallback={<Cargando />}>
+        <Suspense fallback={<Cargando compacto />}>
           <Contenido />
         </Suspense>
       </Tarjeta>
-    </main>
+    </MarcoMarca>
   );
 }
 

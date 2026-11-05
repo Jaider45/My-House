@@ -41,7 +41,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   if (!m) notFound();
 
   const info = (
-    <p className="mb-3 text-xs text-zinc-500">
+    <p className="mb-3 text-xs text-tenue">
       Origen: {ORIGEN[m.origen]} · creado el {formatearFecha(m.created_at.slice(0, 10))}
       {m.estado === "programado" && " · programado (al guardar queda confirmado)"}
     </p>
@@ -52,7 +52,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
       <Tarjeta>
         {info}
         <p className="text-2xl font-bold">{formatearCOP(m.monto)}</p>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-tenue">
           {m.tipo} · {formatearFecha(m.fecha)} {m.comercio && `· ${m.comercio}`}
         </p>
         <Aviso tipo="info">Su rol es de solo lectura.</Aviso>

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
-import { Aviso } from "@/components/ui";
+import { Aviso, claseControl } from "@/components/ui";
+import { Icono } from "@/components/marca";
+import { iconoCategoria } from "@/lib/categorias/iconos";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { CampoMonto } from "@/components/ui/campo-monto";
 import { opcionesCategoria, type Categoria } from "@/lib/categorias";
@@ -21,9 +23,9 @@ type Props = {
   hoy: string;
 };
 
-const chip = (activo: boolean) =>
-  `min-h-11 rounded-full px-4 text-sm font-medium ring-1 transition ${
-    activo ? "bg-teal-700 text-white ring-teal-700" : "bg-white ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-700"
+const chip = (activo: boolean, conIcono = false) =>
+  `inline-flex h-10 items-center gap-2 rounded-full border pr-3.5 ${conIcono ? "pl-1.5" : "pl-3.5"} text-sm font-semibold transition ${
+    activo ? "border-monte bg-monte text-arena" : "border-control bg-elevada text-tinta hover:bg-mosaico"
   }`;
 
 export function RegistroRapido({ cuentas, categorias, frecuentes, hoy }: Props) {
@@ -63,7 +65,7 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, hoy }: Props) 
   const otraSeleccionada = categoria && !chips.includes(categoria);
 
   return (
-    <form action={accion} className="space-y-5">
+    <form action={accion} className="flex flex-col gap-5">
       <input type="hidden" name="tipo" value={tipo} />
       <input type="hidden" name="fecha" value={hoy} />
       <input type="hidden" name="account_id" value={cuenta} />
@@ -80,11 +82,14 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, hoy }: Props) 
 
       <CampoMonto key={reinicio} etiqueta="¿Cuánto?" name="monto" grande autoFocus enterKeyHint="done" />
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">¿En qué?</legend>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-[13px] leading-[18px] font-semibold text-cuerpo">¿En qué?</legend>
         <div className="flex flex-wrap gap-2">
           {chips.map((id) => (
-            <button key={id} type="button" className={chip(categoria === id)} onClick={() => setCategoria(id)} aria-pressed={categoria === id}>
+            <button key={id} type="button" className={chip(categoria === id, true)} onClick={() => setCategoria(id)} aria-pressed={categoria === id}>
+              <span className={`inline-flex size-7 items-center justify-center rounded-full ${categoria === id ? "bg-arena/15" : "bg-mosaico"}`}>
+                <Icono nombre={iconoCategoria(porId.get(id)?.etiqueta, tipo)} tamano={16} acento={categoria !== id} />
+              </span>
               {porId.get(id)?.etiqueta}
             </button>
           ))}
@@ -93,7 +98,7 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, hoy }: Props) 
           aria-label="Otra categoría"
           value={otraSeleccionada ? categoria : ""}
           onChange={(e) => setCategoria(e.target.value)}
-          className={`min-h-11 w-full rounded-xl border bg-white px-3 dark:bg-zinc-900 ${otraSeleccionada ? "border-teal-600" : "border-zinc-300 dark:border-zinc-700"}`}
+          className={`${claseControl} ${otraSeleccionada ? "border-monte" : ""}`}
         >
           <option value="">Otra categoría…</option>
           {opciones.map((o) => (
@@ -104,8 +109,8 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, hoy }: Props) 
         </select>
       </fieldset>
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">¿De dónde?</legend>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-[13px] leading-[18px] font-semibold text-cuerpo">¿De dónde?</legend>
         <div className="flex flex-wrap gap-2">
           {cuentas.map((c) => (
             <button key={c.id} type="button" className={chip(cuenta === c.id)} onClick={() => setCuenta(c.id)} aria-pressed={cuenta === c.id}>
@@ -125,7 +130,7 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, hoy }: Props) 
         </Aviso>
       )}
 
-      <BotonEnviar className="min-h-14 w-full text-base" disabled={!categoria || !cuenta}>
+      <BotonEnviar className="h-12 w-full text-base" disabled={!categoria || !cuenta}>
         Guardar {tipo}
       </BotonEnviar>
     </form>

@@ -57,3 +57,17 @@ export function montoMensual(monto: number, frecuencia: Frecuencia): number {
   };
   return Math.round(monto * factor[frecuencia]);
 }
+
+/**
+ * Fechas de una regla dentro de [desde, hasta] a partir de la ocurrencia `n` (las anteriores ya se generaron
+ * como movimientos). Sirve para mostrar en el calendario lo que la regla todavía no ha programado.
+ */
+export function fechasEnRango(inicio: string, frecuencia: Frecuencia, n: number, desde: string, hasta: string): string[] {
+  const fechas: string[] = [];
+  for (let i = n; i < n + 10_000; i++) {
+    const fecha = fechaOcurrencia(inicio, frecuencia, i);
+    if (fecha > hasta) break;
+    if (fecha >= desde) fechas.push(fecha);
+  }
+  return fechas;
+}

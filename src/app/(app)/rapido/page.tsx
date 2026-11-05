@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { Aviso, Cargando, EnlaceBoton, Titulo } from "@/components/ui";
+import { Aviso, Cargando, EnlaceBoton } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { cargarCatalogos } from "@/lib/catalogos";
 import { hoy, sumarDias } from "@/lib/fechas";
@@ -10,12 +10,23 @@ export const metadata = { title: "Registrar" };
 
 export default function Rapido() {
   return (
-    <>
-      <Titulo>Registrar</Titulo>
-      <Suspense fallback={<Cargando />}>
-        <Contenido />
-      </Suspense>
-    </>
+    <section aria-labelledby="titulo-registro" className="mx-auto w-full max-w-[560px] rounded-[20px] bg-elevada text-tinta shadow-[0_24px_64px_rgba(20,61,51,0.12)] md:mt-6">
+      <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-2 md:px-6">
+        <h1 id="titulo-registro" className="text-[17px] leading-[22px] font-bold md:text-xl md:leading-[26px]">
+          Registrar movimiento
+        </h1>
+        <Link href="/" aria-label="Cerrar" className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-mosaico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </Link>
+      </div>
+      <div className="px-5 pt-2 pb-5 md:px-6 md:pb-6">
+        <Suspense fallback={<Cargando compacto />}>
+          <Contenido />
+        </Suspense>
+      </div>
+    </section>
   );
 }
 
@@ -49,8 +60,8 @@ async function Contenido() {
   return (
     <>
       <RegistroRapido cuentas={catalogos.cuentas} categorias={catalogos.categorias} frecuentes={masUsadas(recientes ?? [])} hoy={hoy()} />
-      <p className="mt-6 text-center text-sm">
-        <Link href="/movimientos/nuevo" className="text-teal-700">
+      <p className="mt-5 border-t border-divisor pt-4 text-center text-sm">
+        <Link href="/movimientos/nuevo" className="font-semibold hover:underline">
           Transferencia, otra fecha o más detalles →
         </Link>
       </p>

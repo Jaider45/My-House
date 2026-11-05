@@ -16,14 +16,18 @@ type Props = Omit<ComponentProps<"input">, "value" | "defaultValue" | "onChange"
 export function CampoMonto({ etiqueta, name, valorInicial = 0, ayuda, grande, onCambio, className, ...props }: Props) {
   const [pesos, setPesos] = useState(Math.abs(valorInicial));
   return (
-    <label className={`block space-y-1 ${className ?? ""}`}>
-      <span className="text-sm font-medium">{etiqueta}</span>
-      <span className="flex items-center rounded-xl border border-zinc-300 bg-white px-3 focus-within:border-teal-600 focus-within:ring-2 focus-within:ring-teal-600/20 dark:border-zinc-700 dark:bg-zinc-900">
-        <span className={`text-zinc-500 ${grande ? "text-2xl" : ""}`}>$</span>
+    <label className={`flex min-w-0 flex-col gap-1.5 ${className ?? ""}`}>
+      <span className="text-[13px] leading-[18px] font-semibold text-cuerpo">{etiqueta}</span>
+      <span
+        className={`flex items-center rounded-lg bg-elevada px-3 focus-within:ring-2 focus-within:ring-teja focus-within:ring-offset-2 ${
+          grande ? "border-2 border-monte" : "border border-control"
+        }`}
+      >
+        <span className={grande ? "text-[32px] font-bold text-cuerpo" : "text-cuerpo"}>$</span>
         <input
           inputMode="numeric"
           autoComplete="off"
-          className={`w-full bg-transparent px-2 outline-none ${grande ? "min-h-16 text-4xl font-bold" : "min-h-11 text-base"}`}
+          className={`w-full bg-transparent px-2 outline-none ${grande ? "h-16 text-[32px] font-bold" : "h-11 text-[15px]"}`}
           value={pesos ? formatearMiles(pesos) : ""}
           onChange={(e) => {
             const valor = digitosAMonto(e.target.value);
@@ -35,7 +39,7 @@ export function CampoMonto({ etiqueta, name, valorInicial = 0, ayuda, grande, on
         />
       </span>
       <input type="hidden" name={name} value={pesos} />
-      {ayuda && <span className="block text-xs text-zinc-500">{ayuda}</span>}
+      {ayuda && <span className="text-[13px] leading-[18px] text-tenue">{ayuda}</span>}
     </label>
   );
 }

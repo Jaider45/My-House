@@ -1,25 +1,196 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Sistema de diseño My House (ds/myhouse/tokens.json, modo claro) + adiciones de interfaz del lienzo de pantallas:
+ * borde de control que pasa 3:1 y semáforo con texto AA. Tamaños: celular < 768, tablet < 1024, laptop < 1440.
+ */
+@theme {
+  --font-sans: var(--font-figtree), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --breakpoint-xl: 90rem;
+
+  --color-monte: #143d33;
+  --color-teja: #e0643c;
+  --color-arena: #faf5ee;
+  --color-pagina: #f2efea;
+  --color-elevada: #ffffff;
+  --color-seleccion: #eef3f0;
+  --color-mosaico: #f6efe6;
+  --color-borde: #e6e2db;
+  --color-divisor: #f0ece6;
+  --color-tinta: #143d33;
+  --color-cuerpo: #4a5652;
+  --color-tenue: #6b7280;
+  --color-control: #7a8380;
+  --color-pista: #ebe6de;
+  --color-sobre-monte: #cfe0d9;
+  --color-ok: #1f7a55;
+  --color-ok-fondo: #e3f1ea;
+  --color-ok-tinta: #145c3e;
+  --color-alerta: #d9a21b;
+  --color-alerta-fondo: #fbf0d5;
+  --color-alerta-tinta: #6f4c00;
+  --color-error: #c2431f;
+  --color-error-fondo: #fbe3dc;
+  --color-error-tinta: #93290f;
+  --color-crema: #fffaf2;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  body {
+    background: var(--color-pagina);
+    color: var(--color-tinta);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-teja);
+    outline-offset: 2px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+@layer components {
+  /* Chip de estado con punto (sin punto: .chip-plano) */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--color-mosaico);
+    color: var(--color-cuerpo);
+  }
+  .chip::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: currentColor;
+  }
+  .chip-plano::before {
+    display: none;
+  }
+  .chip-ok {
+    background: var(--color-ok-fondo);
+    color: var(--color-ok-tinta);
+  }
+  .chip-alerta {
+    background: var(--color-alerta-fondo);
+    color: var(--color-alerta-tinta);
+  }
+  .chip-error {
+    background: var(--color-error-fondo);
+    color: var(--color-error-tinta);
+  }
+  .chip-info {
+    background: var(--color-seleccion);
+    color: var(--color-tinta);
+  }
+
+  /* Tabla densa */
+  .tabla {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .tabla th {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-cuerpo);
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid var(--color-borde);
+    white-space: nowrap;
+  }
+  .tabla td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--color-divisor);
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .tabla tr:last-child td {
+    border-bottom: 0;
+  }
+  .tabla .der {
+    text-align: right;
+  }
+
+  /* Calendario de pagos */
+  .calendario {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    border-top: 1px solid var(--color-borde);
+    border-left: 1px solid var(--color-borde);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .calendario > * {
+    border-right: 1px solid var(--color-borde);
+    border-bottom: 1px solid var(--color-borde);
+    min-width: 0;
+  }
+
+  /* Interruptor */
+  .interruptor {
+    appearance: none;
+    width: 44px;
+    height: 26px;
+    border-radius: 9999px;
+    background: var(--color-pista);
+    border: 1px solid var(--color-control);
+    position: relative;
+    flex: none;
+    cursor: pointer;
+    margin: 0;
+  }
+  .interruptor::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 9999px;
+    background: #fff;
+    box-shadow: 0 0 0 1px var(--color-control);
+    transition: left 0.15s;
+  }
+  .interruptor:checked {
+    background: var(--color-monte);
+    border-color: var(--color-monte);
+  }
+  .interruptor:checked::after {
+    left: 20px;
+    box-shadow: none;
+  }
+
+  .rayado-teja {
+    background: repeating-linear-gradient(135deg, var(--color-teja) 0 3px, #f5c9b8 3px 6px);
+  }
+  .esqueleto {
+    background: var(--color-pista);
+    border-radius: 8px;
+    animation: mh-pulso 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes mh-pulso {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }

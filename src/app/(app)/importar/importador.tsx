@@ -14,9 +14,9 @@ type Archivo = { nombre: string; columnas: string[]; filas: Record<string, strin
 type Revision = { estado: Clasificacion; incluir: boolean; category_id: string | null };
 
 const ETIQUETA: Record<Clasificacion, { texto: string; clase: string }> = {
-  nuevo: { texto: "Nuevo", clase: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200" },
-  duplicado: { texto: "Ya importado", clase: "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300" },
-  posible: { texto: "¿Duplicado?", clase: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200" },
+  nuevo: { texto: "Nuevo", clase: "bg-ok-fondo text-ok-tinta" },
+  duplicado: { texto: "Ya importado", clase: "bg-pista text-cuerpo" },
+  posible: { texto: "¿Duplicado?", clase: "bg-alerta-fondo text-alerta-tinta" },
 };
 
 /** Lee el CSV como UTF-8; si aparecen caracteres dañados, lo relee como Windows-1252 (común en bancos). */
@@ -148,7 +148,7 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
               type="file"
               accept=".csv,text/csv"
               onChange={(e) => elegirArchivo(e.target.files?.[0])}
-              className="block w-full text-sm file:mr-3 file:min-h-11 file:rounded-xl file:border-0 file:bg-teal-700 file:px-4 file:font-semibold file:text-white"
+              className="block w-full text-sm file:mr-3 file:min-h-11 file:rounded-xl file:border-0 file:bg-monte file:px-4 file:font-semibold file:text-white"
             />
           </label>
           {archivo && (
@@ -193,7 +193,7 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
               </>
             )}
             {lectura && (
-              <p className="text-sm text-zinc-500">
+              <p className="text-sm text-tenue">
                 {lectura.validas.length} filas leídas
                 {lectura.errores.length > 0 && `, ${lectura.errores.length} con problemas (fila ${lectura.errores.slice(0, 5).map((e) => e.fila).join(", ")}${lectura.errores.length > 5 ? "…" : ""}: ${lectura.errores[0].motivo})`}
                 .
@@ -212,7 +212,7 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
             <strong>{resumen.incluidas}</strong> por importar · {resumen.duplicadas} ya importados · {resumen.posibles} posibles duplicados
             (desmarcados: parecen registros manuales; márquelos si son distintos).
           </p>
-          <ul className="max-h-[60vh] divide-y divide-zinc-200 overflow-y-auto dark:divide-zinc-800">
+          <ul className="max-h-[60vh] divide-y divide-divisor overflow-y-auto">
             {lectura.validas.map((f, i) => {
               const r = revision[i];
               return (
@@ -220,7 +220,7 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      className="size-5 accent-teal-700"
+                      className="size-5 accent-monte"
                       checked={r.incluir}
                       disabled={r.estado === "duplicado"}
                       onChange={(e) => actualizar(i, { incluir: e.target.checked })}
@@ -228,9 +228,9 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{f.descripcion || "(sin descripción)"}</span>
-                      <span className="text-xs text-zinc-500">{formatearFecha(f.fecha)}</span>
+                      <span className="text-xs text-tenue">{formatearFecha(f.fecha)}</span>
                     </span>
-                    <span className={`text-sm font-semibold tabular-nums ${f.tipo === "ingreso" ? "text-emerald-600" : "text-red-600"}`}>
+                    <span className={`text-sm font-semibold tabular-nums ${f.tipo === "ingreso" ? "text-ok-tinta" : "text-error-tinta"}`}>
                       {f.tipo === "ingreso" ? "+" : "−"}
                       {formatearCOP(f.monto)}
                     </span>
@@ -241,7 +241,7 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
                       <select
                         value={r.category_id ?? ""}
                         onChange={(e) => actualizar(i, { category_id: e.target.value || null })}
-                        className="min-h-8 min-w-0 flex-1 rounded-lg border border-zinc-300 bg-transparent px-2 text-xs dark:border-zinc-700"
+                        className="min-h-8 min-w-0 flex-1 rounded-lg border border-control bg-transparent px-2 text-xs"
                         aria-label="Categoría"
                       >
                         <option value="">Sin categoría</option>

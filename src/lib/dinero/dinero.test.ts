@@ -1,11 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { digitosAMonto, formatearCOP, formatearMiles, parsearMonto, porcentaje } from ".";
+import { digitosAMonto, formatearCOP, formatearCorto, formatearMiles, parsearMonto, porcentaje } from ".";
 
 describe("formateo es-CO", () => {
   it("usa punto de miles y sin decimales", () => {
     expect(formatearMiles(1234567)).toBe("1.234.567");
     expect(formatearCOP(1234567).replace(/\s/g, " ")).toBe("$ 1.234.567");
     expect(formatearCOP(0).replace(/\s/g, " ")).toBe("$ 0");
+  });
+});
+
+describe("formatearCorto", () => {
+  it("abrevia millones con coma decimal y miles sin decimales", () => {
+    expect(formatearCorto(15_000_000)).toBe("$15 M");
+    expect(formatearCorto(1_250_000)).toBe("$1,3 M");
+    expect(formatearCorto(450_000)).toBe("$450 mil");
+    expect(formatearCorto(0)).toBe("$0");
+    expect(formatearCorto(-2_000_000)).toBe("−$2 M");
   });
 });
 

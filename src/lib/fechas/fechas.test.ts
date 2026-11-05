@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatearFecha, hoy, mesDe, parsearFecha, rangoMes, sumarDias, sumarMeses } from ".";
+import { formatearDia, formatearFecha, hoy, mesDe, parsearFecha, rangoMes, sumarDias, sumarMeses } from ".";
 
 describe("hoy", () => {
   it("usa la hora de Bogotá (UTC-5)", () => {
@@ -45,6 +45,13 @@ describe("parsearFecha", () => {
 
   it.each(["31/02/2026", "13/13/2026", "hoy", "", "2026-11"])("rechaza %j", (texto) => {
     expect(parsearFecha(texto)).toBeNull();
+  });
+});
+
+describe("formatearDia", () => {
+  it("día y mes abreviado", () => {
+    expect(formatearDia("2026-11-04")).toBe("4 nov");
+    expect(formatearDia("2026-09-17")).toBe("17 sept");
   });
 });
 

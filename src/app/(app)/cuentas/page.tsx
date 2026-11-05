@@ -4,6 +4,7 @@ import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP } from "@/lib/dinero";
 import { archivarCuenta } from "./acciones";
 import { BotonEliminarCuenta, FormularioCuenta } from "./formulario";
+import { PestanasConfiguracion } from "@/app/(app)/ajustes/pestanas";
 
 export const metadata = { title: "Cuentas" };
 
@@ -12,7 +13,8 @@ const TIPOS = { banco: "Banco", efectivo: "Efectivo", tarjeta: "Tarjeta de créd
 export default function Cuentas() {
   return (
     <>
-      <Titulo>Cuentas</Titulo>
+      <Titulo subtitulo="El hogar, quién entra, con qué cuentas y con qué valores">Configuración</Titulo>
+      <PestanasConfiguracion actual="/cuentas" />
       <Suspense fallback={<Cargando />}>
         <Contenido />
       </Suspense>
@@ -37,14 +39,14 @@ async function Contenido() {
     <div className="space-y-4">
       {activas.length > 0 && (
         <Tarjeta>
-          <p className="text-sm text-zinc-500">Saldo total (cuentas activas)</p>
-          <p className={`text-2xl font-bold ${total < 0 ? "text-red-600" : ""}`}>{formatearCOP(total)}</p>
+          <p className="text-sm text-tenue">Saldo total (cuentas activas)</p>
+          <p className={`text-2xl font-bold ${total < 0 ? "text-error-tinta" : ""}`}>{formatearCOP(total)}</p>
         </Tarjeta>
       )}
 
       <Tarjeta titulo="Sus cuentas">
         {cuentas?.length ? (
-          <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          <ul className="divide-y divide-divisor">
             {cuentas.map((c) => {
               const s = saldo.get(c.id) ?? 0;
               return (
@@ -54,17 +56,17 @@ async function Contenido() {
                       <span>
                         <span className="block font-medium">
                           {c.nombre}
-                          {c.archivada && <span className="text-xs text-zinc-500"> · archivada</span>}
+                          {c.archivada && <span className="text-xs text-tenue"> · archivada</span>}
                         </span>
-                        <span className="text-sm text-zinc-500">
+                        <span className="text-sm text-tenue">
                           {TIPOS[c.tipo]}
                           {c.titular_member_id && ` · ${titular.get(c.titular_member_id) ?? ""}`}
                         </span>
                       </span>
-                      <span className={`font-semibold tabular-nums ${s < 0 ? "text-red-600" : ""}`}>{formatearCOP(s)}</span>
+                      <span className={`font-semibold tabular-nums ${s < 0 ? "text-error-tinta" : ""}`}>{formatearCOP(s)}</span>
                     </summary>
                     {ctx.puedeEditar && (
-                      <div className="mt-3 space-y-3 rounded-xl bg-zinc-50 p-3 dark:bg-zinc-950">
+                      <div className="mt-3 space-y-3 rounded-xl bg-mosaico p-3">
                         <FormularioCuenta cuenta={c} titulares={titulares} />
                         <form action={archivarCuenta}>
                           <input type="hidden" name="id" value={c.id} />
