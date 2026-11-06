@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
     instantInsights: { validationLevel: "manual-warning" },
     // Comprobantes (fotos comprimidas en el navegador) y extractos en PDF: hasta 5 archivos de ~10 MB.
     serverActions: { bodySizeLimit: "30mb" },
+    // src/proxy.ts pasa por todas las rutas y Next solo copia 10 MB del cuerpo: lo demás se corta sin aviso y la
+    // acción falla con "Unexpected end of form". Debe ser ≥ bodySizeLimit.
+    proxyClientMaxBodySize: "30mb",
   },
   async headers() {
     return [

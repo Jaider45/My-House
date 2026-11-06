@@ -154,6 +154,15 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
 28. Acciones de servidor: además de RLS, cada acción que escribe revisa `puedeEditar`/`esAdmin` y devuelve un mensaje
     (RLS sin permiso actualiza 0 filas sin error, y la acción reportaría éxito). Parámetros de URL que van a filtros
     de PostgREST (`or(...)`) se validan como UUID antes.
+29. Contraseñas: `CampoContrasena` (`src/components/ui`) con botón para verla (se oculta al enviar, para que el navegador
+    ofrezca guardarla), aviso de Bloq Mayús y medidor orientativo (`src/lib/contrasena`); el valor vive en el componente
+    porque React vacía los campos no controlados tras cada acción. Recuperación: `/recuperar` → correo de Supabase →
+    `/auth/confirmar` → `/nueva-contrasena` (responde igual exista o no la cuenta). Ahí no se pide la actual solo si el
+    JWT trae `amr: recovery` de hace < 1 h; en Configuración → Seguridad sí, y se verifica con un cliente aparte para no
+    reemplazar la sesión (perdería AAL2). Una acción envuelta en una función propia de `useActionState` no puede hacer
+    `redirect()`: la navegación queda pendiente para siempre; ahí navega el cliente.
+    Subidas: `src/proxy.ts` pasa por todas las rutas y Next solo copia `proxyClientMaxBodySize` (10 MB por defecto) del
+    cuerpo: debe ser ≥ `serverActions.bodySizeLimit` (30 MB), o la acción falla con "Unexpected end of form".
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas

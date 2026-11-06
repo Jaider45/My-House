@@ -44,11 +44,11 @@ export async function proxy(request: NextRequest) {
   if (ruta !== "/mfa" && ruta !== "/salir") {
     const { data: nivel } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if (nivel?.nextLevel === "aal2" && nivel.currentLevel !== "aal2") {
-      return redirigir("/mfa");
+      return redirigir("/mfa", ruta !== "/");
     }
   }
 
-  if (ruta === "/ingresar" || ruta === "/registro") {
+  if (ruta === "/ingresar" || ruta === "/registro" || ruta === "/recuperar") {
     return redirigir("/");
   }
   return respuesta;

@@ -32,7 +32,13 @@ export function Compositor({ habilitado }: { habilitado: boolean }) {
 
   const [estado, accion, enviando] = useActionState(async (previo: Awaited<ReturnType<typeof enviarAlAsistente>>, datos: FormData) => {
     datos.delete("archivos");
-    for (const a of await Promise.all(archivos.map(comprimir))) datos.append("archivos", a);
+    const listos = await Promise.all(archivos.map(comprimir));
+    // El servidor acepta 30 MB por envío (next.config.ts); más allá la acción ni siquiera llega a ejecutarse.
+    const grande = listos.find((a) => a.size > 10 * 1024 * 1024);
+    if (grande) return { error: `${grande.name} pesa más de 10 MB. Para extractos largos usa Importar extracto.` };
+    if (listos.reduce((s, a) => s + a.size, 0) > 25 * 1024 * 1024)
+      return { error: "Los archivos suman más de 25 MB. Envíalos en dos mensajes." };
+    for (const a of listos) datos.append("archivos", a);
     const r = await enviarAlAsistente(previo, datos);
     if (!r?.error) {
       setArchivos([]);
