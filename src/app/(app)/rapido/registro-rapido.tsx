@@ -11,7 +11,7 @@ import { opcionesCategoria, type Categoria } from "@/lib/categorias";
 import type { CuentaOpcion } from "@/lib/catalogos";
 import type { Estado } from "@/lib/acciones";
 import { registrarRapido } from "../movimientos/acciones";
-import { camposDe, encolar, esErrorDeRed } from "@/lib/cola";
+import { camposDe, encolar, esErrorDeRed, nuevaClave } from "@/lib/cola";
 import { EVENTO_COLA } from "@/components/cola-sin-conexion";
 import { SelectorTipo } from "../movimientos/formulario";
 
@@ -44,6 +44,8 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, hoy }: Props) 
   }, [cuentas]);
 
   const [estado, accion] = useActionState(async (previo: Estado, datos: FormData): Promise<Estado> => {
+    // Una clave por registro, antes de decidir si va a la cola: el reenvío desde la cola usa la misma y no duplica.
+    datos.set("clave", nuevaClave());
     // Sin señal (o si se cae a mitad del envío) el registro queda en este celular y se envía al volver.
     const enCola = (): Estado => {
       if (!encolar(localStorage, camposDe(datos))) return { error: "Hay demasiados registros esperando conexión. Conéctate para enviarlos." };

@@ -1,3 +1,4 @@
+import { nombreDe } from "@/lib/usuario";
 import { Suspense } from "react";
 import { Aviso, Cargando, EnlaceBoton, Tarjeta } from "@/components/ui";
 import { MarcoMarca } from "@/components/marco-marca";
@@ -70,7 +71,7 @@ async function Contenido({ params }: { params: Promise<{ token: string }> }) {
   return (
     <div>
       {encabezado}
-      <FormularioAceptar token={token} nombre={(user.user_metadata?.nombre as string | undefined) ?? ""} />
+      <FormularioAceptar token={token} nombre={nombreDe(user.user_metadata)} />
     </div>
   );
 }

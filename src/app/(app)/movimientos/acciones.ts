@@ -7,6 +7,7 @@ import { mensajeError, type Estado } from "@/lib/acciones";
 import { movimientoDesdeFormulario } from "@/lib/ingesta";
 import { formatearCOP } from "@/lib/dinero";
 import { mesDe } from "@/lib/fechas";
+import { z } from "zod";
 
 function refrescar() {
   revalidatePath("/movimientos");
@@ -62,10 +63,16 @@ export async function registrarRapido(_: Estado, datos: FormData): Promise<Estad
   datos.set("member_id", ctx.miembro.id);
   const r = movimientoDesdeFormulario(datos);
   if (!r.ok) return { error: r.error };
-  const { error } = await ctx.supabase.from("transactions").insert({ ...r.movimiento, household_id: ctx.hogar.id });
+  // Clave que generó el dispositivo: si este mismo registro ya llegó (la respuesta se perdió y la cola lo reenvió),
+  // la restricción única lo rechaza y se responde como guardado, sin duplicarlo.
+  const clave = String(datos.get("clave") ?? "");
+  const client_id = z.uuid().safeParse(clave).success ? clave : null;
+  const { error } = await ctx.supabase.from("transactions").insert({ ...r.movimiento, household_id: ctx.hogar.id, client_id });
+  const listo = `${r.movimiento.tipo === "ingreso" ? "Ingreso" : "Gasto"} de ${formatearCOP(r.movimiento.monto)} guardado.`;
+  if (error?.code === "23505" && client_id && error.message.includes("transactions_client_id_unico")) return { ok: listo };
   if (error) return { error: mensajeError(error) };
   refrescar();
-  return { ok: `${r.movimiento.tipo === "ingreso" ? "Ingreso" : "Gasto"} de ${formatearCOP(r.movimiento.monto)} guardado.` };
+  return { ok: listo };
 }
 
 export async function eliminarMovimiento(datos: FormData) {

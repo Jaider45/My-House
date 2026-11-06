@@ -44,6 +44,8 @@ export const obtenerUsuario = cache(async () => {
       user_metadata: (claims.user_metadata ?? {}) as Record<string, unknown>,
     },
     hogar: (claims as { hogar?: ClaimHogar }).hogar,
+    /** Cómo se abrió la sesión (contraseña, código, recuperación, 2FA) y cuándo. */
+    amr: claims.amr,
   };
 });
 

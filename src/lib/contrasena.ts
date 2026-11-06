@@ -32,3 +32,17 @@ export function evaluarContrasena(valor: string): FuerzaContrasena {
   if (puntos >= 1) return { nivel: 2, etiqueta: "Aceptable", consejo: "Más larga o con números y símbolos sería mejor." };
   return { nivel: 1, etiqueta: "Débil", consejo: "Combina mayúsculas, números o símbolos, o usa una frase." };
 }
+
+/**
+ * ¿La sesión se abrió hace menos de una hora con el enlace de recuperación o con un código al correo? Quien entró
+ * así ya demostró que controla el correo: puede crear una contraseña sin escribir la actual.
+ */
+export function verificoCorreoHacePoco(amr: unknown, ahora = Date.now()): boolean {
+  if (!Array.isArray(amr)) return false;
+  const limite = ahora / 1000 - 3600;
+  return amr.some((m) => {
+    if (typeof m !== "object" || !m) return false;
+    const { method, timestamp } = m as { method?: unknown; timestamp?: unknown };
+    return (method === "recovery" || method === "otp") && typeof timestamp === "number" && timestamp > limite;
+  });
+}

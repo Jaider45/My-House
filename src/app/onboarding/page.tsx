@@ -1,3 +1,4 @@
+import { nombreDe } from "@/lib/usuario";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Cargando, cx } from "@/components/ui";
@@ -39,7 +40,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
   // Sin hogar solo existe el paso 1; con hogar, el paso 1 ya está hecho.
   const paso = !count ? 1 : pedido === 1 ? redirect("/") : Math.min(3, pedido);
   const actual = PASOS[paso - 1];
-  const nombre = (user.user_metadata?.nombre as string | undefined) ?? "";
+  const nombre = nombreDe(user.user_metadata);
 
   return (
     <>

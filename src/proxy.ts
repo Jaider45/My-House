@@ -42,8 +42,14 @@ export async function proxy(request: NextRequest) {
   }
 
   if (ruta !== "/mfa" && ruta !== "/salir") {
-    const { data: nivel } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (nivel?.nextLevel === "aal2" && nivel.currentLevel !== "aal2") {
+    // El JWT trae `mfa_activa` (custom_access_token_hook) y `aal`: no hace falta consultar a Auth en cada request.
+    // Tokens emitidos antes de la migración no lo traen: para esos se pregunta como antes.
+    const { mfa_activa, aal } = data.claims as { mfa_activa?: boolean; aal?: string };
+    const exigir =
+      typeof mfa_activa === "boolean"
+        ? mfa_activa && aal !== "aal2"
+        : await supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data: n }) => n?.nextLevel === "aal2" && n.currentLevel !== "aal2");
+    if (exigir) {
       return redirigir("/mfa", ruta !== "/");
     }
   }

@@ -97,7 +97,7 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     `npm run build && npm start`.
 16. Autoría (`created_by`, `creada_por`) la fija un trigger con `auth.uid()`; el cliente no puede falsearla.
     `npm audit` en CI solo para producción: el tooling de ESLint arrastra `minimatch` <11 sin arreglo compatible.
-17. Sesión y 2FA se chequean en `src/proxy.ts` (optimista); la autorización real es RLS.
+17. Sesión y 2FA se chequean en `src/proxy.ts` (optimista, leyendo el JWT; ver 29); la autorización real es RLS.
     `obtenerContexto()` (`src/lib/sesion.ts`) es la capa de acceso: usuario + miembro + hogar por request.
 18. PWA sin librerías: `src/app/manifest.ts` + `public/sw.js` escrito a mano. El SW no guarda páginas ni datos
     (información financiera); solo estáticos con hash y la página `/sin-conexion`. Solo se registra en producción.
@@ -149,7 +149,9 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
 26. Registro sin conexión: si no hay red al guardar en `/rapido`, el registro queda en `localStorage`
     (`src/lib/cola`, máx. 50) y `ColaSinConexion` (en el layout) lo envía con `registrarRapido` al volver la señal o al
     abrir la app. Lo que el servidor rechaza queda visible para descartarlo. Solo funciona con la pantalla ya abierta:
-    el SW no guarda páginas. Riesgo conocido: si la respuesta se pierde tras guardar, puede duplicarse.
+    el SW no guarda páginas. Sin duplicados: cada registro lleva `clave` (UUID de `nuevaClave`, que funciona también
+    por http en la red local) que se guarda en `transactions.client_id` con `unique (household_id, client_id)`; si la
+    respuesta se perdió y la cola lo reenvía, el choque se responde como «guardado».
 27. Trato: toda la interfaz tutea («tú»), como el diseño.
 28. Acciones de servidor: además de RLS, cada acción que escribe revisa `puedeEditar`/`esAdmin` y devuelve un mensaje
     (RLS sin permiso actualiza 0 filas sin error, y la acción reportaría éxito). Parámetros de URL que van a filtros
@@ -157,10 +159,22 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
 29. Contraseñas: `CampoContrasena` (`src/components/ui`) con botón para verla (se oculta al enviar, para que el navegador
     ofrezca guardarla), aviso de Bloq Mayús y medidor orientativo (`src/lib/contrasena`); el valor vive en el componente
     porque React vacía los campos no controlados tras cada acción. Recuperación: `/recuperar` → correo de Supabase →
-    `/auth/confirmar` → `/nueva-contrasena` (responde igual exista o no la cuenta). Ahí no se pide la actual solo si el
-    JWT trae `amr: recovery` de hace < 1 h; en Configuración → Seguridad sí, y se verifica con un cliente aparte para no
-    reemplazar la sesión (perdería AAL2). Una acción envuelta en una función propia de `useActionState` no puede hacer
-    `redirect()`: la navegación queda pendiente para siempre; ahí navega el cliente.
+    `/auth/confirmar` → `/nueva-contrasena` (responde igual exista o no la cuenta). No se pide la contraseña actual si el
+    JWT trae `amr` `recovery` u `otp` de hace < 1 h (`verificoCorreoHacePoco`: ya demostró que controla el correo); si
+    no, se compara en la base con `verificar_contrasena_actual` (RPC, pausa 1 s al fallar; no abre otra sesión ni pasa
+    por el captcha). Al cambiarla, casilla marcada «cerrar sesión en mis otros dispositivos» (`signOut({scope:"others"})`).
+    Una acción envuelta en una función propia de `useActionState` no puede hacer `redirect()`: la navegación queda
+    pendiente para siempre; ahí navega el cliente.
+    Ingreso: contraseña, código de 6 dígitos al correo (`signInWithOtp` con `shouldCreateUser: false` + `verifyOtp`; la
+    plantilla *magic link* muestra `{{ .Token }}`) o Google (botón solo con `NEXT_PUBLIC_GOOGLE_ACTIVO=1`). Tras abrir
+    sesión, la acción manda a `/mfa` si hace falta (`destinoTrasIngreso`): la redirección de una acción se renderiza en
+    la misma petición sin pasar por el proxy, y antes mostraba la primera pantalla sin el código.
+    2FA en el proxy: el JWT trae `mfa_activa` y `aal`; solo los tokens viejos (sin el claim) consultan a Auth.
+    Captcha: Cloudflare Turnstile (`src/components/ui/captcha.tsx`), token en el campo `captcha`, se reinicia tras cada
+    intento. Apagado en local (`config.toml`); en la nube se activan juntos Supabase (secreta) y
+    `NEXT_PUBLIC_TURNSTILE_SITE_KEY`. Probado con las llaves de prueba de Cloudflare.
+    Correos: plantillas en español en `supabase/templates/` (también se pegan en el panel de la nube); SMTP propio
+    (Resend) solo en la nube. Pasos en `docs/DESPLIEGUE.md` §1.1–1.4.
     Subidas: `src/proxy.ts` pasa por todas las rutas y Next solo copia `proxyClientMaxBodySize` (10 MB por defecto) del
     cuerpo: debe ser ≥ `serverActions.bodySizeLimit` (30 MB), o la acción falla con "Unexpected end of form".
 

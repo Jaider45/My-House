@@ -64,3 +64,16 @@ export function camposDe(datos: FormData): Record<string, string> {
 /** ¿El error es de red (sin conexión, servidor inalcanzable) y no una respuesta del servidor? */
 export const esErrorDeRed = (e: unknown) =>
   e instanceof TypeError || (e instanceof Error && /fetch|network|conexi/i.test(e.message));
+
+/**
+ * Clave de idempotencia de un registro (UUID v4). Viaja con el registro, también en la cola: si el servidor ya lo
+ * guardó pero la respuesta se perdió, el reenvío choca con la misma clave y no se duplica.
+ * `crypto.randomUUID` solo existe con HTTPS o localhost; `getRandomValues` funciona también por http en la red local.
+ */
+export function nuevaClave(aleatorio: (b: Uint8Array) => Uint8Array = (b) => crypto.getRandomValues(b)): string {
+  const b = aleatorio(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}

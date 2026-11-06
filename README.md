@@ -55,7 +55,7 @@ intercambiable por país; Colombia es el primero.
 
 ### 💸 Movimientos
 - **Registro rápido** desde el botón central: monto, categorías frecuentes y última cuenta usada.
-- **Sin conexión:** lo que registras sin señal se guarda en el celular y se envía solo al volver.
+- **Sin conexión:** lo que registras sin señal se guarda en el celular y se envía solo al volver, sin duplicarse.
 - Ingresos, gastos y **transferencias** entre cuentas (el pago de la tarjeta no se cuenta dos veces).
 - Ámbito **personal o negocio** (trabajo independiente), con filtro en la lista.
 - Cuentas de **banco, efectivo, billetera y tarjeta** (cupo, corte y día de pago) con saldo calculado.
@@ -122,6 +122,8 @@ intercambiable por país; Colombia es el primero.
 - **Aislamiento por hogar con Row Level Security** en todas las tablas, comprobado con pruebas contra Postgres real.
 - **Llaves foráneas compuestas** `(id, household_id)`: ninguna fila puede apuntar a datos de otro hogar.
 - **Verificación en dos pasos (TOTP)** exigida al ingresar cuando está activa.
+- **Acceso sin fricción:** ver la contraseña al escribirla, medidor de fuerza, recuperación por correo, ingreso con código de 6 dígitos o con Google, y cierre de las demás sesiones al cambiar la contraseña.
+- **Captcha invisible** (Cloudflare Turnstile) y correos de acceso en español con la marca.
 - Soportes en un bucket privado por hogar · llaves de IA solo en el servidor · con OpenAI se envía `store: false`.
 - Dinero en **enteros**, nunca `float`.
 
@@ -169,7 +171,7 @@ flowchart TD
 | --- | --- |
 | **WebApp** | Next.js 16 (App Router, Cache Components, Server Actions) · React 19 · TypeScript estricto · Tailwind 4 |
 | **Datos** | Supabase: PostgreSQL 17 con Row Level Security por `household_id` · migraciones SQL versionadas |
-| **Autenticación** | Supabase Auth: correo + contraseña y TOTP (2FA) · el hogar y el rol viajan en el JWT |
+| **Autenticación** | Supabase Auth: contraseña, código al correo, Google y TOTP (2FA) · Turnstile · el hogar, el rol y la 2FA viajan en el JWT |
 | **IA** | SDK de Anthropic (Claude, salida estructurada) y de OpenAI (Responses API, JSON Schema estricto) |
 | **Archivos** | Supabase Storage, bucket privado `soportes` |
 | **Procesos programados** | `pg_cron` en Postgres (generación diaria de pagos fijos) |
@@ -257,7 +259,7 @@ Para la 2FA sirve cualquier app TOTP (Google Authenticator, Microsoft Authentica
 My House/
 ├── src/
 │   ├── app/
-│   │   ├── (auth)/              Ingresar, registro y verificación en dos pasos
+│   │   ├── (auth)/              Ingresar, registro, recuperar contraseña y verificación en dos pasos
 │   │   ├── (app)/               Pantallas con sesión: inicio, movimientos, comprobantes, presupuesto,
 │   │   │                        pagos fijos, deudas, renta DIAN, metas, cuentas y configuración
 │   │   ├── onboarding/          Crear el hogar en 3 pasos (personas a cargo, pagos fijos, invitación)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CLAVE_COLA, camposDe, encolar, esErrorDeRed, leerCola, marcarError, porEnviar, quitarDeCola } from ".";
+import { CLAVE_COLA, camposDe, encolar, esErrorDeRed, leerCola, marcarError, nuevaClave, porEnviar, quitarDeCola } from ".";
 
 function memoria() {
   const datos = new Map<string, string>();
@@ -44,5 +44,21 @@ describe("cola de registros sin conexión", () => {
     expect(esErrorDeRed(new TypeError("Failed to fetch"))).toBe(true);
     expect(esErrorDeRed(new Error("NetworkError when attempting to fetch resource."))).toBe(true);
     expect(esErrorDeRed(new Error("Tu rol es de solo lectura."))).toBe(false);
+  });
+});
+
+describe("nuevaClave", () => {
+  it("arma un UUID v4 válido y distinto cada vez", () => {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+    const a = nuevaClave();
+    expect(a).toMatch(uuid);
+    expect(nuevaClave()).not.toBe(a);
+    expect(nuevaClave((b) => b.fill(255))).toBe("ffffffff-ffff-4fff-bfff-ffffffffffff");
+  });
+
+  it("la clave viaja en la cola con el registro", () => {
+    const m = memoria();
+    encolar(m, { monto: "25000", clave: "c1" });
+    expect(leerCola(m)[0].campos.clave).toBe("c1");
   });
 });

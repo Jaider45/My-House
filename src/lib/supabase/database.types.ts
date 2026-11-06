@@ -393,14 +393,14 @@ isOneToOne: false
                   ]
                 },"transactions": {
                   Row: {
-                    "account_id": string,"ambito": Database["public"]['Enums']["ambito"],"category_id": string | null,"comercio": string | null,"created_at": string,"created_by": string | null,"cuenta_destino_id": string | null,"debt_id": string | null,"estado": Database["public"]['Enums']["mov_estado"],"fecha": string,"goal_id": string | null,"household_id": string,"id": string,"import_batch_id": string | null,"import_hash": string | null,"member_id": string | null,"monto": number,"nota": string | null,"origen": Database["public"]['Enums']["mov_origen"],"recurring_rule_id": string | null,"tax_tag_id": string | null,"tipo": Database["public"]['Enums']["mov_tipo"],"updated_at": string
+                    "account_id": string,"ambito": Database["public"]['Enums']["ambito"],"category_id": string | null,"client_id": string | null,"comercio": string | null,"created_at": string,"created_by": string | null,"cuenta_destino_id": string | null,"debt_id": string | null,"estado": Database["public"]['Enums']["mov_estado"],"fecha": string,"goal_id": string | null,"household_id": string,"id": string,"import_batch_id": string | null,"import_hash": string | null,"member_id": string | null,"monto": number,"nota": string | null,"origen": Database["public"]['Enums']["mov_origen"],"recurring_rule_id": string | null,"tax_tag_id": string | null,"tipo": Database["public"]['Enums']["mov_tipo"],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "account_id": string,"ambito"?: Database["public"]['Enums']["ambito"],"category_id"?: string | null,"comercio"?: string | null,"created_at"?: string,"created_by"?: string | null,"cuenta_destino_id"?: string | null,"debt_id"?: string | null,"estado"?: Database["public"]['Enums']["mov_estado"],"fecha": string,"goal_id"?: string | null,"household_id": string,"id"?: string,"import_batch_id"?: string | null,"import_hash"?: string | null,"member_id"?: string | null,"monto": number,"nota"?: string | null,"origen"?: Database["public"]['Enums']["mov_origen"],"recurring_rule_id"?: string | null,"tax_tag_id"?: string | null,"tipo": Database["public"]['Enums']["mov_tipo"],"updated_at"?: string
+                    "account_id": string,"ambito"?: Database["public"]['Enums']["ambito"],"category_id"?: string | null,"client_id"?: string | null,"comercio"?: string | null,"created_at"?: string,"created_by"?: string | null,"cuenta_destino_id"?: string | null,"debt_id"?: string | null,"estado"?: Database["public"]['Enums']["mov_estado"],"fecha": string,"goal_id"?: string | null,"household_id": string,"id"?: string,"import_batch_id"?: string | null,"import_hash"?: string | null,"member_id"?: string | null,"monto": number,"nota"?: string | null,"origen"?: Database["public"]['Enums']["mov_origen"],"recurring_rule_id"?: string | null,"tax_tag_id"?: string | null,"tipo": Database["public"]['Enums']["mov_tipo"],"updated_at"?: string
                   }
                   Update: {
-                    "account_id"?: string,"ambito"?: Database["public"]['Enums']["ambito"],"category_id"?: string | null,"comercio"?: string | null,"created_at"?: string,"created_by"?: string | null,"cuenta_destino_id"?: string | null,"debt_id"?: string | null,"estado"?: Database["public"]['Enums']["mov_estado"],"fecha"?: string,"goal_id"?: string | null,"household_id"?: string,"id"?: string,"import_batch_id"?: string | null,"import_hash"?: string | null,"member_id"?: string | null,"monto"?: number,"nota"?: string | null,"origen"?: Database["public"]['Enums']["mov_origen"],"recurring_rule_id"?: string | null,"tax_tag_id"?: string | null,"tipo"?: Database["public"]['Enums']["mov_tipo"],"updated_at"?: string
+                    "account_id"?: string,"ambito"?: Database["public"]['Enums']["ambito"],"category_id"?: string | null,"client_id"?: string | null,"comercio"?: string | null,"created_at"?: string,"created_by"?: string | null,"cuenta_destino_id"?: string | null,"debt_id"?: string | null,"estado"?: Database["public"]['Enums']["mov_estado"],"fecha"?: string,"goal_id"?: string | null,"household_id"?: string,"id"?: string,"import_batch_id"?: string | null,"import_hash"?: string | null,"member_id"?: string | null,"monto"?: number,"nota"?: string | null,"origen"?: Database["public"]['Enums']["mov_origen"],"recurring_rule_id"?: string | null,"tax_tag_id"?: string | null,"tipo"?: Database["public"]['Enums']["mov_tipo"],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -523,6 +523,9 @@ isOneToOne: false
 { Args: { "p_token": string }; Returns: {
               "email": string,"hogar": string,"rol": Database["public"]['Enums']["rol_miembro"],"vigente": boolean
             }[]
+                           },
+"verificar_contrasena_actual":
+{ Args: { "clave": string }; Returns: boolean
                            }
           }
           Enums: {
