@@ -22,16 +22,16 @@ export type Regla = {
   fecha_inicio: string;
 };
 
-type Props = { regla?: Regla; cuentas: CuentaOpcion[]; categorias: Categoria[]; hoy: string };
+type Props = { regla?: Regla; cuentas: CuentaOpcion[]; categorias: Categoria[]; hoy: string; /** Sin selector de tipo: solo gastos. */ soloGasto?: boolean };
 
-export function FormularioRegla({ regla, cuentas, categorias, hoy }: Props) {
+export function FormularioRegla({ regla, cuentas, categorias, hoy, soloGasto }: Props) {
   const [estado, accion] = useActionState(guardarRegla, null);
   const [tipo, setTipo] = useState<"gasto" | "ingreso">(regla?.tipo === "ingreso" ? "ingreso" : "gasto");
   return (
     <form action={accion} className="space-y-3">
       <input type="hidden" name="id" value={regla?.id ?? ""} />
       <input type="hidden" name="tipo" value={tipo} />
-      <SelectorTipo tipo={tipo} incluirTransferencia={false} onCambio={(t) => setTipo(t as "gasto" | "ingreso")} />
+      {!soloGasto && <SelectorTipo tipo={tipo} incluirTransferencia={false} onCambio={(t) => setTipo(t as "gasto" | "ingreso")} />}
       <Campo etiqueta="Descripción" name="descripcion" defaultValue={regla?.descripcion} placeholder="Arriendo, colegio, Netflix…" required maxLength={120} />
       <CampoMonto etiqueta="Monto" name="monto" valorInicial={regla?.monto} />
       <Selector etiqueta="Frecuencia" name="frecuencia" defaultValue={regla?.frecuencia ?? "mensual"}>
@@ -65,7 +65,7 @@ export function FormularioRegla({ regla, cuentas, categorias, hoy }: Props) {
         ))}
       </Selector>
       <MensajeEstado estado={estado} />
-      <BotonEnviar className="w-full">{regla ? "Guardar cambios" : "Crear regla"}</BotonEnviar>
+      <BotonEnviar className="w-full">{regla ? "Guardar cambios" : tipo === "ingreso" ? "Crear ingreso fijo" : "Crear pago fijo"}</BotonEnviar>
     </form>
   );
 }

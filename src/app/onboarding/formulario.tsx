@@ -9,7 +9,7 @@ import { digitosAMonto, formatearCOP, formatearMiles } from "@/lib/dinero";
 import { iconoCategoria } from "@/lib/categorias/iconos";
 import { invitarMiembro } from "@/app/(app)/ajustes/acciones";
 import { crearHogar, guardarPagosFijos } from "./acciones";
-import { PAGOS_SUGERIDOS } from "./pagos";
+import { CATEGORIAS_PAGO, MAX_OTROS, PAGOS_SUGERIDOS } from "./pagos";
 
 const pie = "sticky bottom-0 -mx-4 flex flex-wrap items-center gap-3 bg-pagina px-4 pt-3 pb-1 md:static md:mx-0 md:bg-transparent md:p-0";
 
@@ -65,6 +65,7 @@ export function FormularioHogar({ nombre }: { nombre: string }) {
 export function FormularioPagosFijos() {
   const [estado, accion] = useActionState(guardarPagosFijos, null);
   const [montos, setMontos] = useState<Record<string, number>>({});
+  const [otros, setOtros] = useState(1);
   const total = Object.values(montos).reduce((s, n) => s + n, 0);
   const campoMonto = (clave: string, etiqueta: string) => (
     <span className="flex h-9 w-[130px] items-center rounded-lg border border-control bg-elevada px-2.5 text-sm">
@@ -100,13 +101,36 @@ export function FormularioPagosFijos() {
             {campoDia(p.clave, p.nombre, p.dia)}
           </div>
         ))}
-        <div className="flex min-h-16 flex-wrap items-center gap-3 py-2">
-          <CuadroIcono nombre="calendario" />
-          <input name="otro:nombre" placeholder="Otro pago (internet, seguro…)" aria-label="Nombre de otro pago" className="h-9 min-w-0 flex-[1_1_120px] rounded-lg border border-control px-2.5 text-sm" />
-          {campoMonto("otro", "otro pago")}
-          {campoDia("otro", "otro pago", 1)}
-        </div>
+        {Array.from({ length: otros }, (_, i) => (
+          <div key={i} className="flex min-h-16 flex-wrap items-center gap-3 border-b border-divisor py-2">
+            <CuadroIcono nombre="calendario" />
+            <input
+              name={`otro:nombre:${i}`}
+              placeholder="Otro pago (internet, seguro, gimnasio…)"
+              aria-label={`Nombre del pago ${i + 1}`}
+              maxLength={120}
+              className="h-9 min-w-0 flex-[1_1_160px] rounded-lg border border-control px-2.5 text-sm"
+            />
+            <select name={`otro:categoria:${i}`} defaultValue="Servicios públicos" aria-label={`Categoría del pago ${i + 1}`} className="h-9 rounded-lg border border-control bg-elevada px-2 text-sm">
+              {CATEGORIAS_PAGO.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            {campoMonto(`otro${i}`, `pago ${i + 1}`)}
+            {campoDia(`otro${i}`, `pago ${i + 1}`, 1)}
+          </div>
+        ))}
+        {otros < MAX_OTROS && (
+          <button type="button" onClick={() => setOtros(otros + 1)} className="inline-flex h-12 items-center gap-2 text-sm font-semibold text-monte hover:underline">
+            + Agregar otro pago fijo
+          </button>
+        )}
       </div>
+      <p className="-mt-3 text-[13px] text-tenue">
+        ¿Te faltó alguno? Después puedes agregar todos los que quieras en <b>Presupuesto</b> (o en Pagos fijos).
+      </p>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-seleccion px-4 py-3.5">
         <span className="text-cuerpo">Total de pagos fijos hasta ahora</span>
         <b className="text-xl">{formatearCOP(total)}</b>

@@ -72,11 +72,17 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     ingresos a cuentas banco + transferencias recibidas en banco (puede sobrestimar; es lo prudente).
     Módulo por país: `src/lib/impuestos/tipos.ts` (contrato), `registro.ts` (países), `co/` (Colombia).
     Para agregar un país: implementar `JurisdiccionTributaria`, registrarlo y sembrar `tax_params`/`tax_tags`.
-11. Número mínimo = fijos del mes (confirmados + programados) + variables esenciales (promedio de los últimos 3
-    meses cerrados que tengan gastos categorizados; si no hay, mes actual) + cuota de imprevistos (% sobre esa
-    suma). Costo de vida = gastos confirmados + programados del mes, sin categorías `excluir_de_costo_vida`; lo sin
-    categoría cuenta como variable no esencial. Costo por persona divide entre todos los miembros (con
-    dependientes). Cálculo puro en `src/lib/finanzas`.
+11. Costo de vida y número mínimo (`resumirMes`, cálculo puro en `src/lib/finanzas`), por categoría raíz y sin las
+    categorías `excluir_de_costo_vida`. En el mes en curso se usa el **plan** (`armarPlan` en `src/lib/presupuesto`,
+    cargado con `cargarPlan`): presupuesto = equivalente mensual de los pagos fijos activos + gasto variable presupuestado.
+    Antes se medía solo con movimientos y los pagos fijos aún no programados (se programan 7 días antes) no contaban.
+    - Costo de vida = Σ max(presupuesto, confirmado + programado). Meses cerrados: lo gastado. Lo sin categoría cuenta
+      como variable no esencial. Costo por persona divide entre todos los miembros (con dependientes).
+    - Fijos = max(pagos fijos del plan, lo gastado si la categoría es de tipo fijo); variables = el resto.
+    - Número mínimo = Σ categorías esenciales max(presupuesto, promedio de los 3 últimos meses cerrados con gastos
+      categorizados —si no hay, el mes actual—, fijos) + cuota de imprevistos (% sobre esa suma).
+    - Ingresos esperados = max(confirmados + programados, ingresos fijos del plan); ahorro proyectado = ingresos
+      esperados − costo de vida. Pagos pendientes = programados + ocurrencias del mes que aún no se programan.
 12. Next 16 con `cacheComponents` activo (será obligatorio en la próxima versión mayor).
 13. `@types/node@24` (coincide con Node 24 y lo exige Vitest 5).
 14. Un usuario opera un hogar (el primero al que pertenece). El selector de hogares queda para el SaaS.
@@ -119,8 +125,9 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     Los componentes de `src/components/ui` ya traen los estilos: no usar colores de Tailwind (`zinc`, `teal`…).
     Cuidado: dos utilidades de la misma propiedad en un elemento (p. ej. `hidden` + `inline-flex` de `clasesBoton`)
     no se resuelven por orden; envolver en un `<span className="hidden lg:contents">` o usar `!`.
-22. Módulos (migración `modulos`): presupuesto = pagos fijos de la categoría + adicional (`budgets_goals` tipo
-    `presupuesto`); pronóstico de cierre = max(real + programado, fijos) + ritmo del gasto variable
+22. Módulos (migración `modulos`): presupuesto = pagos fijos de la categoría + gasto variable (`budgets_goals` tipo
+    `presupuesto`, en la interfaz «Gasto variable», se repite cada mes). Los pagos fijos se crean también desde
+    Presupuesto (mismo `FormularioRegla` de Pagos fijos); el onboarding admite hasta 10 pagos extra con categoría; pronóstico de cierre = max(real + programado, fijos) + ritmo del gasto variable
     (`src/lib/presupuesto`). Deudas (`debts`): pagado = `pagado_inicial` + movimientos con `debt_id`; un abono es un
     gasto en Deudas. Metas (`budgets_goals` tipo `meta`): ahorrado = `ahorrado_inicial` + movimientos con `goal_id`
     (gasto en «Ahorro e inversión», fuera del costo de vida). Recordatorios guardan fechas y canales; el correo ya se
