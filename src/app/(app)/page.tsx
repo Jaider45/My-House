@@ -8,6 +8,8 @@ import { resumirMes, type TotalCategoria } from "@/lib/finanzas";
 import type { Categoria } from "@/lib/categorias";
 import { iconoCategoria } from "@/lib/categorias/iconos";
 import { cargarSemaforo, type SemaforoAnio } from "@/lib/impuestos/servidor";
+import { cargarPlan } from "@/lib/presupuesto/servidor";
+import { fechasEnRango } from "@/lib/recurrentes";
 
 export default function Inicio({ searchParams }: PageProps<"/">) {
   return (
@@ -31,13 +33,13 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
   const { desde, hasta } = rangoMes(mes);
 
   const anio = Number(mesActual.slice(0, 4));
-  const [{ data: filas }, { data: categorias }, { count: personas }, { count: cuentas }, { count: reglas }, { count: sinCategoria }, { data: pendientes }, semaforo] =
+  const [{ data: filas }, { data: categorias }, { count: personas }, { count: cuentas }, { plan, reglas }, { count: sinCategoria }, { data: programados }, semaforo] =
     await Promise.all([
       ctx.supabase.rpc("totales_por_categoria", { p_household: ctx.hogar.id, p_desde: rangoMes(sumarMeses(mes, -11)).desde, p_hasta: hasta }),
       ctx.supabase.from("categories").select("id, nombre, padre_id, clase, tipo, es_esencial, excluir_de_costo_vida, archivada"),
       ctx.supabase.from("members").select("id", { count: "exact", head: true }),
       ctx.supabase.from("accounts").select("id", { count: "exact", head: true }),
-      ctx.supabase.from("recurring_rules").select("id", { count: "exact", head: true }),
+      cargarPlan(ctx, mes, hoyISO),
       ctx.supabase
         .from("transactions")
         .select("id", { count: "exact", head: true })
@@ -58,8 +60,29 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
 
   const todas = (filas ?? []) as TotalCategoria[];
   const cats = (categorias ?? []) as Categoria[];
-  const r = resumirMes({ mes, filas: todas, categorias: cats, personas: personas ?? 1, cuotaImprevistosPct: ctx.hogar.cuotaImprevistosPct });
+  // El plan (pagos fijos y presupuesto) solo aplica al mes en curso: los meses cerrados se miden con lo real.
+  const conPlan = mes >= mesActual;
+  const r = resumirMes({
+    mes,
+    filas: todas,
+    categorias: cats,
+    personas: personas ?? 1,
+    cuotaImprevistosPct: ctx.hogar.cuotaImprevistosPct,
+    plan: conPlan ? plan : undefined,
+  });
   const porId = new Map(cats.map((c) => [c.id, c]));
+  // Próximos pagos: lo ya programado + lo que las reglas programarán en los próximos 15 días.
+  const limite = sumarDias(hoyISO, 15);
+  const pendientes = [
+    ...(programados ?? []).map((p) => ({ clave: p.id, fecha: p.fecha, monto: p.monto, nombre: p.comercio, category_id: p.category_id })),
+    ...reglas
+      .filter((g) => g.tipo === "gasto")
+      .flatMap((g) =>
+        fechasEnRango(g.fecha_inicio, g.frecuencia, g.ocurrencias, hoyISO, limite).map((f) => ({ clave: `${g.id}-${f}`, fecha: f, monto: g.monto, nombre: g.descripcion, category_id: g.category_id })),
+      ),
+  ]
+    .sort((a, b) => a.fecha.localeCompare(b.fecha))
+    .slice(0, 6);
   const titulo = `Resumen de ${formatearMes(mes).replace(/ de \d{4}$/, "")}`;
   const encabezado = (
     <Titulo
@@ -70,10 +93,10 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
     </Titulo>
   );
 
-  if (r.ingresos + r.gastos + r.porPagar === 0) {
+  if (r.ingresos + r.gastos + r.porPagar + r.costoVida === 0) {
     const pasos = [
       { icono: "cuentas", titulo: "Crea tus cuentas", detalle: "Banco, efectivo, tarjetas", hecho: (cuentas ?? 0) > 0, href: "/cuentas" },
-      { icono: "calendario", titulo: "Carga tus pagos fijos", detalle: "Arriendo, servicios, colegio, créditos", hecho: (reglas ?? 0) > 0, href: "/recurrentes" },
+      { icono: "calendario", titulo: "Carga tus pagos fijos", detalle: "Arriendo, servicios, colegio, créditos", hecho: reglas.length > 0, href: "/presupuesto" },
       { icono: "egresos", titulo: "Registra tu primer gasto", detalle: "Toma menos de 10 segundos", hecho: false, href: "/rapido" },
       { icono: "familia", titulo: "Invita a tu pareja", detalle: "Registren juntos, vean lo mismo", hecho: (personas ?? 0) > 1, href: "/ajustes/miembros" },
     ] as const;
@@ -109,34 +132,62 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
   }
 
   const cantidadIngresos = todas.filter((f) => f.mes.startsWith(mes) && f.tipo === "ingreso" && f.estado === "confirmado").reduce((s, f) => s + (f.cantidad ?? 0), 0);
-  const previsto = r.gastos + r.porPagar;
-  const ahorroProyectado = r.ingresos - r.costoVida;
-  const vencidos = (pendientes ?? []).filter((p) => p.fecha < hoyISO).length;
-  const pagosPendientes = todas.filter((f) => f.mes.startsWith(mes) && f.tipo === "gasto" && f.estado === "programado").reduce((s, f) => s + (f.cantidad ?? 0), 0);
+  const previsto = r.costoVida + r.ahorro;
+  const vencidos = pendientes.filter((p) => p.fecha < hoyISO).length;
+  const nombreDelMes = formatearMes(mes).replace(/ de \d{4}$/, "");
 
   return (
     <>
       {encabezado}
       <div className="space-y-4 md:space-y-5">
         <section aria-label="Indicadores del mes" className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">
-          <Kpi icono="ingresos" etiqueta="Ingresos del mes" valor={formatearCOP(r.ingresos)} detalle={`${cantidadIngresos} ${cantidadIngresos === 1 ? "ingreso registrado" : "ingresos registrados"}`} />
-          <Kpi icono="egresos" etiqueta="Gastos del mes" valor={formatearCOP(r.gastos)} detalle={previsto ? `${porcentaje(r.gastos, previsto)} % de lo previsto para el mes` : "Sin gastos previstos"} />
+          <Kpi
+            icono="ingresos"
+            etiqueta="Ingresos del mes"
+            valor={formatearCOP(r.ingresos)}
+            detalle={
+              r.ingresosEsperados > r.ingresos
+                ? `De ${formatearCOP(r.ingresosEsperados)} esperados`
+                : `${cantidadIngresos} ${cantidadIngresos === 1 ? "ingreso registrado" : "ingresos registrados"}`
+            }
+          />
+          <Kpi
+            icono="egresos"
+            etiqueta="Gastos del mes"
+            valor={formatearCOP(r.gastos)}
+            detalle={
+              previsto ? (
+                <span className="flex flex-col gap-1.5">
+                  <Barra porcentaje={porcentaje(r.gastos, previsto)} tono="marca" />
+                  {porcentaje(r.gastos, previsto)} % de los {formatearCOP(previsto)} previstos
+                </span>
+              ) : (
+                "Sin gastos previstos"
+              )
+            }
+          />
           <Kpi
             icono="calendario"
             etiqueta="Pagos fijos pendientes"
             valor={formatearCOP(r.porPagar)}
-            detalle={`${pagosPendientes} ${pagosPendientes === 1 ? "pago" : "pagos"}${vencidos ? ` · ${vencidos} ${vencidos === 1 ? "vencido" : "vencidos"}` : ""}`}
+            detalle={
+              r.pagosPorPagar
+                ? `${r.pagosPorPagar} ${r.pagosPorPagar === 1 ? "pago" : "pagos"} por hacer${vencidos ? ` · ${vencidos} ${vencidos === 1 ? "vencido" : "vencidos"}` : ""}`
+                : "Todo pagado este mes"
+            }
           />
           <Kpi
             icono="ahorro"
-            etiqueta="Ahorro del mes"
-            valor={formatearCOP(ahorroProyectado)}
+            etiqueta={conPlan ? "Ahorro proyectado" : "Ahorro del mes"}
+            valor={r.ingresosEsperados ? formatearCOP(r.ahorroProyectado) : "—"}
             detalle={
-              !r.ingresos
-                ? "Proyectado: ingresos menos costo de vida"
-                : ahorroProyectado < 0
-                  ? "Proyectado · los gastos superan los ingresos del mes"
-                  : `Proyectado · ${porcentaje(ahorroProyectado, r.ingresos)} % de los ingresos`
+              !r.ingresosEsperados
+                ? conPlan
+                  ? "Agrega tu salario como ingreso fijo para proyectarlo"
+                  : "Sin ingresos registrados"
+                : r.ahorroProyectado < 0
+                  ? "El costo de vida supera los ingresos"
+                  : `${porcentaje(r.ahorroProyectado, r.ingresosEsperados)} % de los ingresos`
             }
           />
           <Kpi
@@ -144,7 +195,11 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
             icono="casa"
             etiqueta="Número mínimo del hogar"
             valor={formatearCOP(r.numeroMinimo.total)}
-            detalle={r.ingresos && r.numeroMinimo.total ? `Tus ingresos lo cubren ${veces.format(r.ingresos / r.numeroMinimo.total)} veces` : "Lo que la casa necesita sí o sí"}
+            detalle={
+              r.ingresosEsperados && r.numeroMinimo.total
+                ? `Tus ingresos lo cubren ${veces.format(r.ingresosEsperados / r.numeroMinimo.total)} veces`
+                : "Lo que la casa necesita sí o sí"
+            }
           />
           <Kpi
             icono="familia"
@@ -153,6 +208,16 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
             detalle={`${formatearCOP(r.costoPorPersona)} por persona · ${personas ?? 1} en el hogar`}
           />
         </section>
+
+        {conPlan && !reglas.some((g) => g.tipo === "gasto") && ctx.puedeEditar && (
+          <Aviso tipo="info">
+            Aún no tienes pagos fijos: el costo de vida solo cuenta lo que registras.{" "}
+            <Link href="/presupuesto" className="font-semibold underline">
+              Carga el arriendo, los servicios y demás en Presupuesto
+            </Link>{" "}
+            para verlo completo desde el primer día del mes.
+          </Aviso>
+        )}
 
         <AvisoDian semaforo={semaforo} />
 
@@ -182,14 +247,14 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
           </Tarjeta>
 
           <Tarjeta titulo="Próximos pagos" subtitulo="Lo programado para los próximos 15 días">
-            {pendientes?.length ? (
+            {pendientes.length ? (
               pendientes.map((p) => {
                 const cat = p.category_id ? porId.get(p.category_id) : undefined;
                 return (
                   <FilaLista
-                    key={p.id}
-                    icono={iconoCategoria(cat?.nombre ?? p.comercio)}
-                    titulo={p.comercio || cat?.nombre || "Pago programado"}
+                    key={p.clave}
+                    icono={iconoCategoria(cat?.nombre ?? p.nombre)}
+                    titulo={p.nombre || cat?.nombre || "Pago programado"}
                     detalle={p.fecha < hoyISO ? `Vencido · ${formatearDia(p.fecha)}` : `Vence el ${formatearDia(p.fecha)}`}
                     valor={formatearCOP(p.monto)}
                   />
@@ -207,36 +272,45 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
         <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
           <Tarjeta
             className="lg:col-span-2"
-            titulo="Top de categorías"
-            subtitulo={`Las 5 categorías donde más has gastado en ${formatearMes(mes).replace(/ de \d{4}$/, "")}`}
+            titulo={`Costo de vida de ${nombreDelMes}`}
+            subtitulo={conPlan ? "Por categoría: lo presupuestado, o lo gastado si ya lo superaste" : "Lo que se gastó en cada categoría"}
             accion={
-              <EnlaceBoton href={`/movimientos?mes=${mes}`} variante="secundario" className="h-9 px-3 text-sm">
-                Ver movimientos
+              <EnlaceBoton href={conPlan ? "/presupuesto" : `/movimientos?mes=${mes}`} variante="secundario" className="h-9 px-3 text-sm">
+                {conPlan ? "Ajustar presupuesto" : "Ver movimientos"}
               </EnlaceBoton>
             }
           >
-            {r.porCategoria.length ? (
+            {r.esperadoPorCategoria.length ? (
               <ul>
-                {r.porCategoria.slice(0, 5).map((c) => {
+                {r.esperadoPorCategoria.slice(0, 7).map((c) => {
                   const cat = c.id ? porId.get(c.id) : undefined;
+                  const avance = conPlan ? porcentaje(c.comprometido, c.esperado) : porcentaje(c.esperado, r.costoVida);
                   return (
                     <li key={c.id ?? "sin"} className="border-b border-divisor last:border-b-0">
                       <Link
                         href={c.id ? `/movimientos?mes=${mes}&categoria=${c.id}` : `/movimientos?mes=${mes}&categoria=sin`}
-                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3 md:grid-cols-[minmax(180px,1.2fr)_minmax(0,2fr)_170px_96px] md:gap-4"
+                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3 md:grid-cols-[minmax(180px,1.2fr)_minmax(0,2fr)_190px_96px] md:gap-4"
                       >
                         <span className="flex min-w-0 items-center gap-3 text-[15px] font-semibold">
                           <CuadroIcono nombre={iconoCategoria(c.nombre)} />
                           <span className="truncate">{c.nombre}</span>
                         </span>
                         <span className="col-span-2 row-start-2 md:col-span-1 md:row-start-auto">
-                          <Barra porcentaje={porcentaje(c.total, r.costoVida)} tono={cat?.es_esencial ? "marca" : "teja"} gruesa />
+                          <Barra porcentaje={avance} tono={c.esencial ? "marca" : "teja"} gruesa />
                         </span>
                         <span className="row-start-3 text-sm text-cuerpo md:row-start-auto md:text-right">
-                          <b className="text-tinta">{formatearCOP(c.total)}</b> · {porcentaje(c.total, r.costoVida)} %
+                          {conPlan ? (
+                            <>
+                              <b className="text-tinta">{formatearCOP(c.esperado)}</b> · llevas {formatearCorto(c.comprometido)}
+                            </>
+                          ) : (
+                            <>
+                              <b className="text-tinta">{formatearCOP(c.esperado)}</b> · {avance} %
+                            </>
+                          )}
                         </span>
                         <span className="col-start-2 row-start-1 justify-self-end md:col-start-auto md:row-start-auto">
-                          <Chip tono={cat?.es_esencial ? "info" : "neutro"}>{!cat ? "Sin categoría" : cat.es_esencial ? "Esencial" : "No esencial"}</Chip>
+                          <Chip tono={c.esencial ? "info" : "neutro"}>{!cat ? "Sin categoría" : c.esencial ? "Esencial" : "No esencial"}</Chip>
                         </span>
                       </Link>
                     </li>
@@ -244,7 +318,16 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
                 })}
               </ul>
             ) : (
-              <p className="text-sm text-tenue">Sin gastos registrados en este mes.</p>
+              <p className="text-sm text-tenue">Sin gastos ni presupuesto en este mes.</p>
+            )}
+            {r.esperadoPorCategoria.length > 7 && (
+              <p className="mt-2 text-[13px] text-tenue">
+                Y {r.esperadoPorCategoria.length - 7} categorías más en{" "}
+                <Link href="/presupuesto" className="font-semibold underline">
+                  Presupuesto
+                </Link>
+                .
+              </p>
             )}
             {(sinCategoria ?? 0) > 0 && (
               <div className="mt-3">
@@ -261,11 +344,11 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
           <Tarjeta titulo="Número mínimo del hogar" subtitulo="Lo que la casa necesita cada mes sí o sí">
             <dl className="text-[15px]">
               {[
-                ["Gastos fijos del mes", r.numeroMinimo.fijos],
+                ["Pagos fijos esenciales", r.numeroMinimo.fijos],
                 [
                   r.numeroMinimo.mesesPromedio
-                    ? `Variables esenciales (promedio de ${r.numeroMinimo.mesesPromedio} ${r.numeroMinimo.mesesPromedio === 1 ? "mes" : "meses"})`
-                    : "Variables esenciales (este mes)",
+                    ? `Variables esenciales (presupuesto o promedio de ${r.numeroMinimo.mesesPromedio} ${r.numeroMinimo.mesesPromedio === 1 ? "mes" : "meses"})`
+                    : "Variables esenciales (presupuesto o este mes)",
                   r.numeroMinimo.variablesEsenciales,
                 ],
                 [`Imprevistos (${ctx.hogar.cuotaImprevistosPct} %)`, r.numeroMinimo.imprevistos],
@@ -282,16 +365,35 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
             </dl>
             <div className="mt-5 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-cuerpo">Fijos del costo de vida</span>
+                <span className="text-cuerpo">Esenciales del costo de vida</span>
+                <span className="font-semibold">{porcentaje(r.costoEsencial, r.costoVida)} %</span>
+              </div>
+              <Barra porcentaje={porcentaje(r.costoEsencial, r.costoVida)} tono="marca" />
+              <div className="flex justify-between pt-1">
+                <span className="text-cuerpo">Pagos fijos del costo de vida</span>
                 <span className="font-semibold">{porcentaje(r.fijos, r.costoVida)} %</span>
               </div>
-              <Barra porcentaje={porcentaje(r.fijos, r.costoVida)} tono="marca" />
-              <div className="flex justify-between pt-1">
-                <span className="text-cuerpo">Variables</span>
-                <span className="font-semibold">{porcentaje(r.variables, r.costoVida)} %</span>
-              </div>
-              <Barra porcentaje={porcentaje(r.variables, r.costoVida)} tono="teja" />
+              <Barra porcentaje={porcentaje(r.fijos, r.costoVida)} tono="teja" />
             </div>
+            <details className="group mt-5 rounded-xl bg-mosaico px-4 py-3 text-[13px] leading-5 text-cuerpo">
+              <summary className="cursor-pointer list-none font-semibold text-tinta">
+                ¿Cómo se calcula? <span className="text-tenue group-open:hidden">Ver</span>
+              </summary>
+              <ul className="mt-2 list-disc space-y-1.5 pl-4">
+                <li>
+                  <b>Costo de vida</b>: por cada categoría, lo presupuestado (pagos fijos + gasto variable) o lo que ya gastaste si es
+                  más. No incluye «Ahorro e inversión».
+                </li>
+                <li>
+                  <b>Número mínimo</b>: solo categorías esenciales. En cada una, lo mayor entre lo presupuestado y lo que sueles
+                  gastar (promedio de los últimos 3 meses), más la cuota de imprevistos.
+                </li>
+                <li>
+                  <b>Ahorro proyectado</b>: ingresos esperados (los recibidos o tus ingresos fijos, lo mayor) menos el costo de vida.
+                </li>
+                <li>Los meses cerrados se miden con lo que realmente pasó.</li>
+              </ul>
+            </details>
           </Tarjeta>
         </div>
       </div>

@@ -23,5 +23,6 @@ export async function guardarPresupuesto(datos: FormData) {
     }
   }
   revalidatePath("/presupuesto");
+  revalidatePath("/");
   redirect(`/presupuesto${datos.get("mes") ? `?mes=${datos.get("mes")}` : ""}`);
 }

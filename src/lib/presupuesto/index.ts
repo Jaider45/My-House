@@ -1,5 +1,51 @@
 /** Presupuesto del mes por categoría raíz: fijos programados + adicional, contra lo real y el pronóstico. */
 
+import type { PlanMes } from "@/lib/finanzas";
+import { fechasEnRango, montoMensual, type Frecuencia } from "@/lib/recurrentes";
+
+/** Pago fijo (regla recurrente activa) tal como lo necesita el plan del mes. */
+export type ReglaPlan = {
+  monto: number;
+  tipo: "gasto" | "ingreso" | "transferencia";
+  category_id: string | null;
+  frecuencia: Frecuencia;
+  fecha_inicio: string;
+  /** Ocurrencias ya generadas como movimientos. */
+  ocurrencias: number;
+};
+
+/**
+ * Plan del mes `mes` ("YYYY-MM") con las reglas activas y el gasto variable presupuestado por categoría.
+ * `porProgramar` = ocurrencias de pagos fijos entre hoy (o el inicio del mes) y fin de mes que aún no son
+ * movimientos (las reglas se programan solo 7 días antes).
+ */
+export function armarPlan(opciones: {
+  mes: string;
+  hoy: string;
+  hasta: string;
+  reglas: ReglaPlan[];
+  presupuestos: { category_id: string | null; monto: number }[];
+}): PlanMes {
+  const { mes, hoy, hasta, reglas, presupuestos } = opciones;
+  const desde = `${mes}-01` > hoy ? `${mes}-01` : hoy;
+  const categorias: PlanMes["categorias"] = [];
+  let ingresosFijos = 0;
+  const porProgramar = { monto: 0, cantidad: 0 };
+  for (const r of reglas) {
+    if (r.tipo === "ingreso") {
+      ingresosFijos += montoMensual(r.monto, r.frecuencia);
+      continue;
+    }
+    if (r.tipo !== "gasto") continue;
+    if (r.category_id) categorias.push({ category_id: r.category_id, fijos: montoMensual(r.monto, r.frecuencia), variable: 0 });
+    const fechas = desde <= hasta ? fechasEnRango(r.fecha_inicio, r.frecuencia, r.ocurrencias, desde, hasta) : [];
+    porProgramar.monto += fechas.length * r.monto;
+    porProgramar.cantidad += fechas.length;
+  }
+  for (const p of presupuestos) if (p.category_id && p.monto > 0) categorias.push({ category_id: p.category_id, fijos: 0, variable: p.monto });
+  return { categorias, ingresosFijos, porProgramar };
+}
+
 export type Semaforo = "en_rango" | "atento" | "excedido";
 
 export type EntradaCategoria = {

@@ -32,6 +32,7 @@ async function reprogramar(ctx: Ctx, id: string, inicio: string, frecuencia: (ty
 function refrescar() {
   revalidatePath("/recurrentes");
   revalidatePath("/movimientos");
+  revalidatePath("/presupuesto");
   revalidatePath("/");
 }
 
@@ -53,7 +54,7 @@ export async function guardarRegla(_: Estado, datos: FormData): Promise<Estado> 
   if (res.error) return { error: mensajeError(res.error) };
   await reprogramar(ctx, res.data.id, campos.fecha_inicio, campos.frecuencia, res.data.activa);
   refrescar();
-  return { ok: id ? "Regla actualizada." : "Regla creada. Los próximos 7 días ya quedaron programados." };
+  return { ok: id ? "Cambios guardados." : "Listo: ya cuenta en el presupuesto y en el costo de vida del mes." };
 }
 
 export async function cambiarEstadoRegla(datos: FormData) {

@@ -12,7 +12,7 @@ import { fusionarConfigHogar, leerConfigHogar } from "@/lib/hogar";
 import type { Json } from "@/lib/supabase/database.types";
 import { hoy } from "@/lib/fechas";
 import { primeraDesde } from "@/lib/recurrentes";
-import { PAGOS_SUGERIDOS } from "./pagos";
+import { CATEGORIAS_PAGO, MAX_OTROS, PAGOS_SUGERIDOS } from "./pagos";
 
 const esquema = z.object({
   hogar: z.string().trim().min(1, "Ponle un nombre al hogar.").max(80),
@@ -53,12 +53,15 @@ export async function guardarPagosFijos(_: Estado, datos: FormData): Promise<Est
   const omitir = datos.get("omitir") === "1";
   const filas = omitir ? [] : [
     ...PAGOS_SUGERIDOS.map((p) => ({ nombre: p.nombre, categoria: p.categoria, monto: digitosAMonto(String(datos.get(`monto:${p.clave}`) ?? "")), dia: Number(datos.get(`dia:${p.clave}`)) || p.dia })),
-    {
-      nombre: String(datos.get("otro:nombre") ?? "").trim(),
-      categoria: "Imprevistos",
-      monto: digitosAMonto(String(datos.get("otro:monto") ?? "")),
-      dia: Number(datos.get("otro:dia")) || 1,
-    },
+    ...Array.from({ length: MAX_OTROS }, (_, i) => {
+      const categoria = String(datos.get(`otro:categoria:${i}`) ?? "");
+      return {
+        nombre: String(datos.get(`otro:nombre:${i}`) ?? "").trim().slice(0, 120),
+        categoria: (CATEGORIAS_PAGO as readonly string[]).includes(categoria) ? categoria : "Imprevistos",
+        monto: digitosAMonto(String(datos.get(`monto:otro${i}`) ?? "")),
+        dia: Number(datos.get(`dia:otro${i}`)) || 1,
+      };
+    }),
   ].filter((f) => f.monto > 0 && f.nombre);
   if (filas.length) {
     const [{ data: categorias }, { data: cuentas }] = await Promise.all([
