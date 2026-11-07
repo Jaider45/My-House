@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { destinoSeguro } from "@/lib/rutas";
+import { avisarSiDispositivoNuevo } from "@/lib/correo/acceso";
 
 /**
  * Destino del enlace de confirmación de correo (Supabase Cloud con confirmación activa).
@@ -21,6 +22,10 @@ export async function GET(request: NextRequest) {
       ? await supabase.auth.verifyOtp({ token_hash, type })
       : { error: new Error("Enlace incompleto") };
 
-  if (!error) return NextResponse.redirect(new URL(siguiente, request.url));
+  if (!error) {
+    // La recuperación la acaba de pedir la persona: no hace falta el «¿Fuiste tú?».
+    if (siguiente !== "/nueva-contrasena") await avisarSiDispositivoNuevo(supabase);
+    return NextResponse.redirect(new URL(siguiente, request.url));
+  }
   return NextResponse.redirect(new URL("/ingresar?error=confirmacion", request.url));
 }

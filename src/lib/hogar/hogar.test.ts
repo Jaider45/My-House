@@ -3,21 +3,23 @@ import { describirHogar, edad, fusionarConfigHogar, leerConfigHogar, type Person
 
 describe("configuración del hogar", () => {
   it("da valores por defecto a una configuración vacía o vieja", () => {
-    expect(leerConfigHogar({})).toEqual({ cuota_imprevistos_pct: 10, contexto: "", ia: { proveedor: null, modelo: null } });
+    expect(leerConfigHogar({})).toEqual({ cuota_imprevistos_pct: 10, contexto: "", ia: { proveedor: null, modelo: null }, correo: { resumen_semanal: false, bienvenida_enviada: false } });
     expect(leerConfigHogar(null).cuota_imprevistos_pct).toBe(10);
     expect(leerConfigHogar({ cuota_imprevistos_pct: 15 }).cuota_imprevistos_pct).toBe(15);
   });
 
   it("descarta valores inválidos sin romper el resto", () => {
     const c = leerConfigHogar({ cuota_imprevistos_pct: 99, contexto: 5, ia: { proveedor: "gemini", modelo: "gpt 4; drop" } });
-    expect(c).toEqual({ cuota_imprevistos_pct: 10, contexto: "", ia: { proveedor: null, modelo: null } });
+    expect(c).toEqual({ cuota_imprevistos_pct: 10, contexto: "", ia: { proveedor: null, modelo: null }, correo: { resumen_semanal: false, bienvenida_enviada: false } });
+    expect(leerConfigHogar({ correo: { resumen_semanal: "sí" } }).correo).toEqual({ resumen_semanal: false, bienvenida_enviada: false });
+    expect(leerConfigHogar({ correo: { resumen_semanal: true } }).correo.resumen_semanal).toBe(true);
     expect(leerConfigHogar({ ia: { proveedor: "openai", modelo: "gpt-4.1" } }).ia).toEqual({ proveedor: "openai", modelo: "gpt-4.1" });
   });
 
   it("al fusionar no borra lo que guardó otra pantalla ni claves desconocidas", () => {
     const actual = { cuota_imprevistos_pct: 12, ia: { proveedor: "openai", modelo: "gpt-4.1" }, futura: true };
     const nueva = fusionarConfigHogar(actual, { contexto: "Somos cuatro" });
-    expect(nueva).toEqual({ cuota_imprevistos_pct: 12, contexto: "Somos cuatro", ia: { proveedor: "openai", modelo: "gpt-4.1" }, futura: true });
+    expect(nueva).toEqual({ cuota_imprevistos_pct: 12, contexto: "Somos cuatro", ia: { proveedor: "openai", modelo: "gpt-4.1" }, correo: { resumen_semanal: false, bienvenida_enviada: false }, futura: true });
     expect(fusionarConfigHogar(nueva, { cuota_imprevistos_pct: 5 })).toMatchObject({ cuota_imprevistos_pct: 5, contexto: "Somos cuatro", futura: true });
   });
 });

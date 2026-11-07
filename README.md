@@ -56,6 +56,7 @@ intercambiable por país; Colombia es el primero.
 ### 💸 Movimientos
 - **Registro rápido** desde el botón central: monto, categorías frecuentes y última cuenta usada.
 - **Sin conexión:** lo que registras sin señal se guarda en el celular y se envía solo al volver, sin duplicarse.
+- **Correos con la marca:** bienvenida, invitaciones, aviso de nuevo inicio de sesión, recordatorios de pago, pagos vencidos, resumen de los lunes y aviso de Renta DIAN, además de los de acceso (código, contraseña, confirmación).
 - Ingresos, gastos y **transferencias** entre cuentas (el pago de la tarjeta no se cuenta dos veces).
 - Ámbito **personal o negocio** (trabajo independiente), con filtro en la lista.
 - Cuentas de **banco, efectivo, billetera y tarjeta** (cupo, corte y día de pago) con saldo calculado.

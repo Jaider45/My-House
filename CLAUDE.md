@@ -32,7 +32,8 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
   `src/lib/importacion` CSV y duplicados · `src/lib/impuestos` jurisdicciones (`co/`) ·
   `src/lib/ingesta` punto único para crear movimientos (manual, CSV, recurrente; luego OCR/WhatsApp/banco) ·
   `src/lib/ia` lectura con IA (Claude u OpenAI) · `src/lib/hogar` configuración y personas a cargo ·
-  `src/lib/cola` registros sin conexión.
+  `src/lib/cola` registros sin conexión · `src/lib/correo` diseño y envío de correos · `src/lib/avisos` avisos
+  programados por correo.
 - Pruebas unitarias junto al código (`*.test.ts`); pruebas RLS en `tests/rls`.
 
 ## Convenciones
@@ -55,7 +56,7 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
    `excluir_de_costo_vida`; `transactions.cuenta_destino_id/estado/origen/import_hash/import_batch_id`;
    `attachments.household_id`; `recurring_rules.account_id/fecha_inicio/ocurrencias/activa`;
    tablas `invitations` e `import_batches`; `households.config` (`cuota_imprevistos_pct`, por defecto 10).
-4. Invitación por enlace copiable (sin servidor de correo en Fase 1).
+4. Invitación: enlace copiable y, si hay por dónde enviar, también por correo (ver 30).
 5. Contador = solo lectura.
 6. 2FA TOTP opcional por usuario; si está activa se exige AAL2 en cada ingreso.
 7. Recurrentes: pg_cron diario genera movimientos `programado` hasta 7 días adelante; el usuario los confirma.
@@ -122,8 +123,8 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     `presupuesto`); pronóstico de cierre = max(real + programado, fijos) + ritmo del gasto variable
     (`src/lib/presupuesto`). Deudas (`debts`): pagado = `pagado_inicial` + movimientos con `debt_id`; un abono es un
     gasto en Deudas. Metas (`budgets_goals` tipo `meta`): ahorrado = `ahorrado_inicial` + movimientos con `goal_id`
-    (gasto en «Ahorro e inversión», fuera del costo de vida). Recordatorios guardan fechas y canales; el envío por
-    WhatsApp, correo o notificación queda para cuando se conecten esos servicios.
+    (gasto en «Ahorro e inversión», fuera del costo de vida). Recordatorios guardan fechas y canales; el correo ya se
+    envía (ver 30); WhatsApp y notificación quedan guardados hasta que se conecten esos servicios.
 23. IA (`src/lib/ia`, salida estructurada con Zod): el asistente de comprobantes lee fotos, PDF o texto;
     `src/lib/comprobantes` decide (registrar, revisar o descartar; confianza mínima 70; reglas aprendidas por comercio
     en `merchant_rules`). Duplicado = mismo tipo y monto a ±2 días: se adjunta como soporte en lugar de crear otro
@@ -177,6 +178,31 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     (Resend) solo en la nube. Pasos en `docs/DESPLIEGUE.md` §1.1–1.4.
     Subidas: `src/proxy.ts` pasa por todas las rutas y Next solo copia `proxyClientMaxBodySize` (10 MB por defecto) del
     cuerpo: debe ser ≥ `serverActions.bodySizeLimit` (30 MB), o la acción falla con "Unexpected end of form".
+30. Correos (diseño «Email» del lienzo «My House — Pantallas webapp» en claude.ai): `src/lib/correo/plantilla.ts` arma
+    HTML para clientes de correo (tablas y estilos en línea: Gmail/Outlook ignoran flex y grid; media query para
+    celular) + texto plano + vista previa oculta. Logo e íconos en PNG (los clientes bloquean SVG) en
+    `public/correo/`, generados con `node scripts/generar-imagenes-correo.mjs`. `correos.ts` tiene un constructor
+    por tipo (código, restablecer, registro, cambio de correo, contraseña cambiada, bienvenida, invitación, contador,
+    nuevo inicio de sesión, recordatorio, vencido, resumen, DIAN, reporte). Vista previa: `/dev/correos` (en
+    producción 404 salvo `VISTA_CORREOS=1`).
+    **Supabase** envía los de acceso: `supabase/templates/*.html` se GENERAN desde `src/lib/correo/supabase.ts` con
+    variables de Go como texto crudo (`crudo("{{ .Token }}")`); `plantillas-supabase.test.ts` falla si se
+    desincronizan (regenerar con `ACTUALIZAR_CORREOS=1 npx vitest run src/lib/correo`). Vigencia 30 min
+    (`otp_expiry = 1800` = `MINUTOS_OTP`). Saludo con `{{ .Data.nombre }}`; el código se parte con `slice`.
+    **La app** envía el resto con `enviarCorreo` (`enviar.ts`): Resend si hay `RESEND_API_KEY`; si la base es local,
+    Mailpit (`/api/v1/send`); si no, no envía. Nunca rompe la acción que lo pidió.
+    Disparadores: bienvenida al terminar el paso 2 del onboarding («Omitir» también pasa por la acción; una sola vez:
+    `config.correo.bienvenida_enviada`; número mínimo = fijos + cuota de imprevistos); invitación y contador al
+    invitar; «¿Fuiste tú?» al entrar desde un navegador sin la cookie `mh_dispositivo` (httpOnly, huellas de hasta 5
+    usuarios; no avisa a cuentas de < 15 min ni al abrir el enlace de recuperación).
+    Programados (`/api/avisos`, Vercel Cron diario 12:00 UTC = 7:00 Bogotá, `Authorization: Bearer CRON_SECRET`,
+    llave service_role solo ahí): `planificarAvisos` (puro, `src/lib/avisos`) decide recordatorios con canal correo
+    (en los días de anticipación elegidos), pagos programados vencidos ayer (si la regla tiene `recordar`), resumen de
+    los lunes (si el admin lo activó en Recordatorios: `config.correo.resumen_semanal`) y Renta DIAN (una vez por
+    persona y año al alcanzar un tope; usa `cargarSemaforo`). Destinatarios: admin y editor (no contador).
+    `avisos_enviados` (RLS sin políticas) guarda la clave de cada aviso: se reserva antes de enviar y se libera si no
+    salió ninguno. `?hoy=` simula la fecha fuera de producción o con `AVISOS_SIMULAR_FECHA=1`.
+    Falta: el reporte para el contador (solo diseño) y WhatsApp/notificaciones.
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas

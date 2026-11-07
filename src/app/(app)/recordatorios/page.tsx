@@ -5,7 +5,8 @@ import { formatearCOP } from "@/lib/dinero";
 import { formatearMes, hoy, sumarDias } from "@/lib/fechas";
 import { ETIQUETA_FRECUENCIA } from "@/lib/recurrentes";
 import { proximaFecha, textoAviso } from "@/lib/recordatorios";
-import { cambiarRecordatorio } from "./acciones";
+import { cambiarRecordatorio, cambiarResumenSemanal } from "./acciones";
+import { leerConfigHogar } from "@/lib/hogar";
 import { FormularioRecordatorio } from "./formulario";
 
 export const metadata = { title: "Recordatorios" };
@@ -31,10 +32,12 @@ const mesCorto = new Intl.DateTimeFormat("es-CO", { month: "short", timeZone: "U
 async function Contenido() {
   const ctx = await obtenerContexto(); // antes de hoy(): marca el render como dinámico
   const fecha = hoy();
-  const [{ data: recordatorios }, { data: reglas }] = await Promise.all([
+  const [{ data: recordatorios }, { data: reglas }, { data: hogar }] = await Promise.all([
     ctx.supabase.from("reminders").select("id, nombre, fecha, monto, repetir, avisos, canales, activo"),
     ctx.supabase.from("recurring_rules").select("id, descripcion, monto, frecuencia, proxima_fecha, recordar").eq("activa", true).eq("tipo", "gasto"),
+    ctx.supabase.from("households").select("config").eq("id", ctx.hogar.id).single(),
   ]);
+  const resumenSemanal = leerConfigHogar(hogar?.config).correo.resumen_semanal;
   const items: Item[] = [
     ...(recordatorios ?? []).map((r) => ({
       clave: `r-${r.id}`,
@@ -55,8 +58,8 @@ async function Contenido() {
       fecha: r.proxima_fecha,
       nombre: r.descripcion,
       detalle: `${ETIQUETA_FRECUENCIA[r.frecuencia]} · pago fijo`,
-      cuando: "1 día antes",
-      por: "Notificación",
+      cuando: "Si queda pendiente",
+      por: "Correo",
       monto: r.monto,
       activo: r.recordar,
     })),
@@ -124,19 +127,38 @@ async function Contenido() {
             <FormularioRecordatorio />
           </Tarjeta>
         )}
-        <Tarjeta titulo="Así llega el aviso">
-          <div className="rounded-[14px] bg-[#e9f3ee] p-3">
-            <div className="rounded-[12px_12px_12px_4px] bg-elevada px-3 py-2.5 text-sm leading-5 shadow-[0_1px_0_#d6e3dd]">
-              <b>My House</b>
-              <br />
-              Hola {ctx.miembro.nombre.split(" ")[0]}. {items[0] ? `El ${Number(items[0].fecha.slice(8))} vence ${items[0].nombre}` : "Mañana vence un pago"}
-              {items[0]?.monto ? ` por ${formatearCOP(items[0].monto)}` : ""}. Márcalo como pagado en Pagos fijos cuando lo pagues.
-              <div className="text-right text-[13px] text-tenue">7:00 a. m.</div>
-            </div>
-          </div>
+        <Tarjeta titulo="Avisos por correo">
+          <ul className="space-y-2 text-sm text-cuerpo">
+            <li>
+              <b className="text-tinta">Recordatorios</b> con el canal Correo: llegan a las 7:00 a. m. los días que elegiste.
+            </li>
+            <li>
+              <b className="text-tinta">Pagos fijos vencidos</b>: si un pago sigue pendiente al día siguiente, te avisamos.
+            </li>
+            <li>
+              <b className="text-tinta">Renta DIAN</b>: cuando alguien del hogar alcanza un tope para declarar.
+            </li>
+          </ul>
+          <form action={cambiarResumenSemanal} className="mt-4 flex items-center justify-between gap-3 border-t border-divisor pt-4">
+            <input type="hidden" name="activo" value={resumenSemanal ? "0" : "1"} />
+            <span className="text-sm">
+              <b className="block">Resumen de la semana</b>
+              <span className="text-[13px] text-cuerpo">Los lunes: gastos, ingresos y lo que vence.</span>
+            </span>
+            <button
+              type="submit"
+              role="switch"
+              aria-checked={resumenSemanal}
+              aria-label="Resumen de la semana por correo"
+              disabled={!ctx.esAdmin}
+              className={cx("relative h-[26px] w-11 shrink-0 rounded-full border transition disabled:opacity-50", resumenSemanal ? "border-monte bg-monte" : "border-control bg-pista")}
+            >
+              <span className={cx("absolute top-0.5 size-5 rounded-full bg-white transition-all", resumenSemanal ? "left-5" : "left-0.5 shadow-[0_0_0_1px_var(--color-control)]")} />
+            </button>
+          </form>
           <p className="mt-3 text-[13px] text-tenue">
-            Los avisos por notificación, WhatsApp y correo se activan cuando se conecten esos canales en el despliegue; las
-            fechas y preferencias ya quedan guardadas.
+            Llegan a los adultos del hogar con acceso{ctx.esAdmin ? "" : "; el resumen lo activa un administrador"}. WhatsApp y las notificaciones del
+            celular quedan guardados como preferencia hasta que se conecten esos canales.
           </p>
         </Tarjeta>
       </aside>

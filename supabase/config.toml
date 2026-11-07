@@ -234,8 +234,8 @@ secure_password_change = false
 max_frequency = "1s"
 # Number of characters used in the email OTP.
 otp_length = 6
-# Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+# Vigencia de códigos y enlaces del correo: 30 minutos (MINUTOS_OTP en src/lib/correo/supabase.ts).
+otp_expiry = 1800
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]
@@ -247,18 +247,19 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Correos en español con la marca. En Supabase Cloud se pegan las mismas plantillas en Authentication → Emails.
+# Correos en español con la marca. Se generan desde src/lib/correo (no editar a mano: ver plantillas-supabase.test.ts).
+# En Supabase Cloud se pegan las mismas plantillas y asuntos en Authentication → Emails.
 [auth.email.template.confirmation]
-subject = "Confirma tu correo en My House"
+subject = "Confirma tu correo para activar tu cuenta de My House"
 content_path = "./supabase/templates/confirmacion.html"
 
 [auth.email.template.recovery]
-subject = "Crea una contraseña nueva para My House"
+subject = "Restablece tu contraseña de My House"
 content_path = "./supabase/templates/recuperacion.html"
 
 # El ingreso con código usa la plantilla de magic link: se muestra el código ({{ .Token }}), no un enlace.
 [auth.email.template.magic_link]
-subject = "Tu código para entrar a My House"
+subject = "Tu código de My House: {{ .Token }}"
 content_path = "./supabase/templates/codigo.html"
 
 [auth.email.template.email_change]

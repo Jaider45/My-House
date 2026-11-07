@@ -5,7 +5,11 @@ import { z } from "zod";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/sesion";
 import { mensajeError, type Estado } from "@/lib/acciones";
-import { digitosAMonto } from "@/lib/dinero";
+import { digitosAMonto, formatearCOP } from "@/lib/dinero";
+import { enviarCorreo, sitio } from "@/lib/correo/enviar";
+import { correoBienvenida } from "@/lib/correo/correos";
+import { fusionarConfigHogar, leerConfigHogar } from "@/lib/hogar";
+import type { Json } from "@/lib/supabase/database.types";
 import { hoy } from "@/lib/fechas";
 import { primeraDesde } from "@/lib/recurrentes";
 import { PAGOS_SUGERIDOS } from "./pagos";
@@ -46,7 +50,8 @@ export async function crearHogar(_: Estado, datos: FormData): Promise<Estado> {
 export async function guardarPagosFijos(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
   if (!ctx.puedeEditar) redirect("/onboarding?paso=3");
-  const filas = [
+  const omitir = datos.get("omitir") === "1";
+  const filas = omitir ? [] : [
     ...PAGOS_SUGERIDOS.map((p) => ({ nombre: p.nombre, categoria: p.categoria, monto: digitosAMonto(String(datos.get(`monto:${p.clave}`) ?? "")), dia: Number(datos.get(`dia:${p.clave}`)) || p.dia })),
     {
       nombre: String(datos.get("otro:nombre") ?? "").trim(),
@@ -89,5 +94,35 @@ export async function guardarPagosFijos(_: Estado, datos: FormData): Promise<Est
     if (error) return { error: mensajeError(error) };
     await ctx.supabase.rpc("generar_recurrentes_hogar", { p_household: ctx.hogar.id });
   }
+  await enviarBienvenida(ctx, filas.map((f) => f.monto));
   redirect("/onboarding?paso=3");
+}
+
+/**
+ * Correo de bienvenida, una sola vez por hogar. Con solo los pagos fijos, el número mínimo es fijos + cuota de
+ * imprevistos (decisión 11: aún no hay gastos variables para promediar).
+ */
+async function enviarBienvenida(ctx: Awaited<ReturnType<typeof obtenerContexto>>, fijos: number[]) {
+  const { data } = await ctx.supabase.from("households").select("config").eq("id", ctx.hogar.id).single();
+  if (leerConfigHogar(data?.config).correo.bienvenida_enviada) return;
+  const total = fijos.reduce((s, m) => s + m, 0);
+  const minimo = total + Math.round((total * ctx.hogar.cuotaImprevistosPct) / 100);
+  const { enviado } = await enviarCorreo({
+    para: ctx.email,
+    etiqueta: "bienvenida",
+    contenido: correoBienvenida({
+      nombre: ctx.miembro.nombre,
+      hogar: ctx.hogar.nombre,
+      minimo: total ? formatearCOP(minimo) : null,
+      fijosTotal: formatearCOP(total),
+      fijosCantidad: fijos.length,
+      url: `${sitio()}/`,
+    }),
+  });
+  if (!enviado) return;
+  const config = leerConfigHogar(data?.config);
+  await ctx.supabase
+    .from("households")
+    .update({ config: fusionarConfigHogar(data?.config, { correo: { ...config.correo, bienvenida_enviada: true } }) as { [k: string]: Json } })
+    .eq("id", ctx.hogar.id);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatearDia, formatearFecha, hoy, mesDe, parsearFecha, rangoMes, sumarDias, sumarMeses } from ".";
+import { formatearDia, formatearFecha, formatearFechaLarga, hoy, mesDe, parsearFecha, rangoMes, sumarDias, sumarMeses } from ".";
 
 describe("hoy", () => {
   it("usa la hora de Bogotá (UTC-5)", () => {
@@ -58,5 +58,12 @@ describe("formatearDia", () => {
 describe("formatearFecha", () => {
   it("da formato corto en español", () => {
     expect(formatearFecha("2026-11-04")).toBe("4 de nov de 2026");
+  });
+});
+
+describe("formatearFechaLarga", () => {
+  it("día de la semana, día y mes", () => {
+    expect(formatearFechaLarga("2026-11-20")).toBe("viernes 20 de noviembre");
+    expect(formatearFechaLarga("2026-11-17")).toBe("martes 17 de noviembre");
   });
 });

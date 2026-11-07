@@ -5,7 +5,9 @@ import { z } from "zod";
 import { obtenerContexto } from "@/lib/sesion";
 import { mensajeError, type Estado } from "@/lib/acciones";
 import { fusionarConfigHogar, MAX_CONTEXTO, PARENTESCOS, PATRON_MODELO, PROVEEDORES_IA } from "@/lib/hogar";
-import { hoy } from "@/lib/fechas";
+import { formatearFechaLarga, hoy } from "@/lib/fechas";
+import { enviarCorreo, sitio } from "@/lib/correo/enviar";
+import { correoContador, correoInvitacion } from "@/lib/correo/correos";
 import type { Json } from "@/lib/supabase/database.types";
 
 const rol = z.enum(["admin", "editor", "contador"]);
@@ -21,13 +23,26 @@ export async function invitarMiembro(_: Estado, datos: FormData): Promise<Estado
   const { data, error } = await ctx.supabase
     .from("invitations")
     .insert({ household_id: ctx.hogar.id, email: r.data.email, rol: r.data.rol })
-    .select("token")
+    .select("token, expira_en")
     .single();
   if (error) return { error: mensajeError(error) };
   revalidatePath("/ajustes/miembros");
+  const enlace = `${sitio()}/invitacion/${data.token}`;
+  const vence = formatearFechaLarga(hoy(new Date(data.expira_en)));
+  const datosCorreo = { quien: ctx.miembro.nombre, hogar: ctx.hogar.nombre, url: enlace, vence };
+  const { enviado } = await enviarCorreo({
+    para: r.data.email,
+    etiqueta: r.data.rol === "contador" ? "contador" : "invitacion",
+    contenido:
+      r.data.rol === "contador"
+        ? correoContador({ ...datosCorreo, anio: Number(hoy().slice(0, 4)) })
+        : correoInvitacion({ ...datosCorreo, rol: r.data.rol }),
+  });
   return {
-    ok: "Invitación creada. Comparte este enlace (vence en 7 días):",
-    enlace: `${process.env.NEXT_PUBLIC_SITE_URL}/invitacion/${data.token}`,
+    ok: enviado
+      ? `Le enviamos la invitación a ${r.data.email}. También puedes compartirle este enlace (vence en 7 días):`
+      : "Invitación creada. Comparte este enlace (vence en 7 días):",
+    enlace,
   };
 }
 

@@ -15,6 +15,8 @@ export type ConfigHogar = {
   contexto: string;
   /** null = lo que diga el servidor (variables de entorno). */
   ia: { proveedor: ProveedorIa | null; modelo: string | null };
+  /** Correos del hogar: resumen de los lunes (lo activa cada hogar) y si ya salió la bienvenida. */
+  correo: { resumen_semanal: boolean; bienvenida_enviada: boolean };
 };
 
 export const MAX_CONTEXTO = 600;
@@ -30,11 +32,14 @@ const esquema = z.object({
       modelo: z.string().regex(PATRON_MODELO).nullable().catch(null),
     })
     .catch({ proveedor: null, modelo: null }),
+  correo: z
+    .object({ resumen_semanal: z.boolean().catch(false), bienvenida_enviada: z.boolean().catch(false) })
+    .catch({ resumen_semanal: false, bienvenida_enviada: false }),
 });
 
 export function leerConfigHogar(config: unknown): ConfigHogar {
   const base = typeof config === "object" && config !== null ? config : {};
-  return esquema.parse({ cuota_imprevistos_pct: 10, contexto: "", ia: {}, ...base });
+  return esquema.parse({ cuota_imprevistos_pct: 10, contexto: "", ia: {}, correo: {}, ...base });
 }
 
 /** Aplica cambios parciales sin perder lo demás de la configuración (incluidas claves desconocidas). */

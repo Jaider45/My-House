@@ -87,3 +87,10 @@ export function formatearDia(fecha: string): string {
 export function formatearMes(mes: string): string {
   return formatoMes.format(new Date(`${mes}-01T00:00:00Z`));
 }
+
+const formatoLargo = new Intl.DateTimeFormat("es-CO", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
+
+/** "2026-11-20" → "viernes 20 de noviembre" (correos y avisos). */
+export function formatearFechaLarga(fecha: string): string {
+  return formatoLargo.format(new Date(`${fecha}T00:00:00Z`)).replace(",", "");
+}

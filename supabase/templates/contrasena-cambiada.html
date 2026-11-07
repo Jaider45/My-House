@@ -1,14 +1,50 @@
 <!doctype html>
-<html lang="es">
-<body style="margin:0;padding:24px 12px;background:#f2efea;font-family:Figtree,'Segoe UI',Arial,sans-serif;color:#143d33">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px">
-    <tr><td style="background:#143d33;border-radius:16px 16px 0 0;padding:20px 28px;color:#faf5ee;font-size:20px;font-weight:700">my house</td></tr>
-    <tr><td style="padding:28px">
-      <h1 style="margin:0 0 12px;font-size:22px;line-height:28px">Tu contraseña cambió</h1>
-      <p style="margin:0;font-size:15px;line-height:22px;color:#4a5652">La contraseña de <strong>{{ .Email }}</strong> acaba de cambiar. Si fuiste tú, no tienes que hacer nada.</p>
-      <p style="margin:12px 0 0;font-size:15px;line-height:22px;color:#93290f"><strong>Si no fuiste tú</strong>, entra a My House y usa «¿Olvidaste tu contraseña?» de inmediato.</p>
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>Tu contraseña de My House cambió</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap");
+body{margin:0;padding:0;-webkit-text-size-adjust:100%}
+a{color:#143d33}
+@media (max-width:620px){
+  .mh-exterior{padding:16px 8px 24px !important}
+  .mh-cabeza{padding:18px 20px !important}
+  .mh-cuerpo{padding:24px 20px 28px !important}
+  .mh-titulo{font-size:24px !important}
+  .mh-codigo{font-size:34px !important}
+  .mh-botones{width:100% !important}
+  .mh-boton{display:block !important;width:100% !important;padding-right:0 !important}
+  .mh-boton a{display:block !important}
+  .mh-cifra{display:block !important;width:100% !important;padding:0 0 10px 0 !important}
+}
+</style>
+</head>
+<body style="margin:0;padding:0;background:#f2efea">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all">Si no fuiste tú, recupera tu cuenta ahora.&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2efea">
+<tr><td class="mh-exterior" align="center" style="padding:40px 40px 48px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;font-family:Figtree, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;color:#143d33">
+<tr><td style="background:#ffffff;border:1px solid #e6e2db;border-radius:16px;overflow:hidden">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;"><tr>
+    <td class="mh-cabeza" style="background:#faf5ee;padding:22px 32px;border-bottom:1px solid #efe7db;border-radius:16px 16px 0 0">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;"><tr><td><img src="{{ .SiteURL }}/correo/logo.png" width="102" height="30" alt="My House" style="display:block;border:0;font-size:18px;font-weight:700;color:#143d33"></td>
+      <td align="right" style="font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#4a5652">Seguridad</td></tr></table>
     </td></tr>
-  </table>
-  <p style="text-align:center;font-size:12px;color:#6b7280;margin:16px 0 0">My House · finanzas del hogar · Hecho en Colombia</p>
+    <tr><td class="mh-cuerpo" style="padding:36px 40px 40px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;"><tr><td style="padding:0 0 20px 0"><img src="{{ .SiteURL }}/correo/configuracion-claro.png" width="56" height="56" alt="" style="display:block;border:0;border-radius:16px"></td></tr>
+<tr><td style="padding:0 0 20px 0"><h1 class="mh-titulo" style="margin:0;font-family:Figtree, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:28px;line-height:1.2;font-weight:700;color:#143d33">Tu contraseña cambió</h1></td></tr>
+<tr><td style="padding:0 0 20px 0"><p style="margin:0;font-size:16px;line-height:26px;color:#4a5652">{{ if .Data.nombre }}Hola {{ .Data.nombre }},{{ else }}Hola,{{ end }} la contraseña de tu cuenta acaba de cambiar. Si fuiste tú, no tienes que hacer nada.</p></td></tr>
+<tr><td style="padding:0 0 20px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;"><tr><td style="background:#fbe3dc;color:#93290f;border-radius:12px;padding:14px 16px;font-size:14px;line-height:21px">Si no hiciste este cambio, recupera tu cuenta de inmediato: al crear una contraseña nueva puedes cerrar la sesión en todos tus dispositivos.</td></tr></table></td></tr>
+<tr><td style="padding:0 0 8px 0"><table class="mh-botones" role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="mh-boton" style="padding:0 12px 12px 0"><a href="{{ .SiteURL }}/recuperar?email={{ .Email }}" style="display:inline-block;background:#143d33;color:#faf5ee;border:1px solid #143d33;font-family:Figtree, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:16px;line-height:20px;font-weight:700;text-decoration:none;padding:14px 26px;border-radius:10px;text-align:center">No fui yo: recuperar mi cuenta</a></td></tr></table></td></tr>
+<tr><td style="padding:0 0 0px 0"><p style="margin:0;font-size:15px;line-height:24px;color:#4a5652">El equipo de My House</p></td></tr></table></td></tr></table>
+</td></tr>
+<tr><td align="center" style="padding:8px 12px 0;text-align:center"><p style="margin:0;font-size:12px;line-height:19px;color:#4a5652;padding-top:6px">Recibes este correo porque tienes una cuenta en My House.</p><p style="margin:0;font-size:12px;line-height:19px;color:#4a5652;padding-top:6px">My House · Finanzas del hogar · Bogotá, Colombia</p><p style="margin:0;font-size:12px;line-height:19px;color:#4a5652;padding-top:6px">Nunca te pediremos tu contraseña, códigos ni claves de tu banco por correo.</p></td></tr>
+</table>
+</td></tr>
+</table>
 </body>
 </html>

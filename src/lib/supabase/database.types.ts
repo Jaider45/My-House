@@ -77,6 +77,26 @@ isOneToOne: false
       referencedColumns: ["id","household_id"]
     }
                   ]
+                },"avisos_enviados": {
+                  Row: {
+                    "clave": string,"created_at": string,"destinatarios": number,"household_id": string,"tipo": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "clave": string,"created_at"?: string,"destinatarios"?: number,"household_id": string,"tipo": string
+                  }
+                  Update: {
+                    "clave"?: string,"created_at"?: string,"destinatarios"?: number,"household_id"?: string,"tipo"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "avisos_enviados_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"budgets_goals": {
                   Row: {
                     "ahorrado_inicial": number,"aporte_mensual": number | null,"category_id": string | null,"created_at": string,"es_emergencia": boolean,"fecha_objetivo": string | null,"household_id": string,"icono": string | null,"id": string,"monto": number,"nombre": string | null,"periodo": Database["public"]['Enums']["periodo"],"tipo": Database["public"]['Enums']["meta_tipo"]

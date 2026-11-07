@@ -5,6 +5,8 @@ import { z } from "zod";
 import { obtenerContexto } from "@/lib/sesion";
 import { parsearFecha } from "@/lib/fechas";
 import { mensajeError, type Estado } from "@/lib/acciones";
+import { fusionarConfigHogar, leerConfigHogar } from "@/lib/hogar";
+import type { Json } from "@/lib/supabase/database.types";
 
 const esquema = z.object({
   nombre: z.string().trim().min(1, "¿Qué hay que pagar?").max(80),
@@ -39,5 +41,18 @@ export async function cambiarRecordatorio(datos: FormData) {
   const activo = datos.get("activo") === "1";
   if (datos.get("tipo") === "regla") await ctx.supabase.from("recurring_rules").update({ recordar: activo }).eq("id", id);
   else await ctx.supabase.from("reminders").update({ activo }).eq("id", id);
+  revalidatePath("/recordatorios");
+}
+
+/** Prende o apaga el resumen semanal por correo del hogar (solo administradores). */
+export async function cambiarResumenSemanal(datos: FormData) {
+  const ctx = await obtenerContexto();
+  if (!ctx.esAdmin) return;
+  const { data } = await ctx.supabase.from("households").select("config").eq("id", ctx.hogar.id).single();
+  const correo = { ...leerConfigHogar(data?.config).correo, resumen_semanal: datos.get("activo") === "1" };
+  await ctx.supabase
+    .from("households")
+    .update({ config: fusionarConfigHogar(data?.config, { correo }) as { [k: string]: Json } })
+    .eq("id", ctx.hogar.id);
   revalidatePath("/recordatorios");
 }

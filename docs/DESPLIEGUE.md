@@ -29,8 +29,11 @@ app queda en una URL `https://…vercel.app` (o tu dominio) que se instala como 
 
 ### 1.1 Correo propio (Resend) y plantillas en español
 
-El correo integrado de Supabase manda muy pocos correos por hora: sin uno propio, la recuperación de contraseña y
-el ingreso con código fallan en cuanto varias personas los usan.
+Hay dos tipos de correo. Los de **acceso** (código, restablecer, confirmar registro, cambio de correo y contraseña
+cambiada) los envía **Supabase**. Los demás (bienvenida, invitaciones, nuevo inicio de sesión, recordatorios, pagos
+vencidos, resumen semanal y Renta DIAN) los envía **la app** con la API de Resend. Los dos usan el mismo diseño
+(`src/lib/correo`) y la misma cuenta de Resend. El correo integrado de Supabase manda muy pocos por hora: sin uno
+propio, la recuperación de contraseña y el ingreso con código fallan en cuanto varias personas los usan.
 
 1. Crea una cuenta en <https://resend.com>, agrega tu dominio (**Domains → Add domain**) y copia los registros DNS
    que te muestra (SPF, DKIM) en tu proveedor de dominio. Espera a que aparezca «Verified».
@@ -47,18 +50,28 @@ el ingreso con código fallan en cuanto varias personas los usan.
    | Password | la API key de Resend |
 
 4. **Authentication → Rate Limits:** sube «emails per hour» (por ejemplo a 100).
+   **Authentication → Providers → Email → Email OTP Expiration:** `1800` segundos (los correos dicen «vence en 30
+   minutos»).
 5. **Authentication → Emails → Templates:** pega el contenido de cada archivo de `supabase/templates/` con su asunto
    (en local ya los usa `supabase/config.toml`):
 
    | Plantilla en Supabase | Archivo | Asunto |
    | --- | --- | --- |
-   | Confirm signup | `confirmacion.html` | Confirma tu correo en My House |
-   | Reset password | `recuperacion.html` | Crea una contraseña nueva para My House |
-   | Magic link | `codigo.html` | Tu código para entrar a My House |
+   | Confirm signup | `confirmacion.html` | Confirma tu correo para activar tu cuenta de My House |
+   | Reset password | `recuperacion.html` | Restablece tu contraseña de My House |
+   | Magic link | `codigo.html` | `Tu código de My House: {{ .Token }}` |
    | Change email address | `cambio-correo.html` | Confirma tu correo nuevo en My House |
    | Password changed (notificación) | `contrasena-cambiada.html` | Tu contraseña de My House cambió |
 
-   La de *Magic link* muestra el código de 6 dígitos del ingreso sin contraseña: no la cambies por un enlace.
+   La de *Magic link* muestra el código de 6 dígitos del ingreso sin contraseña: no la cambies por un enlace. Las
+   imágenes (logo e íconos) se cargan desde `{{ .SiteURL }}/correo/`: el *Site URL* del paso 5 debe ser el de
+   producción. Las plantillas se generan desde el código: si cambias el diseño, regenéralas con
+   `ACTUALIZAR_CORREOS=1 npx vitest run src/lib/correo` y vuelve a pegarlas.
+6. **Avisos de la app:** con `RESEND_API_KEY` y `CORREO_REMITENTE` en Vercel (paso 2) la app envía sus correos.
+   Los programados los corre Vercel Cron todos los días a las 7:00 a. m. de Bogotá (`vercel.json` →
+   `/api/avisos`), protegido con `CRON_SECRET`; recorre todos los hogares, por eso necesita
+   `SUPABASE_SERVICE_ROLE_KEY` (solo en el servidor). Para probarlo: `curl -H "Authorization: Bearer $CRON_SECRET"
+   https://tu-dominio/api/avisos` responde cuántos avisos y correos salieron.
 
 ### 1.2 Captcha (Cloudflare Turnstile)
 
@@ -102,6 +115,10 @@ que aparecen en filtraciones conocidas (HaveIBeenPwned). La app ya muestra un me
    | `NEXT_PUBLIC_SITE_URL` | URL de producción, sin `/` al final |
    | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | *Site key* de Turnstile (si activaste el captcha, 1.2) |
    | `NEXT_PUBLIC_GOOGLE_ACTIVO` | `1` si activaste Google (1.3) |
+   | `RESEND_API_KEY` | API key de Resend: correos de la app (1.1) |
+   | `CORREO_REMITENTE` | `My House <no-responder@tu-dominio.com>` (dominio verificado en Resend) |
+   | `CRON_SECRET` | Texto aleatorio largo (`openssl rand -hex 24`): protege `/api/avisos`. Vercel lo envía solo |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Llave `service_role`: solo la usa `/api/avisos` en el servidor |
    | `ANTHROPIC_API_KEY` | Llave de Anthropic para el asistente con Claude (opcional) |
    | `OPENAI_API_KEY` | Llave de OpenAI para el asistente con GPT (opcional) |
    | `IA_PROVEEDOR`, `ANTHROPIC_MODEL`, `OPENAI_MODEL` | Opcionales: proveedor y modelos por defecto |
@@ -110,7 +127,8 @@ que aparecen en filtraciones conocidas (HaveIBeenPwned). La app ya muestra un me
    dos, cada hogar elige proveedor y modelo en Configuración → Hogar → Asistente de IA. Las llaves solo viven en el
    servidor; la base guarda únicamente qué proveedor y modelo eligió el hogar. Con OpenAI se envía `store: false`.
 
-   **No** agregues `SUPABASE_SERVICE_ROLE_KEY` en Vercel: la app no la usa (solo las pruebas locales).
+   `SUPABASE_SERVICE_ROLE_KEY` salta RLS: nunca le pongas el prefijo `NEXT_PUBLIC_` y no la uses fuera de
+   `src/app/api/avisos`. Si no quieres avisos programados, no la agregues: el resto de la app no la necesita.
 3. Despliega. Si cambia la URL (dominio propio), actualiza `NEXT_PUBLIC_SITE_URL`, las URLs de Supabase, el dominio
    del widget de Turnstile y los orígenes de Google.
 
@@ -123,7 +141,7 @@ que aparecen en filtraciones conocidas (HaveIBeenPwned). La app ya muestra un me
 5. Instala la app: en Android, Chrome ofrece «Instalar app»; en iPhone, Safari → Compartir → «Agregar a
    inicio».
 6. Prueba una vez «¿Olvidaste tu contraseña?» y «Con código al correo» para confirmar que el correo llega (y que
-   no cae en spam).
+   no cae en spam). En **Recordatorios** activa, si quieres, el resumen de los lunes.
 
 ## 4. Después
 

@@ -258,3 +258,17 @@ describe("personas a cargo y configuración del hogar", () => {
     expect(data!.deducciones).toMatchObject({ dependientes_pct: 10, dependientes_tope_anual: 384, dependiente_adicional: 72, dependientes_max: 4 });
   });
 });
+
+describe("avisos por correo", () => {
+  it("avisos_enviados solo la usa el servidor: ni el admin del hogar la lee ni la escribe", async () => {
+    await admin.from("avisos_enviados").insert({ household_id: hogarA, clave: `prueba:${sufijo}`, tipo: "prueba" });
+    const { data: leidos } = await ana.from("avisos_enviados").select("clave").eq("household_id", hogarA);
+    expect(leidos).toEqual([]);
+    const escrito = await ana.from("avisos_enviados").insert({ household_id: hogarA, clave: `falsa:${sufijo}`, tipo: "prueba" });
+    expect(escrito.error).not.toBeNull();
+    const { data: borrados } = await ana.from("avisos_enviados").delete().eq("household_id", hogarA).select("clave");
+    expect(borrados ?? []).toEqual([]);
+    const { data: siguen } = await admin.from("avisos_enviados").select("clave").eq("household_id", hogarA);
+    expect(siguen).toEqual([{ clave: `prueba:${sufijo}` }]);
+  });
+});

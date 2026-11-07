@@ -113,9 +113,10 @@ export function FormularioPagosFijos() {
       </div>
       <MensajeEstado estado={estado} />
       <div className={pie}>
-        <Link href="/onboarding?paso=3" className="inline-flex h-12 items-center px-2 font-semibold text-cuerpo hover:text-tinta">
+        {/* Pasa por la acción (sin guardar montos) para que también llegue el correo de bienvenida. */}
+        <button type="submit" name="omitir" value="1" formNoValidate className="inline-flex h-12 items-center px-2 font-semibold text-cuerpo hover:text-tinta">
           Omitir
-        </Link>
+        </button>
         <BotonEnviar className="ml-auto h-12 min-w-[180px] flex-1 md:flex-none" pendiente="Guardando…">
           Continuar
         </BotonEnviar>

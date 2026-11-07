@@ -48,8 +48,8 @@ export function FormularioRecordatorio() {
       <fieldset>
         <legend className="mb-1.5 text-[13px] font-semibold text-cuerpo">Por</legend>
         <div className="flex flex-wrap gap-2">
-          <Opcion name="canales" value="whatsapp" texto="WhatsApp" marcada />
-          <Opcion name="canales" value="correo" texto="Correo" />
+          <Opcion name="canales" value="whatsapp" texto="WhatsApp" />
+          <Opcion name="canales" value="correo" texto="Correo" marcada />
           <Opcion name="canales" value="notificacion" texto="Notificación" marcada />
         </div>
       </fieldset>

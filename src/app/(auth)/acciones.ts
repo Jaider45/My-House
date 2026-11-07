@@ -6,6 +6,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { mensajeError, type Estado } from "@/lib/acciones";
 import { verificoCorreoHacePoco } from "@/lib/contrasena";
 import { destinoSeguro } from "@/lib/rutas";
+import { avisarSiDispositivoNuevo } from "@/lib/correo/acceso";
 
 const correo = z
   .string("Escribe tu correo.")
@@ -49,6 +50,7 @@ export async function ingresar(_: Estado, datos: FormData): Promise<Estado> {
   const supabase = await crearClienteServidor();
   const { error } = await supabase.auth.signInWithPassword({ ...r.data, options: { captchaToken: captcha(datos) } });
   if (error) return { error: mensajeError(error) };
+  await avisarSiDispositivoNuevo(supabase);
   redirect(await destinoTrasIngreso(supabase, destinoSeguro(datos.get("siguiente")?.toString())));
 }
 
@@ -73,6 +75,7 @@ export async function registrarse(_: Estado, datos: FormData): Promise<Estado> {
   if (!data.session) {
     return { ok: "Te enviamos un correo para confirmar tu cuenta. Ábrelo desde este dispositivo." };
   }
+  await avisarSiDispositivoNuevo(supabase); // cuenta nueva: solo marca este navegador como conocido
   redirect(siguiente);
 }
 
@@ -119,6 +122,7 @@ export async function verificarCodigo(previo: EstadoCodigo, datos: FormData): Pr
   const supabase = await crearClienteServidor();
   const { error } = await supabase.auth.verifyOtp({ email: email.data, token: codigo, type: "email" });
   if (error) return { email: email.data, enviado: true, error: mensajeError(error) };
+  await avisarSiDispositivoNuevo(supabase);
   redirect(await destinoTrasIngreso(supabase, destinoSeguro(datos.get("siguiente")?.toString())));
 }
 
