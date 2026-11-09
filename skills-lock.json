@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "nextjs-best-practices": {
+      "source": "sickn33/agentic-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/nextjs-best-practices/SKILL.md",
+      "computedHash": "c8b3231482531f451aedefccb8cca86486ef7b5d7ec96240b3f7d223c05c951a"
+    }
+  }
+}
