@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ComponentProps, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type ComponentProps, type KeyboardEvent, type ReactNode } from "react";
 import { claseControl, cx } from ".";
 import { evaluarContrasena, MINIMO_CONTRASENA } from "@/lib/contrasena";
 
@@ -10,6 +10,8 @@ type Props = Omit<ComponentProps<"input">, "type" | "value" | "defaultValue" | "
   /** Muestra la fuerza de la contraseña mientras se escribe (registro y cambio de contraseña). */
   medidor?: boolean;
   onCambio?: (valor: string) => void;
+  /** Algo a la derecha de la etiqueta, p. ej. el enlace «¿La olvidaste?». */
+  accesorio?: ReactNode;
 };
 
 const COLOR_NIVEL = ["bg-pista", "bg-error", "bg-alerta", "bg-ok"] as const;
@@ -19,7 +21,7 @@ const TINTA_NIVEL = ["text-tenue", "text-error-tinta", "text-alerta-tinta", "tex
  * Campo de contraseña con botón para verla, aviso de Bloq Mayús y medidor opcional. El valor vive en el
  * componente: React vacía los campos no controlados tras cada acción, y así un error no borra lo escrito.
  */
-export function CampoContrasena({ etiqueta, ayuda, medidor, onCambio, className, id, minLength = MINIMO_CONTRASENA, ...props }: Props) {
+export function CampoContrasena({ etiqueta, ayuda, medidor, onCambio, accesorio, className, id, minLength = MINIMO_CONTRASENA, ...props }: Props) {
   const propio = useId();
   const idCampo = id ?? propio;
   const idAyuda = `${idCampo}-ayuda`;
@@ -42,9 +44,12 @@ export function CampoContrasena({ etiqueta, ayuda, medidor, onCambio, className,
 
   return (
     <div className={cx("flex min-w-0 flex-col gap-1.5", className)}>
-      <label htmlFor={idCampo} className="text-[13px] leading-[18px] font-semibold text-cuerpo">
-        {etiqueta}
-      </label>
+      <div className="flex items-baseline justify-between gap-3">
+        <label htmlFor={idCampo} className="text-[13px] leading-[18px] font-semibold text-cuerpo">
+          {etiqueta}
+        </label>
+        {accesorio}
+      </div>
       <div className="relative">
         <input
           ref={campo}

@@ -36,11 +36,10 @@ function useCorreo() {
 
 const claseEnlace = "font-semibold text-tinta underline-offset-2 hover:underline";
 
-/** «Continuar con Google» y el separador. Solo si el proveedor está activo en este despliegue. */
-function BloqueGoogle({ siguiente }: { siguiente: string }) {
+/** «Continuar con Google». Solo si el proveedor está activo en este despliegue. */
+function BotonGoogle({ siguiente }: { siguiente: string }) {
   if (!GOOGLE_ACTIVO) return null;
   return (
-    <>
       <form action={ingresarConGoogle}>
         <input type="hidden" name="siguiente" value={siguiente} />
         <BotonEnviar variante="secundario" className="h-11 w-full" pendiente="Abriendo Google…">
@@ -53,29 +52,47 @@ function BloqueGoogle({ siguiente }: { siguiente: string }) {
           Continuar con Google
         </BotonEnviar>
       </form>
-      <p className="flex items-center gap-3 text-[13px] text-tenue before:h-px before:flex-1 before:bg-borde after:h-px after:flex-1 after:bg-borde">o con tu correo</p>
+  );
+}
+
+/** Línea con un texto al centro: separa la forma principal de entrar de las demás. */
+function Separador({ texto }: { texto: string }) {
+  return (
+    <p className="flex items-center gap-3 text-[13px] text-tenue before:h-px before:flex-1 before:bg-borde after:h-px after:flex-1 after:bg-borde">
+      {texto}
+    </p>
+  );
+}
+
+/** Google y el separador, arriba del registro. */
+function BloqueGoogle({ siguiente }: { siguiente: string }) {
+  if (!GOOGLE_ACTIVO) return null;
+  return (
+    <>
+      <BotonGoogle siguiente={siguiente} />
+      <Separador texto="o con tu correo" />
     </>
   );
 }
 
-/** Selector «Con contraseña / Con código al correo». */
-function Modos({ modo, cambiar }: { modo: "clave" | "codigo"; cambiar: (m: "clave" | "codigo") => void }) {
-  const boton = (m: "clave" | "codigo", texto: string) => (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={modo === m}
-      onClick={() => cambiar(m)}
-      className={cx("h-9 flex-1 rounded-md text-sm font-semibold transition", modo === m ? "bg-elevada text-tinta shadow-sm" : "text-cuerpo hover:text-tinta")}
-    >
-      {texto}
-    </button>
-  );
+const claseSecundario =
+  "inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-cuerpo bg-elevada px-4 text-[15px] font-semibold text-tinta transition hover:bg-mosaico";
+
+/** Íconos de línea con el trazo de la marca para los botones secundarios del ingreso. */
+function IconoSobre() {
   return (
-    <div role="tablist" aria-label="Forma de ingresar" className="flex gap-1 rounded-lg bg-pagina p-1">
-      {boton("clave", "Con contraseña")}
-      {boton("codigo", "Con código al correo")}
-    </div>
+    <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3.5 7 8.5 6 8.5-6" />
+    </svg>
+  );
+}
+function IconoCandado() {
+  return (
+    <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </svg>
   );
 }
 
@@ -88,19 +105,33 @@ export function FormularioIngreso() {
   return (
     <div className="space-y-4">
       {aviso && <Aviso>{aviso}</Aviso>}
-      <BloqueGoogle siguiente={siguiente} />
-      <Modos modo={modo} cambiar={setModo} />
       {modo === "clave" ? (
         <IngresoConClave email={email} setEmail={setEmail} siguiente={siguiente} />
       ) : (
         <IngresoConCodigo email={email} setEmail={setEmail} siguiente={siguiente} />
       )}
-      <p className="text-center text-sm text-tenue">
-        ¿No tienes cuenta?{" "}
-        <Link className={claseEnlace} href={conParametros("/registro", siguiente, email)}>
-          Crear cuenta
+      <Separador texto="o" />
+      <div className="space-y-3">
+        {modo === "clave" ? (
+          <button type="button" className={claseSecundario} onClick={() => setModo("codigo")}>
+            <IconoSobre />
+            Recibir un código por correo
+          </button>
+        ) : (
+          <button type="button" className={claseSecundario} onClick={() => setModo("clave")}>
+            <IconoCandado />
+            Entrar con contraseña
+          </button>
+        )}
+        <BotonGoogle siguiente={siguiente} />
+      </div>
+      <p className="pt-2 text-center text-sm text-tenue">
+        ¿Primera vez?{" "}
+        <Link className={cx(claseEnlace, "underline")} href={conParametros("/registro", siguiente, email)}>
+          Crea tu hogar
         </Link>
       </p>
+      <p className="text-center text-xs text-tenue">Tus datos viajan cifrados. My House nunca te pide la clave de tu banco.</p>
     </div>
   );
 }
@@ -129,14 +160,18 @@ function IngresoConClave({ email, setEmail, siguiente }: PropsCorreo) {
     <form action={accion} className="space-y-4">
       <input type="hidden" name="siguiente" value={siguiente} />
       <CampoCorreo email={email} setEmail={setEmail} autoFocus={!email} />
-      <div className="space-y-1.5">
-        <CampoContrasena etiqueta="Contraseña" name="password" autoComplete="current-password" required autoFocus={Boolean(email)} />
-        <p className="text-right text-[13px]">
-          <Link className={claseEnlace} href={conParametros("/recuperar", "", email)}>
-            ¿Olvidaste tu contraseña?
+      <CampoContrasena
+        etiqueta="Contraseña"
+        name="password"
+        autoComplete="current-password"
+        required
+        autoFocus={Boolean(email)}
+        accesorio={
+          <Link className={cx(claseEnlace, "text-[13px] underline")} href={conParametros("/recuperar", "", email)}>
+            ¿La olvidaste?
           </Link>
-        </p>
-      </div>
+        }
+      />
       <Captcha reinicio={estado} />
       <MensajeEstado estado={estado} />
       <BotonEnviar className="h-11 w-full" pendiente="Ingresando…">
@@ -180,7 +215,7 @@ function IngresoConCodigo({ email, setEmail, siguiente }: PropsCorreo) {
   if (!enCodigo) {
     return (
       <form action={pedir} className="space-y-4">
-        <p className="text-sm text-cuerpo">Te enviamos un código de 6 dígitos para entrar sin contraseña.</p>
+        <p className="text-sm text-cuerpo">Te enviamos un código de 6 dígitos a tu correo para entrar sin contraseña.</p>
         <CampoCorreo email={email} setEmail={setEmail} autoFocus />
         <Captcha reinicio={pedido} />
         <MensajeEstado estado={pedido} />
