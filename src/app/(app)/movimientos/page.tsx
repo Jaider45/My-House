@@ -65,7 +65,9 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
     ? (texto(sp.tipo) as "ingreso" | "gasto" | "transferencia")
     : "";
   const { desde, hasta } = rangoMes(mes);
-  const catalogos = await cargarCatalogos(ctx);
+  // Los catálogos y los movimientos van en paralelo (un viaje a la base en vez de dos). Solo el filtro por
+  // categoría necesita los catálogos antes (para sumar las subcategorías). Ver docs/MEJORAS.md («Rendimiento React»).
+  const pidiendoCatalogos = cargarCatalogos(ctx);
 
   let consulta = ctx.supabase
     .from("transactions")
@@ -91,12 +93,12 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
   if (categoria === "sin") {
     consulta = consulta.is("category_id", null).neq("tipo", "transferencia");
   } else if (categoria) {
-    const hijas = catalogos.categorias
+    const hijas = (await pidiendoCatalogos).categorias
       .filter((c) => c.padre_id === categoria)
       .map((c) => c.id);
     consulta = consulta.in("category_id", [categoria, ...hijas]);
   }
-  const { data: movimientos } = await consulta;
+  const [catalogos, { data: movimientos }] = await Promise.all([pidiendoCatalogos, consulta]);
 
   const cuentaPorId = new Map(catalogos.cuentas.map((c) => [c.id, c]));
   const miembroPorId = new Map(catalogos.miembros.map((m) => [m.id, m.nombre]));

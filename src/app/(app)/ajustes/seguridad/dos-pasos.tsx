@@ -1,42 +1,29 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Aviso, Boton, Campo } from "@/components/ui";
-import { crearClienteNavegador } from "@/lib/supabase/client";
-import { mensajeError } from "@/lib/acciones";
+import { confirmarDosPasos, desactivarDosPasos, iniciarDosPasos, type Inscripcion } from "./acciones";
 
-type Inscripcion = { factorId: string; qr: string; secreto: string };
-
-export function DosPasos() {
-  const [activo, setActivo] = useState<string | null | undefined>(undefined);
+/** `inicial`: factor verificado que la página ya consultó en el servidor (null = 2FA inactiva). */
+export function DosPasos({ inicial }: { inicial: string | null }) {
+  const [activo, setActivo] = useState<string | null>(inicial);
   const [inscripcion, setInscripcion] = useState<Inscripcion>();
   const [mensaje, setMensaje] = useState<{ tipo: "error" | "ok"; texto: string }>();
   const [pendiente, iniciar] = useTransition();
 
-  useEffect(() => {
-    crearClienteNavegador()
-      .auth.mfa.listFactors()
-      .then(({ data }) => setActivo(data?.totp.find((f) => f.status === "verified")?.id ?? null));
-  }, []);
-
   const activar = () =>
     iniciar(async () => {
-      const supabase = crearClienteNavegador();
-      const { data: factores } = await supabase.auth.mfa.listFactors();
-      for (const f of factores?.all ?? []) {
-        if (f.status === "unverified") await supabase.auth.mfa.unenroll({ factorId: f.id });
-      }
-      const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "My House" });
-      if (error) return setMensaje({ tipo: "error", texto: mensajeError(error) });
-      setInscripcion({ factorId: data.id, qr: data.totp.qr_code, secreto: data.totp.secret });
+      const r = await iniciarDosPasos();
+      if ("error" in r) return setMensaje({ tipo: "error", texto: r.error });
+      setMensaje(undefined);
+      setInscripcion(r.inscripcion);
     });
 
   const confirmar = (datos: FormData) =>
     iniciar(async () => {
       if (!inscripcion) return;
-      const code = String(datos.get("codigo") ?? "").replace(/\D/g, "");
-      const { error } = await crearClienteNavegador().auth.mfa.challengeAndVerify({ factorId: inscripcion.factorId, code });
-      if (error) return setMensaje({ tipo: "error", texto: mensajeError(error) });
+      const { error } = await confirmarDosPasos(inscripcion.factorId, String(datos.get("codigo") ?? ""));
+      if (error) return setMensaje({ tipo: "error", texto: error });
       setActivo(inscripcion.factorId);
       setInscripcion(undefined);
       setMensaje({ tipo: "ok", texto: "Verificación en dos pasos activada. Se te pedirá el código al ingresar." });
@@ -45,13 +32,11 @@ export function DosPasos() {
   const desactivar = () =>
     iniciar(async () => {
       if (!activo) return;
-      const { error } = await crearClienteNavegador().auth.mfa.unenroll({ factorId: activo });
-      if (error) return setMensaje({ tipo: "error", texto: mensajeError(error) });
+      const { error } = await desactivarDosPasos(activo);
+      if (error) return setMensaje({ tipo: "error", texto: error });
       setActivo(null);
       setMensaje({ tipo: "ok", texto: "Verificación en dos pasos desactivada." });
     });
-
-  if (activo === undefined) return <p className="text-sm text-tenue">Consultando…</p>;
 
   return (
     <div className="space-y-4">

@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { AreaTexto, Boton, Campo, Casilla, Selector } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { MensajeEstado } from "@/components/ui/estado";
-import { PARENTESCOS } from "@/lib/hogar";
+import { PARENTESCOS } from "@/lib/hogar/constantes";
 import { guardarPersonaACargo, invitarMiembro } from "../acciones";
 
 export function FormularioInvitar() {

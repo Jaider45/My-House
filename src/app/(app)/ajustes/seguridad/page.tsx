@@ -2,6 +2,7 @@ import { Tarjeta, Titulo } from "@/components/ui";
 import { FormularioContrasena } from "@/app/(auth)/formularios";
 import { verificoCorreoHacePoco } from "@/lib/contrasena";
 import { obtenerUsuario } from "@/lib/sesion";
+import { crearClienteServidor } from "@/lib/supabase/server";
 import { DosPasos } from "./dos-pasos";
 import { PestanasConfiguracion } from "@/app/(app)/ajustes/pestanas";
 
@@ -17,7 +18,7 @@ export default function Seguridad() {
           <Contrasena />
         </Tarjeta>
         <Tarjeta titulo="Verificación en dos pasos">
-          <DosPasos />
+          <EstadoDosPasos />
         </Tarjeta>
       </div>
     </>
@@ -34,4 +35,11 @@ async function Contrasena() {
       <FormularioContrasena pideActual={!sinActual} />
     </div>
   );
+}
+
+/** El estado se consulta en el servidor: la tarjeta llega pintada (antes decía «Consultando…» hasta que el navegador preguntaba). */
+async function EstadoDosPasos() {
+  const supabase = await crearClienteServidor();
+  const { data } = await supabase.auth.mfa.listFactors();
+  return <DosPasos inicial={data?.totp.find((f) => f.status === "verified")?.id ?? null} />;
 }

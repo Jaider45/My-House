@@ -31,11 +31,16 @@ export default function Detalle({ params }: PageProps<"/movimientos/[id]">) {
 async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const ctx = await obtenerContexto();
-  const { data: m } = await ctx.supabase
-    .from("transactions")
-    .select("id, tipo, fecha, monto, account_id, cuenta_destino_id, category_id, member_id, tax_tag_id, comercio, nota, ambito, estado, origen, created_at")
-    .eq("id", id)
-    .maybeSingle();
+  // El movimiento y los catálogos del formulario van en paralelo (solo quien puede editar ve el formulario).
+  // Ver docs/MEJORAS.md («Rendimiento React»).
+  const [{ data: m }, catalogos] = await Promise.all([
+    ctx.supabase
+      .from("transactions")
+      .select("id, tipo, fecha, monto, account_id, cuenta_destino_id, category_id, member_id, tax_tag_id, comercio, nota, ambito, estado, origen, created_at")
+      .eq("id", id)
+      .maybeSingle(),
+    ctx.puedeEditar ? cargarCatalogos(ctx) : null,
+  ]);
   if (!m) notFound();
 
   const info = (
@@ -58,7 +63,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
     );
   }
 
-  const catalogos = await cargarCatalogos(ctx);
+  if (!catalogos) notFound(); // no pasa: puedeEditar ya se revisó arriba
   return (
     <div className="space-y-4">
       <Tarjeta>

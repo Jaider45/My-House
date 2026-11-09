@@ -18,6 +18,11 @@ Prioridad: 🔴 alta (seguridad o datos) · 🟠 media (confiabilidad o costo) �
 | 8 | ~~`/api/avisos`: comparar el secreto en tiempo constante~~ ✅ hecho (2026-11-09) | 🟢 | Bajo |
 | 9 | ~~Cargar `papaparse` solo cuando se necesita~~ ✅ hecho (2026-11-09) | 🟢 | Bajo |
 | 10 | ~~Registrar la skill donde Claude Code la encuentra~~ ✅ hecho (2026-11-08) | 🟢 | Bajo |
+| 11 | ~~`zod` en el navegador por dos constantes~~ ✅ hecho (2026-11-09) | 🟠 | Bajo |
+| 12 | ~~supabase-js en el navegador solo para la verificación en dos pasos~~ ✅ hecho (2026-11-09) | 🟠 | Medio |
+| 13 | ~~Movimientos: catálogos y movimientos en serie~~ ✅ hecho (2026-11-09) | 🟢 | Bajo |
+| 14 | ~~Editar movimiento: movimiento y catálogos en serie~~ ✅ hecho (2026-11-09) | 🟢 | Bajo |
+| 15 | Trazos de íconos y logo con menos precisión (SVGO) — pendiente | 🟢 | Medio |
 
 ## Estado de la aplicación (2026-11-09)
 
@@ -345,6 +350,88 @@ no se importe nada. El impacto es pequeño; se nota más en celulares de gama ba
 **Si no se hace.** La skill no se usa sola y hay que aplicarla a mano. Además, es genérica: recomienda `loading.tsx`
 por página y caché en `fetch`, cosas que este proyecto descartó a propósito (ver abajo). Si se registra, conviene
 agregarle una nota que remita a las decisiones de `CLAUDE.md`.
+
+---
+
+## Rendimiento React (skill `vercel-react-best-practices`, 2026-11-09)
+
+Revisión del proyecto con la skill de Vercel (`.agents/skills/vercel-react-best-practices`, 70 reglas). Las críticas
+(cascadas de datos, tamaño del JS) casi se cumplían: las pantallas piden sus datos en paralelo con `Promise.all`,
+`obtenerContexto` usa `React.cache`, `papaparse` y Turnstile se cargan solo donde se usan y las pantallas de la app
+bajan 72–84 KB de JS propio (23–28 KB comprimidos). Quedaban estos cinco puntos. Tamaños medidos en el build de
+producción (`.next/server/app/**/page_client-reference-manifest.js`, suma de los chunks de cada ruta).
+
+Verificado: `npm run check` (lint, typecheck, 191 pruebas), build de producción y, con sesión real contra
+`next start`: Seguridad llega con el estado de 2FA ya pintado; activar → código malo rechazado → confirmar →
+verificar en `/mfa` (la sesión pasa a AAL2, cookies nuevas) → desactivar, llamando las acciones de servidor reales;
+Movimientos con y sin filtro de categoría (las subcategorías se siguen sumando); detalle de un movimiento y 404 de
+uno inexistente.
+
+### 11. ✅ `zod` en el navegador por dos constantes (regla `bundle-barrel-imports`)
+
+**Qué se hizo.** Las constantes que usan los formularios (`MAX_CONTEXTO`, `PARENTESCOS`, y también `PROVEEDORES_IA`,
+`PATRON_MODELO`) pasaron a `src/lib/hogar/constantes.ts`, que no importa nada. `src/lib/hogar/index.ts` las
+re-exporta, así que el código de servidor no cambió. `ajustes/hogar/formulario.tsx` y
+`ajustes/miembros/formularios.tsx` importan de `@/lib/hogar/constantes`.
+
+**Para qué.** `src/lib/hogar/index.ts` importa `zod` (valida `households.config`). Un componente de cliente que
+importa cualquier cosa de ese archivo arrastra zod completo al navegador, aunque solo use una constante.
+Configuración › Hogar y › Miembros pasaron de ~183 KB a 76 KB de JS (de ~55 KB a 25 KB comprimidos).
+
+**Si no se hace (o si se vuelve a romper).** Cada persona que abre esas pantallas descarga, interpreta y ejecuta
+~107 KB que no usa: más lento en celulares de gama media y con datos móviles. Regla para el futuro: un componente
+`"use client"` solo importa de `src/lib` módulos sin dependencias pesadas (zod, supabase, SDK de IA). Si una
+constante vive junto a código pesado, se separa como aquí.
+
+### 12. ✅ supabase-js en el navegador solo para la verificación en dos pasos (regla `bundle-conditional`)
+
+**Qué se hizo.** Las operaciones de 2FA se hacen en el servidor:
+- `src/app/(auth)/mfa/acciones.ts` → `verificarMfa(codigo)`: busca el factor verificado y hace `challengeAndVerify`;
+  las cookies de la sesión AAL2 las escribe el cliente de servidor. No redirige (navega el cliente, decisión 29).
+- `src/app/(app)/ajustes/seguridad/acciones.ts` → `iniciarDosPasos`, `confirmarDosPasos`, `desactivarDosPasos`.
+- `ajustes/seguridad/page.tsx` consulta el estado (`listFactors`) en el servidor y se lo pasa a `DosPasos`: la
+  tarjeta ya no muestra «Consultando…» mientras el navegador pregunta.
+- `verificar.tsx` y `dos-pasos.tsx` ya no importan `@/lib/supabase/client`. Ningún componente lo usa hoy; se deja
+  por si llega algo que de verdad lo necesite en el navegador (p. ej. tiempo real).
+
+**Para qué.** `createBrowserClient` trae supabase-js entero (Auth, PostgREST, Storage, Realtime): ~260 KB (68 KB
+comprimidos). `/ajustes/seguridad` bajó de 344 KB a 90 KB y `/mfa` de ~365 KB a 105 KB. `/mfa` está en el
+camino de ingreso de quien activó 2FA, casi siempre desde el celular.
+
+**Si no se hace.** Quien tiene 2FA espera la descarga de ~260 KB extra cada vez que entra (sin caché, tras una
+actualización de la app, o en un celular nuevo) antes de poder escribir el código. Además, el navegador tendría
+otra vía a la API de Supabase distinta del resto de la app, que todo lo hace por acciones de servidor.
+
+### 13. ✅ Movimientos: catálogos y movimientos en serie (regla `async-parallel`)
+
+**Qué se hizo.** En `movimientos/page.tsx` la consulta de catálogos (cuentas, categorías, miembros, etiquetas) arranca
+sin `await` y se espera junto con la de movimientos (`Promise.all`). Solo el filtro por categoría espera los
+catálogos antes, porque necesita las subcategorías para armar el filtro.
+
+**Para qué.** Antes la lista esperaba a que llegaran los catálogos para recién pedir los movimientos: dos viajes a
+la base uno tras otro. Ahora es uno (salvo con filtro de categoría). Ahorra un viaje (~10–30 ms con Vercel y
+Supabase en `gru1`) en la pantalla más usada.
+
+**Si no se hace.** Cada apertura de Movimientos tarda un viaje de más. Es poco por vez, pero es la pantalla que más
+se abre y el retraso crece si la base está lejos o cargada.
+
+### 14. ✅ Editar movimiento: movimiento y catálogos en serie (regla `async-parallel`)
+
+**Qué se hizo.** En `movimientos/[id]/page.tsx` el movimiento y los catálogos del formulario se piden juntos. Los
+catálogos solo se piden si la persona puede editar (`ctx.puedeEditar`): el contador no los necesita.
+
+**Para qué y si no se hace.** Igual que la 13: un viaje a la base menos al abrir un movimiento.
+
+### 15. 🟢 Pendiente: trazos de íconos y logo con menos precisión (regla `rendering-svg-precision`)
+
+**Qué.** `src/components/marca-datos.ts` pesa 60 KB: las curvas están guardadas como miles de puntos con 2 decimales.
+Pasarlas por SVGO (curvas reales, coordenadas relativas, 1 decimal) dentro del script que genera el archivo las
+dejaría en ~15–20 KB. No se edita a mano: el archivo se genera desde el sistema de diseño.
+
+**Por qué importa.** Ese archivo va en el JS de todas las pantallas (los íconos se usan en toda la app).
+
+**Si no se hace.** ~40 KB de más en la primera visita y tras cada actualización; después el navegador lo guarda.
+Impacto bajo; por eso quedó para después.
 
 ---
 

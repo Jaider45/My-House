@@ -1,13 +1,13 @@
 import { z } from "zod";
+import { MAX_CONTEXTO, PARENTESCOS, PATRON_MODELO, PROVEEDORES_IA, type Parentesco, type ProveedorIa } from "./constantes";
+
+export * from "./constantes";
 
 /**
  * Configuración del hogar guardada en households.config (jsonb). Se lee siempre con `leerConfigHogar`
  * (valores por defecto y tolerante a claves viejas) y se escribe con `fusionarConfigHogar`
  * para no borrar claves que otra pantalla guardó.
  */
-
-export const PROVEEDORES_IA = ["anthropic", "openai"] as const;
-export type ProveedorIa = (typeof PROVEEDORES_IA)[number];
 
 export type ConfigHogar = {
   cuota_imprevistos_pct: number;
@@ -18,10 +18,6 @@ export type ConfigHogar = {
   /** Correos del hogar: resumen de los lunes (lo activa cada hogar) y si ya salió la bienvenida. */
   correo: { resumen_semanal: boolean; bienvenida_enviada: boolean };
 };
-
-export const MAX_CONTEXTO = 600;
-/** Identificador de modelo: letras, números, punto, guion, dos puntos y guion bajo. */
-export const PATRON_MODELO = /^[A-Za-z0-9][A-Za-z0-9._:-]{1,63}$/;
 
 const esquema = z.object({
   cuota_imprevistos_pct: z.coerce.number().int().min(0).max(50).catch(10),
@@ -50,14 +46,6 @@ export function fusionarConfigHogar(actual: unknown, cambios: Partial<ConfigHoga
 
 // ── Personas a cargo ──────────────────────────────────────────────────────────
 
-export const PARENTESCOS = {
-  hijo: "Hijo o hija",
-  pareja: "Pareja",
-  padre_madre: "Padre o madre",
-  hermano: "Hermano o hermana",
-  otro: "Otro familiar",
-} as const;
-export type Parentesco = keyof typeof PARENTESCOS;
 
 /** Edad cumplida en años a la fecha `hoy` (ambas YYYY-MM-DD). */
 export function edad(fechaNacimiento: string, hoy: string): number {

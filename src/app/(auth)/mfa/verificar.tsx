@@ -3,10 +3,9 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Aviso, Boton, Campo } from "@/components/ui";
-import { crearClienteNavegador } from "@/lib/supabase/client";
-import { mensajeError } from "@/lib/acciones";
 import { destinoSeguro } from "@/lib/rutas";
 import { cerrarSesion } from "../acciones";
+import { verificarMfa } from "./acciones";
 
 export function VerificarMfa() {
   const router = useRouter();
@@ -17,19 +16,12 @@ export function VerificarMfa() {
   const formulario = useRef<HTMLFormElement>(null);
 
   function verificar(datos: FormData) {
-    const code = String(datos.get("codigo") ?? "").replace(/\D/g, "");
+    const code = String(datos.get("codigo") ?? "");
     setError(undefined);
     iniciar(async () => {
-      const supabase = crearClienteNavegador();
-      const { data: factores } = await supabase.auth.mfa.listFactors();
-      const factor = factores?.totp.find((f) => f.status === "verified");
-      if (!factor) {
-        setError("No hay un autenticador configurado.");
-        return;
-      }
-      const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
+      const { error } = await verificarMfa(code);
       if (error) {
-        setError(mensajeError(error));
+        setError(error);
         setCodigo("");
         return;
       }

@@ -228,6 +228,12 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     excluido del proxy). `global-error.tsx` con estilos en línea, sin `PaginaEstado` ni `marca.tsx`.
     `papaparse` se carga con `import()` al acercarse al selector de archivo (`/importar` pesa ~19 KB menos).
     `globals.css` excluye `.claude/` de Tailwind (`@source not`): un enlace a skills fuera del proyecto rompía el build.
+32. JS del navegador (skill `vercel-react-best-practices`, docs/MEJORAS.md 11–15): un componente `"use client"` solo
+    importa de `src/lib` módulos livianos. Constantes que conviven con zod/supabase se separan (`src/lib/hogar/constantes.ts`);
+    si no, el navegador descarga la librería entera (zod ~107 KB, supabase-js ~260 KB). El 2FA (`/mfa`,
+    Seguridad) usa acciones de servidor, no `crearClienteNavegador`. Consultas independientes de una página van en
+    `Promise.all` (Movimientos arranca catálogos y movimientos juntos). Medir: suma de chunks de
+    `.next/server/app/<ruta>/page_client-reference-manifest.js` tras `npm run build`.
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas

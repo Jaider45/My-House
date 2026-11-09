@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { AreaTexto, Aviso, Campo, Selector } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { MensajeEstado } from "@/components/ui/estado";
-import { MAX_CONTEXTO } from "@/lib/hogar";
+import { MAX_CONTEXTO } from "@/lib/hogar/constantes";
 import { guardarAsistente, guardarHogar } from "../acciones";
 
 type Props = { nombre: string; ciudad: string; cuota: number; contexto: string; editable: boolean };
