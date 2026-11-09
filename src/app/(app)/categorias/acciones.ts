@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { obtenerContexto } from "@/lib/sesion";
-import { mensajeError, type Estado } from "@/lib/acciones";
+import { idDe, mensajeError, NO_ENCONTRADO, SOLO_LECTURA, type Estado } from "@/lib/acciones";
 
 const opcional = z.uuid().optional().or(z.literal("").transform(() => undefined));
 
@@ -40,14 +40,20 @@ export async function guardarCategoria(_: Estado, datos: FormData): Promise<Esta
   return { ok: id ? "Guardado." : `«${nombre}» creada.` };
 }
 
-export async function archivarCategoria(datos: FormData) {
+export async function archivarCategoria(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return;
-  await ctx.supabase
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
+  const id = idDe(datos);
+  if (!id) return { error: NO_ENCONTRADO };
+  const { data, error } = await ctx.supabase
     .from("categories")
     .update({ archivada: datos.get("archivar") === "1" })
-    .eq("id", String(datos.get("id")));
+    .eq("id", id)
+    .select("id");
+  if (error) return { error: mensajeError(error) };
+  if (!data.length) return { error: NO_ENCONTRADO };
   revalidatePath("/categorias");
+  return { ok: "Listo." };
 }
 
 export async function eliminarCategoria(_: Estado, datos: FormData): Promise<Estado> {

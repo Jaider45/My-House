@@ -164,6 +164,15 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
 28. Acciones de servidor: además de RLS, cada acción que escribe revisa `puedeEditar`/`esAdmin` y devuelve un mensaje
     (RLS sin permiso actualiza 0 filas sin error, y la acción reportaría éxito). Parámetros de URL que van a filtros
     de PostgREST (`or(...)`) se validan como UUID antes.
+    Toda acción devuelve `Estado` (nunca `return;` mudo): permiso primero (`SOLO_LECTURA`/`SOLO_ADMIN`, sin tocar la
+    base), id con `idDe(datos)` y `.select("id")` en el mismo `update`/`delete` para detectar 0 filas (`NO_ENCONTRADO`),
+    todo en `src/lib/acciones.ts`. Los botones sueltos de las páginas de servidor (archivar, pausar, confirmar…) usan
+    `FormularioAccion` (`src/components/ui/formulario-accion.tsx`): `useActionState` y el error junto al botón.
+    Presupuesto: `guardar_presupuesto(p_hogar, p_items)` (RPC `security invoker`, todo o nada; el upsert de supabase-js
+    no sirve con el índice parcial). El formulario solo envía las categorías que cambiaron.
+    Cupo de IA: `reservar_uso_ia` (security definer, candado por hogar) antes de llamar al modelo, en paralelo con la
+    preparación: 30 lecturas por persona y hora, 150 por hogar y día (topes en el SQL); `ia_usos` sin políticas de
+    escritura para que nadie recargue su cupo.
 29. Contraseñas: `CampoContrasena` (`src/components/ui`) con botón para verla (se oculta al enviar, para que el navegador
     ofrezca guardarla), aviso de Bloq Mayús y medidor orientativo (`src/lib/contrasena`); el valor vive en el componente
     porque React vacía los campos no controlados tras cada acción. Recuperación: `/recuperar` → correo de Supabase →
@@ -209,7 +218,16 @@ declaración de renta con todo ordenado. MVP para una familia; arquitectura mult
     persona y año al alcanzar un tope; usa `cargarSemaforo`). Destinatarios: admin y editor (no contador).
     `avisos_enviados` (RLS sin políticas) guarda la clave de cada aviso: se reserva antes de enviar y se libera si no
     salió ninguno. `?hoy=` simula la fecha fuera de producción o con `AVISOS_SIMULAR_FECHA=1`.
+    Escala: hogares por páginas (`?desde=` cursor por id, 100 por página), reserva de todas las claves en un `upsert`
+    con `ignoreDuplicates`, envío a `AVISOS_CORREOS_POR_SEGUNDO` (2), correos de Auth con `correos_de_usuarios`
+    (solo service_role) en vez de `listUsers`. Con poco tiempo restante libera lo no enviado y se vuelve a llamar con
+    `after()` (máx. 30 vueltas); es idempotente. El secreto se compara con `timingSafeEqual`.
     Falta: el reporte para el contador (solo diseño) y WhatsApp/notificaciones.
+31. Seguridad web (docs/mejoras.md): CSP fija en `next.config.ts` **sin nonce** (rompería el prerender parcial), en
+    `Report-Only` hasta poner `CSP_MODO=activa`. `robots.ts` + `metadata.robots` noindex (app privada; `robots.txt`
+    excluido del proxy). `global-error.tsx` con estilos en línea, sin `PaginaEstado` ni `marca.tsx`.
+    `papaparse` se carga con `import()` al acercarse al selector de archivo (`/importar` pesa ~19 KB menos).
+    `globals.css` excluye `.claude/` de Tailwind (`@source not`): un enlace a skills fuera del proyecto rompía el build.
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas

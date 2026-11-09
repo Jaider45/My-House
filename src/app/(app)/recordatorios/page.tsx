@@ -8,6 +8,7 @@ import { proximaFecha, textoAviso } from "@/lib/recordatorios";
 import { cambiarRecordatorio, cambiarResumenSemanal } from "./acciones";
 import { leerConfigHogar } from "@/lib/hogar";
 import { FormularioRecordatorio } from "./formulario";
+import { FormularioAccion } from "@/components/ui/formulario-accion";
 
 export const metadata = { title: "Recordatorios" };
 
@@ -96,7 +97,7 @@ async function Contenido() {
                   </div>
                   <b className="min-w-[110px] text-right text-[15px]">{r.monto ? formatearCOP(r.monto) : "Por definir"}</b>
                   {ctx.puedeEditar && (
-                    <form action={cambiarRecordatorio}>
+                    <FormularioAccion accion={cambiarRecordatorio}>
                       <input type="hidden" name="id" value={r.id} />
                       <input type="hidden" name="tipo" value={r.tipo} />
                       <input type="hidden" name="activo" value={r.activo ? "0" : "1"} />
@@ -112,7 +113,7 @@ async function Contenido() {
                       >
                         <span className={cx("absolute top-0.5 size-5 rounded-full bg-white transition-all", r.activo ? "left-5" : "left-0.5 shadow-[0_0_0_1px_var(--color-control)]")} />
                       </button>
-                    </form>
+                    </FormularioAccion>
                   )}
                 </div>
               );
@@ -139,7 +140,7 @@ async function Contenido() {
               <b className="text-tinta">Renta DIAN</b>: cuando alguien del hogar alcanza un tope para declarar.
             </li>
           </ul>
-          <form action={cambiarResumenSemanal} className="mt-4 flex items-center justify-between gap-3 border-t border-divisor pt-4">
+          <FormularioAccion accion={cambiarResumenSemanal} className="mt-4 flex items-center justify-between gap-3 border-t border-divisor pt-4">
             <input type="hidden" name="activo" value={resumenSemanal ? "0" : "1"} />
             <span className="text-sm">
               <b className="block">Resumen de la semana</b>
@@ -155,7 +156,7 @@ async function Contenido() {
             >
               <span className={cx("absolute top-0.5 size-5 rounded-full bg-white transition-all", resumenSemanal ? "left-5" : "left-0.5 shadow-[0_0_0_1px_var(--color-control)]")} />
             </button>
-          </form>
+          </FormularioAccion>
           <p className="mt-3 text-[13px] text-tenue">
             Llegan a los adultos del hogar con acceso{ctx.esAdmin ? "" : "; el resumen lo activa un administrador"}. WhatsApp y las notificaciones del
             celular quedan guardados como preferencia hasta que se conecten esos canales.

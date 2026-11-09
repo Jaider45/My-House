@@ -71,7 +71,10 @@ propio, la recuperación de contraseña y el ingreso con código fallan en cuant
    Los programados los corre Vercel Cron todos los días a las 7:00 a. m. de Bogotá (`vercel.json` →
    `/api/avisos`), protegido con `CRON_SECRET`; recorre todos los hogares, por eso necesita
    `SUPABASE_SERVICE_ROLE_KEY` (solo en el servidor). Para probarlo: `curl -H "Authorization: Bearer $CRON_SECRET"
-   https://tu-dominio/api/avisos` responde cuántos avisos y correos salieron.
+   https://tu-dominio/api/avisos` responde cuántos avisos y correos salieron. Procesa los hogares por páginas de
+   100 y, si quedan más o se acaba el tiempo, se vuelve a llamar sola (`siguiente` en la respuesta, máx. 30 vueltas; cada vuelta deja
+   una línea `[avisos]` en los logs de Vercel). Envía 2 correos por segundo (límite por defecto de Resend; confírmalo en tu cuenta);
+   con un plan mayor, sube `AVISOS_CORREOS_POR_SEGUNDO`.
 
 ### 1.2 Captcha (Cloudflare Turnstile)
 
@@ -122,6 +125,7 @@ que aparecen en filtraciones conocidas (HaveIBeenPwned). La app ya muestra un me
    | `ANTHROPIC_API_KEY` | Llave de Anthropic para el asistente con Claude (opcional) |
    | `OPENAI_API_KEY` | Llave de OpenAI para el asistente con GPT (opcional) |
    | `IA_PROVEEDOR`, `ANTHROPIC_MODEL`, `OPENAI_MODEL` | Opcionales: proveedor y modelos por defecto |
+   | `CSP_MODO` | Vacío al principio. `activa` cuando la CSP en modo Report-Only no muestre bloqueos (ver abajo) |
 
    El asistente de comprobantes y la importación de PDF necesitan **al menos una** de las dos llaves de IA. Con las
    dos, cada hogar elige proveedor y modelo en Configuración → Hogar → Asistente de IA. Las llaves solo viven en el
@@ -129,6 +133,10 @@ que aparecen en filtraciones conocidas (HaveIBeenPwned). La app ya muestra un me
 
    `SUPABASE_SERVICE_ROLE_KEY` salta RLS: nunca le pongas el prefijo `NEXT_PUBLIC_` y no la uses fuera de
    `src/app/api/avisos`. Si no quieres avisos programados, no la agregues: el resto de la app no la necesita.
+   **Content Security Policy:** sale primero como `Content-Security-Policy-Report-Only`: el navegador no bloquea
+   nada, solo avisa en la consola (DevTools → Console, mensajes «[Report Only]»). Usa la app unos días (ingreso con
+   captcha y Google, 2FA, comprobantes, importar) y, si no aparece ningún aviso, agrega `CSP_MODO=activa` y
+   redespliega. Si cambian los orígenes (otro proveedor de captcha, imágenes externas), ajústala en `next.config.ts`.
 3. Despliega. Si cambia la URL (dominio propio), actualiza `NEXT_PUBLIC_SITE_URL`, las URLs de Supabase, el dominio
    del widget de Turnstile y los orígenes de Google.
 

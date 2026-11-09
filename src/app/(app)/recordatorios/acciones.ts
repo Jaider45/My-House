@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { obtenerContexto } from "@/lib/sesion";
 import { parsearFecha } from "@/lib/fechas";
-import { mensajeError, type Estado } from "@/lib/acciones";
+import { idDe, mensajeError, NO_ENCONTRADO, SOLO_ADMIN, SOLO_LECTURA, type Estado } from "@/lib/acciones";
 import { fusionarConfigHogar, leerConfigHogar } from "@/lib/hogar";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -34,25 +34,37 @@ export async function guardarRecordatorio(_: Estado, datos: FormData): Promise<E
 }
 
 /** Prende o apaga un recordatorio (`tipo` = recordatorio) o el aviso de un pago fijo (`tipo` = regla). */
-export async function cambiarRecordatorio(datos: FormData) {
+export async function cambiarRecordatorio(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return;
-  const id = String(datos.get("id"));
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
+  const id = idDe(datos);
+  if (!id) return { error: NO_ENCONTRADO };
   const activo = datos.get("activo") === "1";
-  if (datos.get("tipo") === "regla") await ctx.supabase.from("recurring_rules").update({ recordar: activo }).eq("id", id);
-  else await ctx.supabase.from("reminders").update({ activo }).eq("id", id);
+  const { data, error } =
+    datos.get("tipo") === "regla"
+      ? await ctx.supabase.from("recurring_rules").update({ recordar: activo }).eq("id", id).select("id")
+      : await ctx.supabase.from("reminders").update({ activo }).eq("id", id).select("id");
+  if (error) return { error: mensajeError(error) };
+  if (!data.length) return { error: NO_ENCONTRADO };
   revalidatePath("/recordatorios");
+  return { ok: activo ? "Recordatorio activado." : "Recordatorio pausado." };
 }
 
 /** Prende o apaga el resumen semanal por correo del hogar (solo administradores). */
-export async function cambiarResumenSemanal(datos: FormData) {
+export async function cambiarResumenSemanal(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.esAdmin) return;
-  const { data } = await ctx.supabase.from("households").select("config").eq("id", ctx.hogar.id).single();
-  const correo = { ...leerConfigHogar(data?.config).correo, resumen_semanal: datos.get("activo") === "1" };
-  await ctx.supabase
+  if (!ctx.esAdmin) return { error: SOLO_ADMIN };
+  const { data, error: eLeer } = await ctx.supabase.from("households").select("config").eq("id", ctx.hogar.id).single();
+  if (eLeer) return { error: mensajeError(eLeer) };
+  const activo = datos.get("activo") === "1";
+  const correo = { ...leerConfigHogar(data.config).correo, resumen_semanal: activo };
+  const { data: hogar, error } = await ctx.supabase
     .from("households")
-    .update({ config: fusionarConfigHogar(data?.config, { correo }) as { [k: string]: Json } })
-    .eq("id", ctx.hogar.id);
+    .update({ config: fusionarConfigHogar(data.config, { correo }) as { [k: string]: Json } })
+    .eq("id", ctx.hogar.id)
+    .select("id");
+  if (error) return { error: mensajeError(error) };
+  if (!hogar.length) return { error: SOLO_ADMIN };
   revalidatePath("/recordatorios");
+  return { ok: activo ? "Resumen semanal activado." : "Resumen semanal apagado." };
 }

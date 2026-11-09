@@ -6,6 +6,7 @@ import { formatearCOP } from "@/lib/dinero";
 import { formatearFecha, hoy } from "@/lib/fechas";
 import { FormularioMovimiento } from "../formulario";
 import { eliminarMovimiento } from "../acciones";
+import { FormularioAccion } from "@/components/ui/formulario-accion";
 
 export const metadata = { title: "Movimiento" };
 
@@ -64,12 +65,12 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
         {info}
         <FormularioMovimiento catalogos={catalogos} movimiento={m} hoy={hoy()} miembroId={ctx.miembro.id} />
       </Tarjeta>
-      <form action={eliminarMovimiento}>
+      <FormularioAccion accion={eliminarMovimiento}>
         <input type="hidden" name="id" value={m.id} />
         <Boton type="submit" variante="peligro" className="w-full">
           Eliminar movimiento
         </Boton>
-      </form>
+      </FormularioAccion>
     </div>
   );
 }

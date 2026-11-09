@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { obtenerContexto } from "@/lib/sesion";
-import { mensajeError, type Estado } from "@/lib/acciones";
+import { idDe, mensajeError, NO_ENCONTRADO, SOLO_LECTURA, type Estado } from "@/lib/acciones";
 import { movimientoDesdeFormulario } from "@/lib/ingesta";
 import { formatearCOP } from "@/lib/dinero";
 import { mesDe } from "@/lib/fechas";
@@ -75,22 +75,26 @@ export async function registrarRapido(_: Estado, datos: FormData): Promise<Estad
   return { ok: listo };
 }
 
-export async function eliminarMovimiento(datos: FormData) {
+export async function eliminarMovimiento(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return;
-  const { data } = await ctx.supabase
-    .from("transactions")
-    .delete()
-    .eq("id", String(datos.get("id")))
-    .select("fecha")
-    .maybeSingle();
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
+  const id = idDe(datos);
+  if (!id) return { error: NO_ENCONTRADO };
+  const { data, error } = await ctx.supabase.from("transactions").delete().eq("id", id).select("fecha").maybeSingle();
+  if (error) return { error: mensajeError(error) };
+  if (!data) return { error: NO_ENCONTRADO };
   refrescar();
-  redirect(data ? `/movimientos?mes=${mesDe(data.fecha)}` : "/movimientos");
+  redirect(`/movimientos?mes=${mesDe(data.fecha)}`);
 }
 
-export async function confirmarMovimiento(datos: FormData) {
+export async function confirmarMovimiento(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return;
-  await ctx.supabase.from("transactions").update({ estado: "confirmado" }).eq("id", String(datos.get("id")));
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
+  const id = idDe(datos);
+  if (!id) return { error: NO_ENCONTRADO };
+  const { data, error } = await ctx.supabase.from("transactions").update({ estado: "confirmado" }).eq("id", id).select("id");
+  if (error) return { error: mensajeError(error) };
+  if (!data.length) return { error: NO_ENCONTRADO };
   refrescar();
+  return { ok: "Confirmado." };
 }

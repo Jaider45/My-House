@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Skills y docs de las herramientas no llevan clases de la app (y pueden ser enlaces fuera del proyecto, que rompen el build). */
+@source not "../../.claude";
 
 /*
  * Sistema de diseño My House (ds/myhouse/tokens.json, modo claro) + adiciones de interfaz del lienzo de pantallas:

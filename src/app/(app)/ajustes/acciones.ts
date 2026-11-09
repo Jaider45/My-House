@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { obtenerContexto } from "@/lib/sesion";
-import { mensajeError, type Estado } from "@/lib/acciones";
+import { idDe, mensajeError, NO_ENCONTRADO, SOLO_ADMIN, type Estado } from "@/lib/acciones";
 import { fusionarConfigHogar, MAX_CONTEXTO, PARENTESCOS, PATRON_MODELO, PROVEEDORES_IA } from "@/lib/hogar";
 import { formatearFechaLarga, hoy } from "@/lib/fechas";
 import { enviarCorreo, sitio } from "@/lib/correo/enviar";
@@ -11,7 +11,6 @@ import { correoContador, correoInvitacion } from "@/lib/correo/correos";
 import type { Json } from "@/lib/supabase/database.types";
 
 const rol = z.enum(["admin", "editor", "contador"]);
-const SOLO_ADMIN = "Solo un administrador puede cambiar esto.";
 
 export async function invitarMiembro(_: Estado, datos: FormData): Promise<Estado & { enlace?: string }> {
   const r = z
@@ -46,11 +45,16 @@ export async function invitarMiembro(_: Estado, datos: FormData): Promise<Estado
   };
 }
 
-export async function revocarInvitacion(datos: FormData) {
+export async function revocarInvitacion(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.esAdmin) return;
-  await ctx.supabase.from("invitations").delete().eq("id", String(datos.get("id")));
+  if (!ctx.esAdmin) return { error: SOLO_ADMIN };
+  const id = idDe(datos);
+  if (!id) return { error: NO_ENCONTRADO };
+  const { data, error } = await ctx.supabase.from("invitations").delete().eq("id", id).select("id");
+  if (error) return { error: mensajeError(error) };
+  if (!data.length) return { error: NO_ENCONTRADO };
   revalidatePath("/ajustes/miembros");
+  return { ok: "Invitación revocada." };
 }
 
 const fechaOpcional = z
@@ -90,21 +94,29 @@ export async function guardarPersonaACargo(_: Estado, datos: FormData): Promise<
   return { ok: id ? "Cambios guardados." : `${persona.nombre} agregado.` };
 }
 
-export async function cambiarRol(datos: FormData) {
-  const r = z.object({ id: z.uuid(), rol }).safeParse(Object.fromEntries(datos));
-  if (!r.success) return;
+export async function cambiarRol(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.esAdmin) return;
-  await ctx.supabase.from("members").update({ rol: r.data.rol }).eq("id", r.data.id);
+  if (!ctx.esAdmin) return { error: SOLO_ADMIN };
+  const r = z.object({ id: z.uuid(), rol }).safeParse(Object.fromEntries(datos));
+  if (!r.success) return { error: "Elige un rol válido." };
+  const { data, error } = await ctx.supabase.from("members").update({ rol: r.data.rol }).eq("id", r.data.id).select("id");
+  if (error) return { error: mensajeError(error) };
+  if (!data.length) return { error: NO_ENCONTRADO };
   if (r.data.id === ctx.miembro.id) await ctx.supabase.auth.refreshSession();
   revalidatePath("/ajustes/miembros");
+  return { ok: "Rol actualizado." };
 }
 
-export async function quitarMiembro(datos: FormData) {
+export async function quitarMiembro(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.esAdmin) return;
-  await ctx.supabase.from("members").delete().eq("id", String(datos.get("id")));
+  if (!ctx.esAdmin) return { error: SOLO_ADMIN };
+  const id = idDe(datos);
+  if (!id) return { error: NO_ENCONTRADO };
+  const { data, error } = await ctx.supabase.from("members").delete().eq("id", id).select("id");
+  if (error) return { error: mensajeError(error) };
+  if (!data.length) return { error: NO_ENCONTRADO };
   revalidatePath("/ajustes/miembros");
+  return { ok: "Listo." };
 }
 
 /** Lee la configuración actual para fusionar: así un formulario no borra lo que guardó otro. */

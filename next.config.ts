@@ -1,5 +1,39 @@
 import type { NextConfig } from "next";
 
+/**
+ * Content Security Policy fija (sin nonce: con nonce cada página se generaría entera por request y se perdería el
+ * prerender parcial de cacheComponents). Va como encabezado estático: no cuesta nada por request.
+ * Se publica primero como Report-Only (`CSP_MODO=activa` la vuelve obligatoria) para ver en la consola del
+ * navegador qué bloquearía antes de activarla. Ver docs/mejoras.md §4.
+ */
+function politicaSeguridad(): string {
+  const dev = process.env.NODE_ENV !== "production";
+  const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin : "";
+  const turnstile = "https://challenges.cloudflare.com";
+  const google = process.env.NEXT_PUBLIC_GOOGLE_ACTIVO === "1" ? "https://accounts.google.com" : "";
+  const directivas: Record<string, string[]> = {
+    "default-src": ["'self'"],
+    // 'unsafe-inline': Next inyecta scripts en línea para hidratar. Quitarlo exige hashes (SRI), nunca nonce.
+    // 'unsafe-eval' solo en desarrollo (React lo usa para reconstruir pilas de llamadas).
+    "script-src": ["'self'", "'unsafe-inline'", turnstile, ...(dev ? ["'unsafe-eval'"] : [])],
+    "style-src": ["'self'", "'unsafe-inline'"],
+    "img-src": ["'self'", "data:", "blob:"],
+    "font-src": ["'self'"],
+    "connect-src": ["'self'", supabase, turnstile, ...(dev ? ["ws:"] : [])],
+    "frame-src": [turnstile],
+    "worker-src": ["'self'"],
+    "manifest-src": ["'self'"],
+    "object-src": ["'none'"],
+    "base-uri": ["'self'"],
+    // El ingreso con Google (sin JavaScript) es un POST que redirige a Supabase y de ahí a Google.
+    "form-action": ["'self'", supabase, google],
+    "frame-ancestors": ["'none'"],
+  };
+  return Object.entries(directivas)
+    .map(([nombre, valores]) => [nombre, ...valores.filter(Boolean)].join(" "))
+    .join("; ");
+}
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
@@ -34,6 +68,10 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          {
+            key: process.env.CSP_MODO === "activa" ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only",
+            value: politicaSeguridad(),
+          },
         ],
       },
     ];

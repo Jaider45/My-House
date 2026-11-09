@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { obtenerContexto } from "@/lib/sesion";
-import { mensajeError, type Estado } from "@/lib/acciones";
+import { idDe, mensajeError, NO_ENCONTRADO, SOLO_LECTURA, type Estado } from "@/lib/acciones";
 
 const opcional = <T extends z.ZodType>(e: T) => e.optional().or(z.literal("").transform(() => undefined));
 const dia = opcional(z.coerce.number().int().min(1, "Día entre 1 y 31.").max(31, "Día entre 1 y 31."));
@@ -64,12 +64,17 @@ export async function guardarCuenta(_: Estado, datos: FormData): Promise<Estado>
   return { ok: id ? "Cuenta actualizada." : "Cuenta creada." };
 }
 
-export async function archivarCuenta(datos: FormData) {
+export async function archivarCuenta(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return;
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
+  const id = idDe(datos);
+  if (!id) return { error: NO_ENCONTRADO };
   const archivar = datos.get("archivar") === "1";
-  await ctx.supabase.from("accounts").update({ archivada: archivar }).eq("id", String(datos.get("id")));
+  const { data, error } = await ctx.supabase.from("accounts").update({ archivada: archivar }).eq("id", id).select("id");
+  if (error) return { error: mensajeError(error) };
+  if (!data.length) return { error: NO_ENCONTRADO };
   revalidatePath("/cuentas");
+  return { ok: archivar ? "Cuenta archivada." : "Cuenta activa de nuevo." };
 }
 
 /** Solo se borra si no tiene movimientos; si tiene, se archiva (borrar en cascada perdería historia). */

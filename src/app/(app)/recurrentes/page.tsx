@@ -9,6 +9,7 @@ import { ETIQUETA_FRECUENCIA, fechasEnRango, montoMensual } from "@/lib/recurren
 import { confirmarMovimiento } from "../movimientos/acciones";
 import { cambiarEstadoRegla, eliminarRegla } from "./acciones";
 import { FormularioRegla } from "./formulario";
+import { FormularioAccion } from "@/components/ui/formulario-accion";
 
 export const metadata = { title: "Pagos fijos" };
 
@@ -207,12 +208,12 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
                   <span className="flex flex-col items-end gap-1">
                     <b className="text-[15px] whitespace-nowrap">{formatearCOP(p.monto)}</b>
                     {p.id && ctx.puedeEditar ? (
-                      <form action={confirmarMovimiento}>
+                      <FormularioAccion accion={confirmarMovimiento}>
                         <input type="hidden" name="id" value={p.id} />
                         <button type="submit" className={cx("chip cursor-pointer", `chip-${TONO[p.estado]}`)} aria-label={`Marcar ${p.nombre} como pagado`}>
                           {p.estado} · Pagar
                         </button>
-                      </form>
+                      </FormularioAccion>
                     ) : (
                       <Chip tono={TONO[p.estado]}>{p.estado}</Chip>
                     )}
@@ -249,19 +250,19 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
                         <div className="mt-3 flex flex-col gap-3 rounded-xl bg-mosaico p-4">
                           <FormularioRegla regla={r} cuentas={catalogos.cuentas} categorias={catalogos.categorias} hoy={fecha} />
                           <div className="flex flex-wrap gap-3">
-                            <form action={cambiarEstadoRegla}>
+                            <FormularioAccion accion={cambiarEstadoRegla}>
                               <input type="hidden" name="id" value={r.id} />
                               <input type="hidden" name="activar" value={r.activa ? "0" : "1"} />
                               <Boton type="submit" variante="secundario">
                                 {r.activa ? "Pausar" : "Reactivar"}
                               </Boton>
-                            </form>
-                            <form action={eliminarRegla}>
+                            </FormularioAccion>
+                            <FormularioAccion accion={eliminarRegla}>
                               <input type="hidden" name="id" value={r.id} />
                               <Boton type="submit" variante="peligro">
                                 Eliminar regla
                               </Boton>
-                            </form>
+                            </FormularioAccion>
                           </div>
                         </div>
                       )}

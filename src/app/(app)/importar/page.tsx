@@ -5,6 +5,7 @@ import { formatearFecha } from "@/lib/fechas";
 import type { Mapeo } from "@/lib/importacion";
 import { deshacerLote } from "./acciones";
 import { Importador } from "./importador";
+import { FormularioAccion } from "@/components/ui/formulario-accion";
 
 export const metadata = { title: "Importar extracto" };
 
@@ -62,12 +63,12 @@ async function Contenido() {
                     {l.accounts?.nombre} · {l.filas_importadas} movimientos · {formatearFecha(l.created_at.slice(0, 10))}
                   </span>
                 </span>
-                <form action={deshacerLote}>
+                <FormularioAccion accion={deshacerLote}>
                   <input type="hidden" name="id" value={l.id} />
                   <Boton type="submit" variante="peligro" className="min-h-9 px-3 text-xs">
                     Deshacer
                   </Boton>
-                </form>
+                </FormularioAccion>
               </li>
             ))}
           </ul>

@@ -6,6 +6,7 @@ import { jurisdiccion } from "@/lib/impuestos/registro";
 import { cambiarRol, quitarMiembro, revocarInvitacion } from "../acciones";
 import { CopiarEnlace, FormularioInvitar, FormularioPersona } from "./formularios";
 import { PestanasConfiguracion } from "@/app/(app)/ajustes/pestanas";
+import { FormularioAccion } from "@/components/ui/formulario-accion";
 
 export const metadata = { title: "Miembros" };
 
@@ -56,7 +57,7 @@ async function Contenido() {
                 {ctx.esAdmin && m.user_id !== ctx.userId && (
                   <span className="flex gap-2">
                     {m.user_id && (
-                      <form action={cambiarRol} className="flex gap-1">
+                      <FormularioAccion accion={cambiarRol} className="flex gap-1">
                         <input type="hidden" name="id" value={m.id} />
                         <select name="rol" aria-label={`Rol de ${m.nombre}`} defaultValue={m.rol ?? "editor"} className="rounded-lg border border-control bg-transparent px-2 text-sm">
                           {Object.entries(ROLES).map(([v, t]) => (
@@ -68,14 +69,14 @@ async function Contenido() {
                         <Boton type="submit" variante="secundario" className="min-h-9 px-2 text-xs">
                           Cambiar
                         </Boton>
-                      </form>
+                      </FormularioAccion>
                     )}
-                    <form action={quitarMiembro}>
+                    <FormularioAccion accion={quitarMiembro}>
                       <input type="hidden" name="id" value={m.id} />
                       <Boton type="submit" variante="peligro" className="min-h-9 px-2 text-xs">
                         Quitar
                       </Boton>
-                    </form>
+                    </FormularioAccion>
                   </span>
                 )}
               </li>
@@ -97,12 +98,12 @@ async function Contenido() {
                         <strong>{i.email}</strong> · {ROLES[i.rol]} · vence {formatearFecha(i.expira_en.slice(0, 10))}
                       </p>
                       <CopiarEnlace enlace={`${process.env.NEXT_PUBLIC_SITE_URL}/invitacion/${i.token}`} />
-                      <form action={revocarInvitacion}>
+                      <FormularioAccion accion={revocarInvitacion}>
                         <input type="hidden" name="id" value={i.id} />
                         <Boton type="submit" variante="peligro" className="min-h-9 text-xs">
                           Revocar
                         </Boton>
-                      </form>
+                      </FormularioAccion>
                     </li>
                   ))}
                 </ul>
@@ -149,12 +150,12 @@ async function Contenido() {
                         <summary className="cursor-pointer text-sm font-semibold">Editar</summary>
                         <div className="mt-3 space-y-3">
                           <FormularioPersona persona={p} adultos={adultos} hoy={fecha} />
-                          <form action={quitarMiembro}>
+                          <FormularioAccion accion={quitarMiembro}>
                             <input type="hidden" name="id" value={p.id} />
                             <Boton type="submit" variante="peligro" className="min-h-9 w-full text-xs">
                               Quitar a {p.nombre}
                             </Boton>
-                          </form>
+                          </FormularioAccion>
                         </div>
                       </details>
                     )}

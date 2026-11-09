@@ -14,6 +14,7 @@ import {
 import { opcionesCategoria, raizDe } from "@/lib/categorias";
 import { iconoCategoria } from "@/lib/categorias/iconos";
 import { confirmarMovimiento } from "./acciones";
+import { FormularioAccion } from "@/components/ui/formulario-accion";
 
 export const metadata = { title: "Movimientos" };
 
@@ -535,7 +536,7 @@ function BotonConfirmar({
   tono?: Tono;
 }) {
   return (
-    <form action={confirmarMovimiento}>
+    <FormularioAccion accion={confirmarMovimiento}>
       <input type="hidden" name="id" value={id} />
       <button
         type="submit"
@@ -545,6 +546,6 @@ function BotonConfirmar({
         {etiqueta ? `${etiqueta} · ` : ""}
         {ingreso ? "Recibir" : "Pagar"}
       </button>
-    </form>
+    </FormularioAccion>
   );
 }

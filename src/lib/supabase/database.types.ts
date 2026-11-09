@@ -189,6 +189,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"ia_usos": {
+                  Row: {
+                    "creado_en": string,"household_id": string,"id": number,"tipo": string,"user_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "creado_en"?: string,"household_id": string,"id"?: never,"tipo": string,"user_id"?: string | null
+                  }
+                  Update: {
+                    "creado_en"?: string,"household_id"?: string,"id"?: never,"tipo"?: string,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ia_usos_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"import_batches": {
                   Row: {
                     "account_id": string,"archivo_nombre": string,"created_at": string,"created_by": string | null,"filas_duplicadas": number,"filas_importadas": number,"filas_total": number,"household_id": string,"id": string
@@ -525,6 +545,11 @@ isOneToOne: false
               "compras_consumos": number,"consignaciones": number,"consumos_tarjeta": number,"ingresos_brutos": number,"member_id": string,"nombre": string,"patrimonio_bruto": number
             }[]
                            },
+"correos_de_usuarios":
+{ Args: { "p_ids": (string)[] }; Returns: {
+              "email": string,"id": string
+            }[]
+                           },
 "crear_hogar":
 { Args: { "p_nombre": string,"p_nombre_miembro": string }; Returns: string
                            },
@@ -533,6 +558,12 @@ isOneToOne: false
                            },
 "generar_recurrentes_hogar":
 { Args: { "p_household": string }; Returns: number
+                           },
+"guardar_presupuesto":
+{ Args: { "p_hogar": string,"p_items": Json }; Returns: undefined
+                           },
+"reservar_uso_ia":
+{ Args: { "p_cantidad"?: number,"p_hogar": string,"p_tipo": string }; Returns: undefined
                            },
 "totales_por_categoria":
 { Args: { "p_desde": string,"p_hasta": string,"p_household": string }; Returns: {

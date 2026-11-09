@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { obtenerContexto } from "@/lib/sesion";
-import { mensajeError } from "@/lib/acciones";
+import { idDe, mensajeError, NO_ENCONTRADO, SOLO_LECTURA, type Estado } from "@/lib/acciones";
 import { clasificar, huellas, normalizarDescripcion, type Clasificacion, type FilaLeida } from "@/lib/importacion";
 import { validarMovimiento } from "@/lib/ingesta";
 import { hoy, sumarDias } from "@/lib/fechas";
@@ -94,7 +94,7 @@ export async function importarMovimientos(entrada: {
   if (!r.success) return { error: "Datos de importación inválidos." };
   const { cuentaId, archivo, filas } = r.data;
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
 
   const hashes = await huellas(cuentaId, filas);
   const elegidas = filas.map((f, i) => ({ f, hash: hashes[i] })).filter(({ f }) => f.incluir);
@@ -144,14 +144,19 @@ export async function importarMovimientos(entrada: {
   return { importadas, duplicadas };
 }
 
-export async function deshacerLote(datos: FormData) {
+export async function deshacerLote(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return;
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
+  const id = idDe(datos);
+  if (!id) return { error: NO_ENCONTRADO };
   // Borrar el lote borra en cascada sus movimientos.
-  await ctx.supabase.from("import_batches").delete().eq("id", String(datos.get("id")));
+  const { data, error } = await ctx.supabase.from("import_batches").delete().eq("id", id).select("id");
+  if (error) return { error: mensajeError(error) };
+  if (!data.length) return { error: NO_ENCONTRADO };
   revalidatePath("/importar");
   revalidatePath("/movimientos");
   revalidatePath("/");
+  return { ok: "Importación deshecha." };
 }
 
 /**
@@ -160,14 +165,19 @@ export async function deshacerLote(datos: FormData) {
  */
 export async function leerExtractoPdf(datos: FormData): Promise<{ filas?: { fecha: string; descripcion: string; valor: number }[]; banco?: string | null; error?: string }> {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
   const archivo = datos.get("archivo");
   if (!(archivo instanceof File) || archivo.type !== "application/pdf") return { error: "Elige un archivo PDF." };
   if (archivo.size > 20 * 1024 * 1024) return { error: "El PDF pesa más de 20 MB: divídelo por meses." };
-  const ia = await iaDelHogar(ctx);
+  // El cupo de IA se reserva en paralelo con la lectura del archivo y la configuración del hogar.
+  const [ia, cupo, base64] = await Promise.all([
+    iaDelHogar(ctx),
+    ctx.supabase.rpc("reservar_uso_ia", { p_hogar: ctx.hogar.id, p_tipo: "extracto" }),
+    archivo.arrayBuffer().then((b) => Buffer.from(b).toString("base64")),
+  ]);
   if (!ia) return { error: new IaNoConfigurada().message };
+  if (cupo.error) return { error: mensajeError(cupo.error) };
   try {
-    const base64 = Buffer.from(await archivo.arrayBuffer()).toString("base64");
     const { banco, filas } = await leerExtracto(ia, { mime: "application/pdf", base64, nombre: archivo.name }, hoy());
     if (!filas.length) return { error: "No encontré movimientos en ese PDF. ¿Es un extracto?" };
     if (filas.length > MAX_FILAS) return { error: `El extracto tiene más de ${MAX_FILAS} movimientos: divídelo.` };

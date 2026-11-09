@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { obtenerContexto } from "@/lib/sesion";
-import { mensajeError, type Estado } from "@/lib/acciones";
+import { idDe, mensajeError, NO_ENCONTRADO, SOLO_LECTURA, type Estado } from "@/lib/acciones";
 import { formatearCOP } from "@/lib/dinero";
 import { hoy, sumarDias } from "@/lib/fechas";
 import { IaNoConfigurada, leerComprobante, type Archivo } from "@/lib/ia";
@@ -154,15 +154,20 @@ async function procesar(ctx: Ctx, cat: Awaited<ReturnType<typeof catalogos>>, en
 /** Mensaje de la familia con fotos, PDF o texto: se leen en paralelo y el asistente responde con el resumen. */
 export async function enviarAlAsistente(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
   const texto = String(datos.get("texto") ?? "").trim().slice(0, 1000);
   const archivos = datos.getAll("archivos").filter((a): a is File => a instanceof File && a.size > 0);
   if (!texto && !archivos.length) return { error: "Escribe un mensaje o adjunta un comprobante." };
   if (archivos.length > MAX_ARCHIVOS) return { error: `Máximo ${MAX_ARCHIVOS} archivos por mensaje.` };
   const malo = archivos.find((a) => !MIMES.includes(a.type) || a.size > MAX_BYTES);
   if (malo) return { error: `${malo.name}: solo fotos (JPG, PNG, WebP) o PDF de hasta 10 MB.` };
-  const cat = await catalogos(ctx);
+  // El cupo de IA se reserva en paralelo con los catálogos: sus ~10 ms quedan escondidos.
+  const [cat, cupo] = await Promise.all([
+    catalogos(ctx),
+    ctx.supabase.rpc("reservar_uso_ia", { p_hogar: ctx.hogar.id, p_tipo: "comprobante", p_cantidad: Math.max(1, archivos.length) }),
+  ]);
   if (!cat.ia) return { error: new IaNoConfigurada().message };
+  if (cupo.error) return { error: mensajeError(cupo.error) };
   const { data: mensaje } = await ctx.supabase
     .from("assistant_messages")
     .insert({ household_id: ctx.hogar.id, autor: "usuario", texto: texto || (archivos.length === 1 ? "Te mando este comprobante" : `Te mando ${archivos.length} comprobantes`) })
@@ -211,7 +216,7 @@ export async function resolverComprobante(_: Estado, datos: FormData): Promise<E
   const r = esquemaResolver.safeParse(Object.fromEntries(datos));
   if (!r.success) return { error: r.error.issues[0].message };
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
   const { data: recibo } = await ctx.supabase.from("receipts").select("id, datos, archivo_path, estado").eq("id", r.data.id).single();
   if (!recibo || recibo.estado === "registrado") return { error: "Ese comprobante ya no está pendiente." };
   const leido = (recibo.datos ?? {}) as { comercio?: string; tipo?: "gasto" | "ingreso"; etiqueta_dian?: string | null };
@@ -256,19 +261,32 @@ export async function resolverComprobante(_: Estado, datos: FormData): Promise<E
 }
 
 /** Deshace un comprobante registrado: borra el movimiento que creó (no toca movimientos a los que solo se adjuntó). */
-export async function deshacerComprobante(datos: FormData) {
+export async function deshacerComprobante(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return;
-  const { data: recibo } = await ctx.supabase.from("receipts").select("id, estado, transaction_id").eq("id", String(datos.get("id"))).single();
-  if (!recibo) return;
-  if (recibo.estado === "registrado" && recibo.transaction_id) await ctx.supabase.from("transactions").delete().eq("id", recibo.transaction_id);
-  await ctx.supabase.from("receipts").update({ estado: "descartado", transaction_id: null }).eq("id", recibo.id);
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
+  const id = idDe(datos);
+  if (!id) return { error: NO_ENCONTRADO };
+  const { data: recibo } = await ctx.supabase.from("receipts").select("id, estado, transaction_id").eq("id", id).maybeSingle();
+  if (!recibo) return { error: NO_ENCONTRADO };
+  if (recibo.estado === "registrado" && recibo.transaction_id) {
+    const { error } = await ctx.supabase.from("transactions").delete().eq("id", recibo.transaction_id);
+    if (error) return { error: mensajeError(error) };
+  }
+  const { data, error } = await ctx.supabase.from("receipts").update({ estado: "descartado", transaction_id: null }).eq("id", recibo.id).select("id");
+  if (error) return { error: mensajeError(error) };
+  if (!data.length) return { error: NO_ENCONTRADO };
   refrescar();
+  return { ok: "Deshecho." };
 }
 
-export async function cambiarRegla(datos: FormData) {
+export async function cambiarRegla(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return;
-  await ctx.supabase.from("merchant_rules").update({ activa: datos.get("activa") === "1" }).eq("id", String(datos.get("id")));
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
+  const id = idDe(datos);
+  if (!id) return { error: NO_ENCONTRADO };
+  const { data, error } = await ctx.supabase.from("merchant_rules").update({ activa: datos.get("activa") === "1" }).eq("id", id).select("id");
+  if (error) return { error: mensajeError(error) };
+  if (!data.length) return { error: NO_ENCONTRADO };
   revalidatePath("/comprobantes");
+  return { ok: "Listo." };
 }

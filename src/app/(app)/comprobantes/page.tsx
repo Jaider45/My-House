@@ -11,6 +11,7 @@ import { NOMBRE_PROVEEDOR } from "@/lib/ia/proveedores";
 import { cambiarRegla, deshacerComprobante } from "./acciones";
 import { Compositor } from "./chat";
 import { FormularioResolver } from "./formularios";
+import { FormularioAccion } from "@/components/ui/formulario-accion";
 
 export const metadata = { title: "Comprobantes" };
 
@@ -154,12 +155,12 @@ async function Contenido() {
               </EnlaceBoton>
             )}
             {r.estado === "registrado" && ctx.puedeEditar && (
-              <form action={deshacerComprobante}>
+              <FormularioAccion accion={deshacerComprobante}>
                 <input type="hidden" name="id" value={r.id} />
                 <button type="submit" className="inline-flex h-9 items-center rounded-lg px-3 text-sm font-semibold hover:bg-mosaico">
                   Deshacer
                 </button>
-              </form>
+              </FormularioAccion>
             )}
           </div>
         )}
@@ -291,7 +292,7 @@ async function Contenido() {
                   <b className="first-letter:uppercase">{r.patron}</b> → {r.categories?.nombre}
                 </span>
                 {ctx.puedeEditar && (
-                  <form action={cambiarRegla}>
+                  <FormularioAccion accion={cambiarRegla}>
                     <input type="hidden" name="id" value={r.id} />
                     <input type="hidden" name="activa" value={r.activa ? "0" : "1"} />
                     <button
@@ -303,7 +304,7 @@ async function Contenido() {
                     >
                       <span className={cx("absolute top-0.5 size-5 rounded-full bg-white transition-all", r.activa ? "left-5" : "left-0.5 shadow-[0_0_0_1px_var(--color-control)]")} />
                     </button>
-                  </form>
+                  </FormularioAccion>
                 )}
               </div>
             ))

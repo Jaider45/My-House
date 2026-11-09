@@ -21,3 +21,16 @@ export function mensajeError(error: { message?: string; code?: string } | null |
   // Las excepciones de nuestras funciones SQL ya vienen en español.
   return m || "Ocurrió un error inesperado.";
 }
+
+export const SOLO_LECTURA = "Tu rol es de solo lectura.";
+export const SOLO_ADMIN = "Solo un administrador puede cambiar esto.";
+/** RLS sin permiso (o un id que no es del hogar) actualiza 0 filas sin error: la acción debe decirlo. */
+export const NO_ENCONTRADO = "No encontramos ese registro o ya no tienes permiso para cambiarlo.";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Lee el campo `id` (u otro) del formulario y lo devuelve solo si es un UUID. */
+export function idDe(datos: FormData, campo = "id"): string | null {
+  const v = datos.get(campo);
+  return typeof v === "string" && UUID.test(v) ? v : null;
+}

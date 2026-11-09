@@ -15,6 +15,8 @@ export const metadata: Metadata = {
   applicationName: "My House",
   appleWebApp: { capable: true, title: "My House", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
+  // App privada: que ninguna pantalla (acceso, invitaciones) aparezca en buscadores. Ver también robots.ts.
+  robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = {

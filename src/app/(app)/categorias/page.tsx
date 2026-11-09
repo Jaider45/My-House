@@ -5,6 +5,7 @@ import { construirArbol, type Categoria } from "@/lib/categorias";
 import { archivarCategoria } from "./acciones";
 import { BotonEliminarCategoria, FormularioCategoria } from "./formulario";
 import { PestanasConfiguracion } from "@/app/(app)/ajustes/pestanas";
+import { FormularioAccion } from "@/components/ui/formulario-accion";
 
 export const metadata = { title: "Categorías" };
 
@@ -34,13 +35,13 @@ function Editar({ c, puedeEditar }: { c: Categoria; puedeEditar: boolean }) {
   return (
     <div className="mt-3 space-y-3 rounded-xl bg-mosaico p-3">
       <FormularioCategoria categoria={c} clase={c.clase} />
-      <form action={archivarCategoria}>
+      <FormularioAccion accion={archivarCategoria}>
         <input type="hidden" name="id" value={c.id} />
         <input type="hidden" name="archivar" value={c.archivada ? "0" : "1"} />
         <Boton type="submit" variante="secundario" className="w-full">
           {c.archivada ? "Reactivar" : "Archivar"}
         </Boton>
-      </form>
+      </FormularioAccion>
       <BotonEliminarCategoria id={c.id} />
     </div>
   );

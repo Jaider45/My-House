@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useActionState, useState, type ReactNode } from "react";
 import { Chip, CuadroIcono } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
+import { MensajeEstado } from "@/components/ui/estado";
 import { digitosAMonto, formatearCOP, formatearMiles } from "@/lib/dinero";
 import type { NombreIcono } from "@/components/marca";
 import { guardarPresupuesto } from "./acciones";
@@ -25,9 +26,10 @@ export function FormularioPresupuesto({ filas, mes, cancelar }: { filas: FilaEdi
   const fijos = filas.reduce((s, f) => s + f.fijos, 0);
   const variable = Object.values(valores).reduce((s, v) => s + v, 0);
   const esencial = filas.filter((f) => f.esencial).reduce((s, f) => s + f.fijos + (valores[f.id] ?? 0), 0);
+  const [estado, accion] = useActionState(guardarPresupuesto, null);
 
   return (
-    <form action={guardarPresupuesto} className="space-y-4">
+    <form action={accion} className="space-y-4">
       <input type="hidden" name="mes" value={mes} />
       <p className="text-sm text-cuerpo">
         Los <b>pagos fijos</b> (arriendo, colegio, servicios…) ya cuentan solos: agrégalos o cámbialos en «Pagos fijos», más
@@ -55,7 +57,8 @@ export function FormularioPresupuesto({ filas, mes, cancelar }: { filas: FilaEdi
               <span className="flex items-center gap-2 rounded-lg border border-control bg-elevada px-3 focus-within:border-monte">
                 <span className="text-cuerpo">$</span>
                 <input
-                  name={`adicional:${f.id}`}
+                  // Solo se envían las categorías que cambiaron: menos trabajo en la base.
+                  name={valores[f.id] !== f.variable ? `adicional:${f.id}` : undefined}
                   inputMode="numeric"
                   value={valores[f.id] ? formatearMiles(valores[f.id]) : ""}
                   onChange={(e) => setValores({ ...valores, [f.id]: digitosAMonto(e.target.value) })}
@@ -69,6 +72,7 @@ export function FormularioPresupuesto({ filas, mes, cancelar }: { filas: FilaEdi
           </div>
         ))}
       </div>
+      <MensajeEstado estado={estado} />
       <div className="z-10 flex flex-wrap items-center gap-3 rounded-xl bg-seleccion px-4 py-3.5 lg:sticky lg:bottom-2">
         <span className="min-w-0 flex-[1_1_220px]">
           <span className="block text-[12px] text-cuerpo">Presupuesto mensual</span>

@@ -6,6 +6,7 @@ import { formatearCOP, porcentaje } from "@/lib/dinero";
 import { avanceDeuda } from "@/lib/deudas";
 import { archivarCuenta } from "./acciones";
 import { BotonEliminarCuenta, FormularioCuenta, type Cuenta } from "./formulario";
+import { FormularioAccion } from "@/components/ui/formulario-accion";
 
 export const metadata = { title: "Cuentas y tarjetas" };
 
@@ -174,13 +175,13 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
             <FormularioCuenta key={editando?.id ?? "nueva"} cuenta={editando} titulares={miembros ?? []} />
             {editando && (
               <div className="mt-4 flex flex-col gap-2 border-t border-divisor pt-4">
-                <form action={archivarCuenta}>
+                <FormularioAccion accion={archivarCuenta}>
                   <input type="hidden" name="id" value={editando.id} />
                   <input type="hidden" name="archivar" value={editando.archivada ? "0" : "1"} />
                   <Boton type="submit" variante="secundario" className="w-full">
                     {editando.archivada ? "Reactivar" : "Archivar"}
                   </Boton>
-                </form>
+                </FormularioAccion>
                 <BotonEliminarCuenta id={editando.id} />
               </div>
             )}

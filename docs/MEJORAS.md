@@ -8,16 +8,39 @@ Prioridad: 🔴 alta (seguridad o datos) · 🟠 media (confiabilidad o costo) �
 
 | # | Mejora | Prioridad | Esfuerzo |
 | --- | --- | --- | --- |
-| 1 | Acciones de servidor que fallan en silencio | 🔴 | Bajo |
-| 2 | `guardarPresupuesto`: validar datos y revisar errores | 🔴 | Bajo |
-| 3 | Límite de uso en las acciones de IA | 🔴 | Medio |
-| 4 | Content Security Policy para toda la app | 🟠 | Medio |
-| 5 | `app/global-error.tsx` | 🟠 | Bajo |
-| 6 | Impedir que los buscadores indexen la app | 🟠 | Bajo |
-| 7 | `/api/avisos`: tiempo límite y escala | 🟠 | Medio |
-| 8 | `/api/avisos`: comparar el secreto en tiempo constante | 🟢 | Bajo |
-| 9 | Cargar `papaparse` solo cuando se necesita | 🟢 | Bajo |
+| 1 | ~~Acciones de servidor que fallan en silencio~~ ✅ hecho (2026-11-09) | 🔴 | Bajo |
+| 2 | ~~`guardarPresupuesto`: validar datos y revisar errores~~ ✅ hecho (2026-11-09) | 🔴 | Bajo |
+| 3 | ~~Límite de uso en las acciones de IA~~ ✅ hecho (2026-11-09) | 🔴 | Medio |
+| 4 | Content Security Policy para toda la app — ✅ en Report-Only (2026-11-09); falta activarla (`CSP_MODO=activa`) | 🟠 | Medio |
+| 5 | ~~`app/global-error.tsx`~~ ✅ hecho (2026-11-09) | 🟠 | Bajo |
+| 6 | ~~Impedir que los buscadores indexen la app~~ ✅ hecho (2026-11-09) | 🟠 | Bajo |
+| 7 | ~~`/api/avisos`: tiempo límite y escala~~ ✅ hecho (2026-11-09) | 🟠 | Medio |
+| 8 | ~~`/api/avisos`: comparar el secreto en tiempo constante~~ ✅ hecho (2026-11-09) | 🟢 | Bajo |
+| 9 | ~~Cargar `papaparse` solo cuando se necesita~~ ✅ hecho (2026-11-09) | 🟢 | Bajo |
 | 10 | ~~Registrar la skill donde Claude Code la encuentra~~ ✅ hecho (2026-11-08) | 🟢 | Bajo |
+
+## Estado de la aplicación (2026-11-09)
+
+Aplicadas en la rama `docs/mejoras-nextjs`. Verificado con `npm run check` (lint, typecheck, 191 pruebas unitarias),
+`npm run test:rls` (41 pruebas, 9 nuevas en `tests/rls/mejoras.test.ts`) y un build de producción probado con curl:
+
+- **1.** Las 15 acciones devuelven `Estado`; `FormularioAccion` muestra el error junto al botón. Probado: una editora
+  que invoca `cambiarRol` recibe «Solo un administrador…» y el rol no cambia; un id inexistente responde
+  «No encontramos ese registro…» en vez de nada.
+- **2.** Migración `20261109000100_presupuesto_y_cupo_ia.sql` → `guardar_presupuesto` (una llamada, todo o nada). Probado:
+  guarda y redirige a `?mes=`; `mes=2026-11&x=1` o un id que no es UUID se rechazan sin tocar la base; una
+  categoría de otro hogar revierte también las válidas.
+- **3.** `reservar_uso_ia`: 30 lecturas por persona y hora, 150 por hogar y día. El bonus (reutilizar la respuesta si
+  se sube el mismo archivo) **no** se hizo.
+- **4.** CSP en `next.config.ts` como `Content-Security-Policy-Report-Only`. Pendiente: usar la app unos días en
+  producción y poner `CSP_MODO=activa` si la consola no muestra bloqueos.
+- **5–6.** `global-error.tsx`, `robots.ts` y `noindex` en la metadata (`robots.txt` además se excluyó del proxy, que lo
+  redirigía a `/ingresar`).
+- **7–8.** `/api/avisos` por páginas con cursor, reserva de claves en una consulta, envío a ritmo del proveedor,
+  `correos_de_usuarios` en vez de `listUsers`, `maxDuration = 300`, encadenado con `after()` y `timingSafeEqual`.
+  Migración `20261109000200_avisos_escala.sql`. Probado: 401 sin secreto o con uno malo; con páginas de 1 hogar,
+  la vuelta 2 arranca sola y la segunda corrida del día no repite correos.
+- **9.** `papaparse` quedó en un chunk aparte (18,7 KB) que `/importar` pide al acercarse al selector.
 
 ## Impacto en la velocidad
 

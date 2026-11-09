@@ -1,6 +1,6 @@
 "use client";
 
-import Papa from "papaparse";
+import type Papaparse from "papaparse";
 import { useMemo, useState, useTransition } from "react";
 import { Aviso, Boton, Campo, Selector, Tarjeta } from "@/components/ui";
 import { formatearCOP } from "@/lib/dinero";
@@ -26,7 +26,24 @@ async function leerTexto(file: File): Promise<string> {
   return utf8.includes("�") ? new TextDecoder("windows-1252").decode(buffer) : utf8;
 }
 
+/**
+ * papaparse (~20 KB) se descarga solo cuando hace falta: se precarga al acercarse al selector de archivo y se
+ * espera antes de leer. `celdas` corre después de esa espera (el texto solo existe tras elegir el archivo).
+ */
+let Papa: typeof Papaparse | undefined;
+let cargandoPapa: Promise<typeof Papaparse> | undefined;
+function cargarPapa(): Promise<typeof Papaparse> {
+  cargandoPapa ??= import("papaparse")
+    .then((m) => (Papa = m.default))
+    .catch((e) => {
+      cargandoPapa = undefined; // sin red: que el próximo intento lo vuelva a pedir
+      throw e;
+    });
+  return cargandoPapa;
+}
+
 function celdas(texto: string): string[][] {
+  if (!Papa) throw new Error("papaparse aún no está cargado");
   return Papa.parse<string[]>(texto.replace(/^﻿/, ""), { skipEmptyLines: "greedy" }).data;
 }
 
@@ -68,9 +85,10 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
     iniciar(async () => {
       const datos = new FormData();
       datos.append("archivo", file);
-      const r = await leerExtractoPdf(datos);
+      const [r, papa] = await Promise.all([leerExtractoPdf(datos), cargarPapa().catch(() => undefined)]);
       if (r.error || !r.filas) return setMensaje({ tipo: "error", texto: r.error ?? "No pude leer el PDF." });
-      const contenido = Papa.unparse({ fields: ["Fecha", "Descripción", "Valor"], data: r.filas.map((f) => [f.fecha, f.descripcion, String(f.valor)]) });
+      if (!papa) return setMensaje({ tipo: "error", texto: "No pude abrir el lector de extractos. Revisa tu conexión e intenta de nuevo." });
+      const contenido = papa.unparse({ fields: ["Fecha", "Descripción", "Valor"], data: r.filas.map((f) => [f.fecha, f.descripcion, String(f.valor)]) });
       setTexto({ nombre: file.name, contenido });
       setSaltar(0);
       setMapeo({ ...sugerirMapeo(["Fecha", "Descripción", "Valor"]), gastosNegativos: true });
@@ -82,7 +100,9 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
     reiniciarRevision();
     if (!file) return setTexto(undefined);
     if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) return leerPdf(file);
-    const contenido = await leerTexto(file);
+    const leido = await Promise.all([leerTexto(file), cargarPapa()]).catch(() => undefined);
+    if (!leido) return setMensaje({ tipo: "error", texto: "No pude abrir el lector de CSV. Revisa tu conexión e intenta de nuevo." });
+    const [contenido] = leido;
     const fila = detectarEncabezado(celdas(contenido));
     setTexto({ nombre: file.name, contenido });
     setSaltar(fila);
@@ -164,6 +184,8 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
               type="file"
               accept=".pdf,application/pdf,.csv,text/csv"
               onChange={(e) => elegirArchivo(e.target.files?.[0])}
+              onPointerEnter={() => void cargarPapa().catch(() => {})}
+              onFocus={() => void cargarPapa().catch(() => {})}
               className="block w-full text-sm file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-monte file:px-4 file:font-semibold file:text-arena"
             />
             <span className="block text-[13px] text-tenue">
