@@ -89,7 +89,8 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
       esperados − costo de vida. Pagos pendientes = programados + ocurrencias del mes que aún no se programan.
 12. Next 16 con `cacheComponents` activo (será obligatorio en la próxima versión mayor).
 13. `@types/node@24` (coincide con Node 24 y lo exige Vitest 5).
-14. Un usuario opera un hogar (el primero al que pertenece). El selector de hogares queda para el SaaS.
+14. Cada usuario opera un hogar a la vez: el elegido en `hogar_activo` (selector de S5; aparece con más de un
+    hogar) o, si nunca eligió, el primero al que entró. Cambiarlo llama `elegir_hogar` + `auth.refreshSession()`.
 15. Velocidad: el JWT trae el hogar, el miembro y el rol (`public.custom_access_token_hook`, activado en
     `config.toml` y en el panel de Supabase Cloud). `obtenerContexto()` los lee con `getClaims()` (verificación local
     con la llave pública, sin red) y solo consulta la base si el token no los trae. Tras crear hogar, aceptar
@@ -296,6 +297,28 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     servidor expuestas, tablas sensibles con permisos, buckets públicos); `tests/rls/seguridad.test.ts` exige cero.
     Una función nueva que solo debe usar el servidor va en esa lista; una tabla sensible nueva, también.
 
+38. Métricas y comunicaciones (SaaS S4; migración `metricas`). `households.canal`/`referido_por` se fijan al crear el
+    hogar (el proxy guarda `utm_source` y `ref` en cookies `mh_canal`/`mh_ref`; el onboarding las pasa a `crear_hogar`).
+    `eventos` (registro, pagos_fijos_cargados, primer_gasto, invito_pareja una vez por hogar; pago y cancelacion
+    repetibles) los escriben triggers; nadie los lee por la API. Panel general y Analítica salen de
+    `consola_metricas()`/`consola_analitica()` (gráficas CSS en `graficas.tsx`, sin librerías). «Cobrado por mes» es
+    caja, no MRR histórico. `correos_enviados`: `enviarCorreo` registra cada envío (destinatario enmascarado) y el
+    webhook de Resend (`/api/correos/webhook`, firma Svix verificada en `src/lib/correo/eventos.ts`, secreto
+    `webhook_secret` de la integración resend) sube el estado (entregado→abierto→clic; rebote queda). Campañas
+    (`campanas`, permiso `campanas`): segmentos fijos (todos/gratis/familia/prueba/mora/inactivos) ∩ hogares con
+    `config.correo.novedades` (opt-in, toggle en Recordatorios); las envía el cron `/api/cobros` (reclama con
+    update condicional; `campana_hogares` es service_role); «Enviarme una prueba» va solo al staff. CAC: pendiente.
+39. Contadores (SaaS S5; migración `contadores`). `hogar_activo` + `elegir_hogar` + `mis_hogares_lista`; el hook y
+    `obtenerContexto` usan `private.hogar_activo_de` (el fallback TS sigue tomando el primero: solo tokens viejos).
+    `/clientes` (enlace «Clientes» solo para contadores, vía `NavegacionConDatos`): cartera (`mis_clientes`),
+    semáforo DIAN por cliente (reusa `cargarSemaforo` con el hogar del cliente; RLS lo permite por ser miembro) solo
+    con firma (hogar propio admin + plan efectivo contador, `mi_firma`), enlace de referidos
+    (`/registro?ref=CODIGO`, `obtener_ref` genera `households.ref_codigo` una vez) y comisiones propias. Límite de
+    clientes: `aceptar_invitacion` lo exige solo si hay firma (sin plan no hay tope ni panel). Consola → Contadores:
+    verificar firma (`contador_verificado`), `consola_liquidar_comisiones(mes)` (% del plan sobre cobros pagados de
+    referidos, mes cerrado, upsert solo pendientes) y marcar pagada (la transferencia se hace por fuera). El plan
+    Contador se compra en Configuración → Plan (ahora lista también planes `para = contador`).
+
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
   (pasó con `storage-api`: migraciones vacías y Storage arrancaba sin tablas). Síntoma: `relation "storage.buckets"
@@ -334,8 +357,8 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] S1. Consola: acceso con 2FA, equipo y permisos, auditoría (verificado en local el 2026-11-09)
 - [x] S2. Planes y límites, Hogares, Usuarios, Planes (verificado en local el 2026-11-10)
 - [x] S3. Cobro con Wompi, cupones, recuperación de pagos fallidos (factura electrónica: falta el proveedor)
-- [ ] S4. Métricas (panel, analítica) y comunicaciones (campañas)
-- [ ] S5. Contadores: selector de hogares, panel, referidos y comisiones
+- [x] S4. Métricas (panel, analítica) y comunicaciones (campañas por correo) — CAC y canal WhatsApp pendientes
+- [x] S5. Contadores: selector de hogares, panel con semáforo por cliente, referidos y comisiones — descarga masiva y recordatorios masivos pendientes
 - [ ] S6. Parámetros DIAN, catálogos e IA desde la consola
 - [ ] S7. Soporte y privacidad (acceso con permiso, Ley 1581)
 - [ ] S8. Sistema (feature flags, mantenimiento) — Integraciones ya está hecha (decisión 36)

@@ -1,4 +1,4 @@
-import type { Contenido, Fila, Texto } from "./plantilla";
+import type { Boton, Contenido, Fila, Texto } from "./plantilla";
 
 /**
  * Los correos de My House (diseño «Email» del lienzo), con datos reales. Cada función devuelve el contenido; la
@@ -429,5 +429,21 @@ export function correoPruebaTermina(d: DatosPlan & { hasta: string; precio: stri
     tarjeta: { filas: [{ k: "Plan Familia", v: `${d.precio} al mes` }, { k: "Termina", v: d.hasta }] },
     botones: [{ texto: "Seguir con Familia", url: d.urlPlan }],
     ...porqueAdmin(d.hogar),
+  };
+}
+
+/** Campaña (consola → Comunicaciones). Solo llega a hogares que activaron «Novedades» en Recordatorios. */
+export function correoCampana(d: { nombre: string; asunto: string; titulo: string; cuerpo: string; botonTexto?: string | null; botonUrl?: string | null; sitio: string }): Contenido {
+  const url = d.botonUrl ? (d.botonUrl.startsWith("/") ? `${d.sitio}${d.botonUrl}` : d.botonUrl) : null;
+  return {
+    asunto: d.asunto,
+    vistaPrevia: d.cuerpo.slice(0, 120),
+    etiqueta: "Novedades",
+    icono: { nombre: "casa", tono: "claro" },
+    titulo: d.titulo,
+    intro: `${d.nombre ? `Hola ${d.nombre}, ` : "Hola, "}${d.cuerpo}`,
+    ...(url && d.botonTexto ? { botones: [{ texto: d.botonTexto, url }] as [Boton] } : {}),
+    porque: "Recibes este correo porque tu hogar activó «Novedades y promociones» en My House.",
+    enlacesPie: [{ texto: "Dejar de recibir novedades", url: `${d.sitio}/recordatorios` }],
   };
 }

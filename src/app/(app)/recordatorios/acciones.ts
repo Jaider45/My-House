@@ -50,14 +50,13 @@ export async function cambiarRecordatorio(_: Estado, datos: FormData): Promise<E
   return { ok: activo ? "Recordatorio activado." : "Recordatorio pausado." };
 }
 
-/** Prende o apaga el resumen semanal por correo del hogar (solo administradores). */
-export async function cambiarResumenSemanal(_: Estado, datos: FormData): Promise<Estado> {
+/** Prende o apaga una preferencia de correo del hogar (solo administradores). */
+async function cambiarCorreo(clave: "resumen_semanal" | "novedades", activo: boolean): Promise<Estado> {
   const ctx = await obtenerContexto();
   if (!ctx.esAdmin) return { error: SOLO_ADMIN };
   const { data, error: eLeer } = await ctx.supabase.from("households").select("config").eq("id", ctx.hogar.id).single();
   if (eLeer) return { error: mensajeError(eLeer) };
-  const activo = datos.get("activo") === "1";
-  const correo = { ...leerConfigHogar(data.config).correo, resumen_semanal: activo };
+  const correo = { ...leerConfigHogar(data.config).correo, [clave]: activo };
   const { data: hogar, error } = await ctx.supabase
     .from("households")
     .update({ config: fusionarConfigHogar(data.config, { correo }) as { [k: string]: Json } })
@@ -66,5 +65,14 @@ export async function cambiarResumenSemanal(_: Estado, datos: FormData): Promise
   if (error) return { error: mensajeError(error) };
   if (!hogar.length) return { error: SOLO_ADMIN };
   revalidatePath("/recordatorios");
-  return { ok: activo ? "Resumen semanal activado." : "Resumen semanal apagado." };
+  return { ok: activo ? "Activado." : "Apagado." };
+}
+
+export async function cambiarResumenSemanal(_: Estado, datos: FormData): Promise<Estado> {
+  return cambiarCorreo("resumen_semanal", datos.get("activo") === "1");
+}
+
+/** Novedades y promociones de My House (las campañas solo llegan con esto activo). */
+export async function cambiarNovedades(_: Estado, datos: FormData): Promise<Estado> {
+  return cambiarCorreo("novedades", datos.get("activo") === "1");
 }

@@ -35,7 +35,9 @@ export const INTEGRACIONES: Integracion[] = [
     campos: [
       { clave: "api_key", etiqueta: "API key", secreto: true, placeholder: "re_…" },
       { clave: "remitente", etiqueta: "Remitente", secreto: false, placeholder: "My House <no-responder@tu-dominio.com>", ayuda: "Con un dominio verificado en Resend." },
+      { clave: "webhook_secret", etiqueta: "Secreto del webhook", secreto: true, opcional: true, placeholder: "whsec_…", ayuda: "Para medir entregas, aperturas y clics: Webhooks → Add webhook con la URL de abajo y pega aquí el signing secret." },
     ],
+    webhook: "/api/correos/webhook",
     pasos: [
       "Crea una cuenta en resend.com y agrega tu dominio. Copia los registros SPF y DKIM en tu proveedor de dominio y espera «Verified».",
       "API Keys → Create API key con permiso «Sending access».",

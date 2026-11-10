@@ -16,7 +16,7 @@ export type ConfigHogar = {
   /** null = lo que diga el servidor (variables de entorno). */
   ia: { proveedor: ProveedorIa | null; modelo: string | null };
   /** Correos del hogar: resumen de los lunes (lo activa cada hogar) y si ya salió la bienvenida. */
-  correo: { resumen_semanal: boolean; bienvenida_enviada: boolean };
+  correo: { resumen_semanal: boolean; bienvenida_enviada: boolean; novedades: boolean };
 };
 
 const esquema = z.object({
@@ -29,8 +29,8 @@ const esquema = z.object({
     })
     .catch({ proveedor: null, modelo: null }),
   correo: z
-    .object({ resumen_semanal: z.boolean().catch(false), bienvenida_enviada: z.boolean().catch(false) })
-    .catch({ resumen_semanal: false, bienvenida_enviada: false }),
+    .object({ resumen_semanal: z.boolean().catch(false), bienvenida_enviada: z.boolean().catch(false), novedades: z.boolean().catch(false) })
+    .catch({ resumen_semanal: false, bienvenida_enviada: false, novedades: false }),
 });
 
 export function leerConfigHogar(config: unknown): ConfigHogar {

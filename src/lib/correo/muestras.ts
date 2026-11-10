@@ -29,6 +29,10 @@ export function muestras(sitio: string): Record<string, { nombre: string; conten
       nombre: "Invitación al equipo (consola)",
       contenido: c.correoEquipo({ quien: "Jaider", nombre: "Daniela", rol: "Soporte", url: `${sitio}/consola/invitacion/demo`, vence: "lunes 16 de noviembre" }),
     },
+    campana: {
+      nombre: "Campaña (novedades)",
+      contenido: c.correoCampana({ nombre: "Andrés", asunto: "Llega la temporada de renta", titulo: "Llega la temporada de renta", cuerpo: "Desde agosto, la DIAN empieza a llamar a lista. Con el plan Familia tienes el semáforo al día y el reporte anual listo para tu contador.", botonTexto: "Ver planes", botonUrl: "/ajustes/plan", sitio }),
+    },
     "pago-recibido": {
       nombre: "Pago recibido (plan)",
       contenido: c.correoPagoRecibido({ ...plan, monto: "$ 19.900", periodo: "mensual", hasta: "10 dic 2026", metodo: "Tarjeta VISA ···4242", referencia: "MH-7F2A91C04B11" }),

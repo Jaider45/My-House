@@ -29,6 +29,14 @@ export async function proxy(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
   const ruta = request.nextUrl.pathname;
+
+  // De dónde llegó la persona (pauta o enlace de referido de un contador): queda en cookies hasta crear el hogar.
+  const utm = request.nextUrl.searchParams.get("utm_source");
+  const ref = request.nextUrl.searchParams.get("ref");
+  const cookieCanal = { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30, secure: process.env.NODE_ENV === "production" } as const;
+  if (utm && /^[\w-]{1,40}$/.test(utm) && !request.cookies.get("mh_canal")) respuesta.cookies.set("mh_canal", utm.toLowerCase(), cookieCanal);
+  if (ref && /^[a-z0-9]{6,12}$/i.test(ref)) respuesta.cookies.set("mh_ref", ref.toUpperCase(), cookieCanal);
+
   const redirigir = (destino: string, conSiguiente = false) => {
     const url = request.nextUrl.clone();
     url.pathname = destino;

@@ -48,7 +48,7 @@ export function ElegirPlan(p: Props) {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {p.planes.map((plan) => {
           const actual = plan.codigo === p.efectivo;
           const precio = periodo === "anual" ? plan.precio_anual : plan.precio_mensual;
@@ -69,7 +69,7 @@ export function ElegirPlan(p: Props) {
                 {precio > 0 && <span className="text-sm text-cuerpo"> / {periodo === "anual" ? "año" : "mes"}</span>}
               </p>
               <ul className="flex flex-col text-sm">
-                {LIMITES.filter((l) => l.para !== "contador").map((l) => {
+                {LIMITES.filter((l) => l.para === "ambos" || l.para === plan.para).map((l) => {
                   const v = plan.limites[l.clave];
                   const no = v === false;
                   return (

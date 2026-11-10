@@ -4,14 +4,14 @@ import { obtenerContexto } from "@/lib/sesion";
 import type { EstadoPlan, Limites, Plan } from ".";
 
 /**
- * Plan del hogar activo, su uso y los planes publicados para hogares (una vez por request). Tres consultas en
+ * Plan del hogar activo, su uso y los planes publicados (incluido Contador, para firmas; una vez por request). Tres consultas en
  * paralelo; no se cachea entre requests (decisión: datos del hogar frescos).
  */
 export const cargarMiPlan = cache(async () => {
   const ctx = await obtenerContexto();
   const [estado, planes, config] = await Promise.all([
     ctx.supabase.rpc("mi_plan", { p_hogar: ctx.hogar.id }),
-    ctx.supabase.from("planes").select("*").eq("para", "hogar").order("orden"),
+    ctx.supabase.from("planes").select("*").order("orden"),
     ctx.supabase.from("plataforma_config").select("clave, valor"),
   ]);
   if (estado.error) throw estado.error;

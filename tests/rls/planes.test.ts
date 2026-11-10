@@ -44,6 +44,9 @@ describe("límites del plan Gratis", () => {
     // Los dependientes (sin acceso) no cuentan.
     const dep = await admin.from("members").insert({ household_id: hogar, nombre: "Hija", es_dependiente: true });
     expect(dep.error).toBeNull();
+    // El contador (solo lectura) tampoco: un hogar Gratis puede tener contador.
+    const cont = await admin.from("invitations").insert({ household_id: hogar, email: "conta@prueba.local", rol: "contador" });
+    expect(cont.error).toBeNull();
   });
 
   it("5 lecturas con IA al mes", async () => {

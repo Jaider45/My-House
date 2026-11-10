@@ -37,6 +37,10 @@ export function entornoDePrueba() {
       }
       return data as string;
     },
+    /** Hogar creado por la prueba fuera de entorno.hogar(): se borra igual al final. */
+    recordarHogar(id: string) {
+      hogares.push(id);
+    },
     async limpiar() {
       if (hogares.length) await admin.from("households").delete().in("id", hogares);
       for (const id of userIds) await admin.auth.admin.deleteUser(id);

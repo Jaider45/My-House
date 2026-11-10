@@ -1,5 +1,6 @@
 import "server-only";
 import { leerIntegracion } from "@/lib/integraciones/servidor";
+import { crearClienteServicio, hayServicio } from "@/lib/supabase/servicio";
 import { armarCorreo, type Contenido } from "./plantilla";
 
 /**
@@ -13,6 +14,21 @@ export const sitio = () => (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhos
 const REMITENTE_POR_DEFECTO = "My House <no-responder@myhouse.test>";
 
 type Destino = { para: string; contenido: Contenido; etiqueta?: string; cabeceras?: Record<string, string> };
+
+/** a•••@dominio.com: lo único del destinatario que queda en correos_enviados. */
+const enmascarar = (correo: string) => correo.replace(/^(.).*?(@.*)$/, "$1•••$2");
+
+/** Deja el envío en correos_enviados (consola → Comunicaciones). Nunca rompe el envío. */
+async function registrar(d: { resendId?: string; etiqueta?: string; asunto: string; para: string }) {
+  if (!hayServicio()) return;
+  try {
+    await crearClienteServicio()
+      .from("correos_enviados")
+      .insert({ resend_id: d.resendId, etiqueta: d.etiqueta ?? "otro", asunto: d.asunto.slice(0, 200), para: enmascarar(d.para) });
+  } catch {
+    // El registro es solo para métricas.
+  }
+}
 export type Resultado = { enviado: boolean; via: "resend" | "mailpit" | "ninguno"; error?: string };
 
 function mailpit(): string | null {
@@ -49,6 +65,8 @@ export async function enviarCorreo({ para, contenido, etiqueta, cabeceras, proba
         signal: AbortSignal.timeout(10_000),
       });
       if (!r.ok) throw new Error(`Resend ${r.status}: ${(await r.text()).slice(0, 200)}`);
+      const { id } = (await r.json().catch(() => ({}))) as { id?: string };
+      if (!probarCon) await registrar({ resendId: id, etiqueta, asunto, para });
       return { enviado: true, via: "resend" };
     }
     const local = mailpit();
@@ -61,6 +79,7 @@ export async function enviarCorreo({ para, contenido, etiqueta, cabeceras, proba
         signal: AbortSignal.timeout(5_000),
       });
       if (!r.ok) throw new Error(`Mailpit ${r.status}`);
+      await registrar({ etiqueta, asunto, para });
       return { enviado: true, via: "mailpit" };
     }
     console.warn(`[correo] Resend no está conectado: no se envió «${asunto}» a ${para}`);

@@ -178,7 +178,7 @@ salte la interfaz.
 **Criterio:** un hogar paga Familia con tarjeta, PSE y Nequi en el sandbox de Wompi; un fallo recorre la secuencia y
 baja a Gratis el día 14; cada cobro tiene su factura.
 
-### S4 · Métricas y comunicaciones (2 semanas) — pantallas 2, 3, 14
+### S4 · Métricas y comunicaciones (2 semanas) — pantallas 2, 3, 14 · ✅ hecha (pendientes: CAC por canal, campañas por WhatsApp y aviso en la app)
 
 - `eventos`, canal y referido al registrarse (UTM), funciones de agregados para KPIs (MRR, ARPU, churn, conversión),
   embudo, cohortes y adquisición. CAC: la inversión por canal se carga a mano por mes.
@@ -190,7 +190,7 @@ baja a Gratis el día 14; cada cobro tiene su factura.
 
 **Criterio:** el panel general muestra cifras reales del entorno de producción y una campaña llega solo a quien aceptó.
 
-### S5 · Contadores (3 semanas) — pantalla 9 y el plan Contador
+### S5 · Contadores (3 semanas) — pantalla 9 y el plan Contador · ✅ hecha (pendientes: descarga masiva de soportes y recordatorios masivos)
 
 - Selector de hogares en la app (reemplaza la decisión 14): el JWT trae el hogar activo y cambiarlo refresca la sesión.
 - `organizaciones_contables` (la firma, sus personas, hasta 30 hogares clientes), solicitud y verificación con tarjeta

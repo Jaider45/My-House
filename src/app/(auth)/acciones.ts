@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -177,5 +178,8 @@ export async function cambiarContrasena(_: Estado, datos: FormData): Promise<Est
 export async function cerrarSesion() {
   const supabase = await crearClienteServidor();
   await supabase.auth.signOut();
+  // Vacía la caché de navegación del navegador: si alguien más entra en este equipo, no ve ni un resto del layout
+  // anterior (nombre del hogar, selector) mientras llega la pantalla nueva.
+  revalidatePath("/", "layout");
   redirect("/ingresar");
 }

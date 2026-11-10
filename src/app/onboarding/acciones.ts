@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -27,8 +28,17 @@ export async function crearHogar(_: Estado, datos: FormData): Promise<Estado> {
   const r = esquema.safeParse(Object.fromEntries(datos));
   if (!r.success) return { error: r.error.issues[0].message };
   const supabase = await crearClienteServidor();
-  const { data: hogar, error } = await supabase.rpc("crear_hogar", { p_nombre: r.data.hogar, p_nombre_miembro: r.data.nombre });
+  // Canal de llegada (proxy): utm_source o el enlace de referido de un contador.
+  const almacen = await cookies();
+  const { data: hogar, error } = await supabase.rpc("crear_hogar", {
+    p_nombre: r.data.hogar,
+    p_nombre_miembro: r.data.nombre,
+    p_canal: almacen.get("mh_canal")?.value,
+    p_ref: almacen.get("mh_ref")?.value,
+  });
   if (error) return { error: mensajeError(error) };
+  almacen.delete("mh_canal");
+  almacen.delete("mh_ref");
   if (r.data.ciudad) await supabase.from("households").update({ ciudad: r.data.ciudad }).eq("id", hogar);
   // Personas a cargo con nombre genérico: se completan (nombre, edad, quién las tiene a cargo) en Miembros.
   const aCargo = [

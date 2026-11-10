@@ -56,6 +56,24 @@ export function describirAccion({ accion, objeto_nombre, detalle }: Registro): s
       return `Cambió la integración ${quien}${Array.isArray(d.secretos_cambiados) && d.secretos_cambiados.length ? ` (secretos: ${d.secretos_cambiados.join(", ")})` : ""}`;
     case "desconecto_integracion":
       return `Desconectó la integración ${quien}`;
+    case "creo_campana":
+      return `Creó la campaña ${quien}`;
+    case "edito_campana":
+      return `Editó la campaña ${quien}`;
+    case "programo_campana":
+      return `Programó la campaña ${quien}`;
+    case "cancelo_campana":
+      return `Canceló la campaña ${quien}`;
+    case "verifico_contador":
+      return `Verificó la firma ${quien}`;
+    case "retiro_verificacion_contador":
+      return `Retiró la verificación de ${quien}`;
+    case "liquido_comisiones":
+      return `Liquidó las comisiones de ${quien}`;
+    case "pago_comision":
+      return `Marcó pagada la comisión de ${quien} (${formatearCOP(Number(d.monto ?? 0))})`;
+    case "reabrio_comision":
+      return `Reabrió la comisión de ${quien}`;
     default:
       return accion.replace(/_/g, " ");
   }

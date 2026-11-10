@@ -137,6 +137,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"campanas": {
+                  Row: {
+                    "alcance": number,"asunto": string,"boton_texto": string | null,"boton_url": string | null,"creada_nombre": string,"creada_por": string | null,"created_at": string,"cuerpo": string,"enviada_en": string | null,"enviados": number,"estado": string,"id": string,"nombre": string,"programada_para": string | null,"segmento": string,"titulo": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "alcance"?: number,"asunto": string,"boton_texto"?: string | null,"boton_url"?: string | null,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo": string,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"nombre": string,"programada_para"?: string | null,"segmento": string,"titulo": string
+                  }
+                  Update: {
+                    "alcance"?: number,"asunto"?: string,"boton_texto"?: string | null,"boton_url"?: string | null,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo"?: string,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"nombre"?: string,"programada_para"?: string | null,"segmento"?: string,"titulo"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"categories": {
                   Row: {
                     "archivada": boolean,"clase": Database["public"]['Enums']["categoria_clase"],"created_at": string,"es_esencial": boolean,"excluir_de_costo_vida": boolean,"household_id": string,"id": string,"nombre": string,"padre_id": string | null,"tipo": Database["public"]['Enums']["categoria_tipo"]
@@ -188,6 +202,40 @@ isOneToOne: false
       referencedRelation: "planes"
       referencedColumns: ["codigo"]
     }
+                  ]
+                },"comisiones": {
+                  Row: {
+                    "base": number,"created_at": string,"estado": string,"firma": string,"hogares": number,"id": string,"mes": string,"monto": number,"pagada_en": string | null,"pct": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "base"?: number,"created_at"?: string,"estado"?: string,"firma": string,"hogares"?: number,"id"?: string,"mes": string,"monto"?: number,"pagada_en"?: string | null,"pct": number
+                  }
+                  Update: {
+                    "base"?: number,"created_at"?: string,"estado"?: string,"firma"?: string,"hogares"?: number,"id"?: string,"mes"?: string,"monto"?: number,"pagada_en"?: string | null,"pct"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "comisiones_firma_fkey"
+      columns: ["firma"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"correos_enviados": {
+                  Row: {
+                    "actualizado": string,"asunto": string,"creado": string,"estado": string,"etiqueta": string,"id": number,"para": string,"resend_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actualizado"?: string,"asunto"?: string,"creado"?: string,"estado"?: string,"etiqueta"?: string,"id"?: never,"para"?: string,"resend_id"?: string | null
+                  }
+                  Update: {
+                    "actualizado"?: string,"asunto"?: string,"creado"?: string,"estado"?: string,"etiqueta"?: string,"id"?: never,"para"?: string,"resend_id"?: string | null
+                  }
+                  Relationships: [
+                    
                   ]
                 },"cupones": {
                   Row: {
@@ -261,6 +309,26 @@ isOneToOne: false
       referencedColumns: ["id","household_id"]
     }
                   ]
+                },"eventos": {
+                  Row: {
+                    "creado": string,"household_id": string,"id": number,"tipo": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "creado"?: string,"household_id": string,"id"?: never,"tipo": string
+                  }
+                  Update: {
+                    "creado"?: string,"household_id"?: string,"id"?: never,"tipo"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "eventos_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"eventos_pasarela": {
                   Row: {
                     "estado": string | null,"id": string,"pasarela": string,"payload": NonNullable<Json>,"recibido": string,"referencia": string | null,"resultado": string | null
@@ -274,6 +342,26 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"hogar_activo": {
+                  Row: {
+                    "household_id": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "household_id": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "household_id"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "hogar_activo_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"hogar_notas": {
                   Row: {
@@ -297,14 +385,14 @@ isOneToOne: false
                   ]
                 },"households": {
                   Row: {
-                    "ciudad": string | null,"config": NonNullable<Json>,"created_at": string,"estado": string,"id": string,"moneda": string,"nombre": string,"pais": string,"plan": string,"prueba_hasta": string | null,"prueba_usada": boolean,"suspendido_motivo": string | null
+                    "canal": string | null,"ciudad": string | null,"config": NonNullable<Json>,"contador_verificado": boolean,"created_at": string,"estado": string,"id": string,"moneda": string,"nombre": string,"pais": string,"plan": string,"prueba_hasta": string | null,"prueba_usada": boolean,"ref_codigo": string | null,"referido_por": string | null,"suspendido_motivo": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "ciudad"?: string | null,"config"?: NonNullable<Json>,"created_at"?: string,"estado"?: string,"id"?: string,"moneda"?: string,"nombre": string,"pais"?: string,"plan"?: string,"prueba_hasta"?: string | null,"prueba_usada"?: boolean,"suspendido_motivo"?: string | null
+                    "canal"?: string | null,"ciudad"?: string | null,"config"?: NonNullable<Json>,"contador_verificado"?: boolean,"created_at"?: string,"estado"?: string,"id"?: string,"moneda"?: string,"nombre": string,"pais"?: string,"plan"?: string,"prueba_hasta"?: string | null,"prueba_usada"?: boolean,"ref_codigo"?: string | null,"referido_por"?: string | null,"suspendido_motivo"?: string | null
                   }
                   Update: {
-                    "ciudad"?: string | null,"config"?: NonNullable<Json>,"created_at"?: string,"estado"?: string,"id"?: string,"moneda"?: string,"nombre"?: string,"pais"?: string,"plan"?: string,"prueba_hasta"?: string | null,"prueba_usada"?: boolean,"suspendido_motivo"?: string | null
+                    "canal"?: string | null,"ciudad"?: string | null,"config"?: NonNullable<Json>,"contador_verificado"?: boolean,"created_at"?: string,"estado"?: string,"id"?: string,"moneda"?: string,"nombre"?: string,"pais"?: string,"plan"?: string,"prueba_hasta"?: string | null,"prueba_usada"?: boolean,"ref_codigo"?: string | null,"referido_por"?: string | null,"suspendido_motivo"?: string | null
                   }
                   Relationships: [
                     {
@@ -313,6 +401,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "planes"
       referencedColumns: ["codigo"]
+    },{
+      foreignKeyName: "households_referido_por_fkey"
+      columns: ["referido_por"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
     }
                   ]
                 },"ia_usos": {
@@ -767,6 +861,9 @@ isOneToOne: false
               "compras_consumos": number,"consignaciones": number,"consumos_tarjeta": number,"ingresos_brutos": number,"member_id": string,"nombre": string,"patrimonio_bruto": number
             }[]
                            },
+"campana_hogares":
+{ Args: { "p_campana": string }; Returns: string[]
+                           },
 "cancelar_al_vencer":
 { Args: { "p_cancelar": boolean,"p_hogar": string }; Returns: undefined
                            },
@@ -779,6 +876,9 @@ isOneToOne: false
 "consola_activar":
 { Args: { "p_activo": boolean,"p_user": string }; Returns: undefined
                            },
+"consola_analitica":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "consola_auditoria":
 { Args: { "p_antes"?: number,"p_limite"?: number }; Returns: {
               "accion": string,"creada": string,"detalle": Json,"id": number,"ip": string,"objeto_nombre": string,"objeto_tipo": string,"quien_nombre": string
@@ -789,6 +889,34 @@ isOneToOne: false
                            },
 "consola_cambiar_rol":
 { Args: { "p_rol": Database["public"]['Enums']["rol_staff"],"p_user": string }; Returns: undefined
+                           },
+"consola_campanas":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "alcance": number,
+"asunto": string,
+"boton_texto": string | null,
+"boton_url": string | null,
+"creada_nombre": string,
+"creada_por": string | null,
+"created_at": string,
+"cuerpo": string,
+"enviada_en": string | null,
+"enviados": number,
+"estado": string,
+"id": string,
+"nombre": string,
+"programada_para": string | null,
+"segmento": string,
+"titulo": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "campanas"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
+"consola_cancelar_campana":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "consola_cancelar_invitacion":
 { Args: { "p_id": string }; Returns: undefined
@@ -803,6 +931,14 @@ isOneToOne: false
                            },
 "consola_cobros_resumen":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"consola_contadores":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"consola_correos_resumen":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "abiertos": number,"clics": number,"entregados": number,"enviados": number,"etiqueta": string,"rebotados": number,"ultimo": string
+            }[]
                            },
 "consola_cupones":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -854,6 +990,9 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"consola_guardar_campana":
+{ Args: { "p_asunto": string,"p_boton_texto": string,"p_boton_url": string,"p_cuerpo": string,"p_id": string,"p_nombre": string,"p_programada": string,"p_segmento": string,"p_titulo": string }; Returns: string
+                           },
 "consola_guardar_config":
 { Args: { "p_clave": string,"p_valor": Json }; Returns: undefined
                            },
@@ -893,6 +1032,12 @@ isOneToOne: false
 "consola_invitar":
 { Args: { "p_email": string,"p_nombre": string,"p_rol": Database["public"]['Enums']["rol_staff"] }; Returns: string
                            },
+"consola_liquidar_comisiones":
+{ Args: { "p_mes": string }; Returns: Json
+                           },
+"consola_marcar_comision":
+{ Args: { "p_id": string,"p_pagada": boolean }; Returns: undefined
+                           },
 "consola_marcar_reembolso":
 { Args: { "p_bajar_plan": boolean,"p_cobro": string,"p_motivo": string }; Returns: undefined
                            },
@@ -900,6 +1045,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "permisos": (Database["public"]['Enums']["permiso_staff"])[],"rol": Database["public"]['Enums']["rol_staff"]
             }[]
+                           },
+"consola_metricas":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "consola_nota_hogar":
 { Args: { "p_id": string,"p_texto": string }; Returns: undefined
@@ -932,6 +1080,9 @@ isOneToOne: false
 "consola_restablecer_2fa":
 { Args: { "p_user": string }; Returns: undefined
                            },
+"consola_segmentos":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "consola_suspender":
 { Args: { "p_id": string,"p_motivo": string,"p_suspender": boolean }; Returns: undefined
                            },
@@ -951,6 +1102,9 @@ isOneToOne: false
               "email": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"vencida": boolean
             }[]
                            },
+"consola_verificar_contador":
+{ Args: { "p_id": string,"p_verificada": boolean }; Returns: undefined
+                           },
 "correos_de_usuarios":
 { Args: { "p_ids": (string)[] }; Returns: {
               "email": string,"id": string
@@ -963,10 +1117,13 @@ isOneToOne: false
 { Args: { "p_cupon"?: string,"p_hogar": string,"p_periodo": string,"p_plan": string }; Returns: Json
                            },
 "crear_hogar":
-{ Args: { "p_nombre": string,"p_nombre_miembro": string }; Returns: string
+{ Args: { "p_canal"?: string,"p_nombre": string,"p_nombre_miembro": string,"p_ref"?: string }; Returns: string
                            },
 "custom_access_token_hook":
 { Args: { "event": Json }; Returns: Json
+                           },
+"elegir_hogar":
+{ Args: { "p_hogar": string }; Returns: undefined
                            },
 "generar_recurrentes_hogar":
 { Args: { "p_household": string }; Returns: number
@@ -983,8 +1140,24 @@ isOneToOne: false
 "integracion_leer":
 { Args: { "p_proveedor": string }; Returns: Json
                            },
+"mi_firma":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "mi_plan":
 { Args: { "p_hogar": string }; Returns: Json
+                           },
+"mis_clientes":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "admin_nombre": string,"created_at": string,"id": string,"miembros": number,"movimientos_30d": number,"nombre": string,"pais": string,"ultimo_movimiento": string
+            }[]
+                           },
+"mis_hogares_lista":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "activo": boolean,"id": string,"nombre": string,"plan": string,"rol": Database["public"]['Enums']["rol_miembro"]
+            }[]
+                           },
+"obtener_ref":
+{ Args: { "p_hogar": string }; Returns: string
                            },
 "procesar_vencimientos":
 { Args: { "p_hoy": string }; Returns: Json

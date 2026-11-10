@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Icono, Logo, type NombreIcono } from "@/components/marca";
 import { cx } from "@/components/ui";
 
-type Enlace = { href: string; texto: string; icono: NombreIcono; tambien?: string[] };
+export type Enlace = { href: string; texto: string; icono: NombreIcono; tambien?: string[] };
 
 const LATERAL: Enlace[] = [
   { href: "/", texto: "Inicio", icono: "resumen" },
@@ -56,12 +56,13 @@ function Pendiente() {
 }
 
 /** Navegación con el ítem activo según la ruta (usePathname: va detrás de <Suspense>). */
-export function Navegacion() {
-  return <BarraNavegacion ruta={usePathname()} />;
+export function Navegacion({ extras }: { extras?: Enlace[] }) {
+  return <BarraNavegacion ruta={usePathname()} extras={extras} />;
 }
 
 /** Barra lateral (laptop y escritorio) y barra inferior con botón de registrar (celular y tablet). */
-export function BarraNavegacion({ ruta }: { ruta: string | null }) {
+export function BarraNavegacion({ ruta, extras }: { ruta: string | null; extras?: Enlace[] }) {
+  const lateral = extras?.length ? [LATERAL[0], ...extras, ...LATERAL.slice(1)] : LATERAL;
   return (
     <>
       <div className="sticky top-0 hidden h-dvh shrink-0 py-4 pl-4 lg:flex">
@@ -78,7 +79,7 @@ export function BarraNavegacion({ ruta }: { ruta: string | null }) {
             </span>
           </Link>
           <nav className="flex flex-col">
-            {LATERAL.map((e) => {
+            {lateral.map((e) => {
               const activo = esActivo(ruta, e);
               return (
                 <Link

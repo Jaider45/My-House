@@ -5,10 +5,11 @@ import { formatearCOP } from "@/lib/dinero";
 import { formatearMes, hoy, sumarDias } from "@/lib/fechas";
 import { ETIQUETA_FRECUENCIA } from "@/lib/recurrentes";
 import { proximaFecha, textoAviso } from "@/lib/recordatorios";
-import { cambiarRecordatorio, cambiarResumenSemanal } from "./acciones";
+import { cambiarNovedades, cambiarRecordatorio, cambiarResumenSemanal } from "./acciones";
 import { leerConfigHogar } from "@/lib/hogar";
 import { FormularioRecordatorio } from "./formulario";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
+import type { Estado } from "@/lib/acciones";
 
 export const metadata = { title: "Recordatorios" };
 
@@ -38,7 +39,7 @@ async function Contenido() {
     ctx.supabase.from("recurring_rules").select("id, descripcion, monto, frecuencia, proxima_fecha, recordar").eq("activa", true).eq("tipo", "gasto"),
     ctx.supabase.from("households").select("config").eq("id", ctx.hogar.id).single(),
   ]);
-  const resumenSemanal = leerConfigHogar(hogar?.config).correo.resumen_semanal;
+  const { resumen_semanal: resumenSemanal, novedades } = leerConfigHogar(hogar?.config).correo;
   const items: Item[] = [
     ...(recordatorios ?? []).map((r) => ({
       clave: `r-${r.id}`,
@@ -140,23 +141,20 @@ async function Contenido() {
               <b className="text-tinta">Renta DIAN</b>: cuando alguien del hogar alcanza un tope para declarar.
             </li>
           </ul>
-          <FormularioAccion accion={cambiarResumenSemanal} className="mt-4 flex items-center justify-between gap-3 border-t border-divisor pt-4">
-            <input type="hidden" name="activo" value={resumenSemanal ? "0" : "1"} />
-            <span className="text-sm">
-              <b className="block">Resumen de la semana</b>
-              <span className="text-[13px] text-cuerpo">Los lunes: gastos, ingresos y lo que vence.</span>
-            </span>
-            <button
-              type="submit"
-              role="switch"
-              aria-checked={resumenSemanal}
-              aria-label="Resumen de la semana por correo"
-              disabled={!ctx.esAdmin}
-              className={cx("relative h-[26px] w-11 shrink-0 rounded-full border transition disabled:opacity-50", resumenSemanal ? "border-monte bg-monte" : "border-control bg-pista")}
-            >
-              <span className={cx("absolute top-0.5 size-5 rounded-full bg-white transition-all", resumenSemanal ? "left-5" : "left-0.5 shadow-[0_0_0_1px_var(--color-control)]")} />
-            </button>
-          </FormularioAccion>
+          <InterruptorCorreo
+            accion={cambiarResumenSemanal}
+            activo={resumenSemanal}
+            titulo="Resumen de la semana"
+            texto="Los lunes: gastos, ingresos y lo que vence."
+            puede={ctx.esAdmin}
+          />
+          <InterruptorCorreo
+            accion={cambiarNovedades}
+            activo={novedades}
+            titulo="Novedades y promociones"
+            texto="Mejoras de My House y ofertas de los planes, muy de vez en cuando."
+            puede={ctx.esAdmin}
+          />
           <p className="mt-3 text-[13px] text-tenue">
             Llegan a los adultos del hogar con acceso{ctx.esAdmin ? "" : "; el resumen lo activa un administrador"}. WhatsApp y las notificaciones del
             celular quedan guardados como preferencia hasta que se conecten esos canales.
@@ -164,5 +162,40 @@ async function Contenido() {
         </Tarjeta>
       </aside>
     </div>
+  );
+}
+
+/** Interruptor de una preferencia de correo del hogar (solo la cambia un administrador). */
+function InterruptorCorreo({
+  accion,
+  activo,
+  titulo,
+  texto,
+  puede,
+}: {
+  accion: (estado: Estado, datos: FormData) => Promise<Estado>;
+  activo: boolean;
+  titulo: string;
+  texto: string;
+  puede: boolean;
+}) {
+  return (
+    <FormularioAccion accion={accion} className="mt-4 flex items-center justify-between gap-3 border-t border-divisor pt-4">
+      <input type="hidden" name="activo" value={activo ? "0" : "1"} />
+      <span className="text-sm">
+        <b className="block">{titulo}</b>
+        <span className="text-[13px] text-cuerpo">{texto}</span>
+      </span>
+      <button
+        type="submit"
+        role="switch"
+        aria-checked={activo}
+        aria-label={titulo}
+        disabled={!puede}
+        className={cx("relative h-[26px] w-11 shrink-0 rounded-full border transition disabled:opacity-50", activo ? "border-monte bg-monte" : "border-control bg-pista")}
+      >
+        <span className={cx("absolute top-0.5 size-5 rounded-full bg-white transition-all", activo ? "left-5" : "left-0.5 shadow-[0_0_0_1px_var(--color-control)]")} />
+      </button>
+    </FormularioAccion>
   );
 }

@@ -1,13 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { avisarAdministradores, crearClienteServicio, cronAutorizado } from "@/lib/pagos/servidor";
-import { correoMora, correoPlanGratis, correoPruebaTermina, correoRenovacion } from "@/lib/correo/correos";
+import { administradores, avisarAdministradores, crearClienteServicio, cronAutorizado } from "@/lib/pagos/servidor";
+import { correoCampana, correoMora, correoPlanGratis, correoPruebaTermina, correoRenovacion } from "@/lib/correo/correos";
 import type { Contenido } from "@/lib/correo/plantilla";
-import { sitio } from "@/lib/correo/enviar";
+import { enviarCorreo, sitio } from "@/lib/correo/enviar";
 import { formatearCOP } from "@/lib/dinero";
 import { hoy as hoyBogota } from "@/lib/fechas";
 import { formatearFechaCorta } from "@/lib/consola/formato";
 
 export const maxDuration = 300;
+
+/** Correos por segundo al enviar campañas (límite de Resend; igual que /api/avisos). */
+const CORREOS_POR_SEGUNDO = Math.max(1, Number(process.env.AVISOS_CORREOS_POR_SEGUNDO) || 2);
+const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 type Aviso = {
   tipo: "renovacion" | "mora" | "gratis" | "cancelada" | "prueba";
@@ -27,7 +31,8 @@ const fecha = (d?: string) => formatearFechaCorta(d ? (d.length === 10 ? `${d}T1
  * Vencimientos de los planes (Vercel Cron, todos los días a las 7:15 a. m. de Bogotá, `Authorization: Bearer
  * $CRON_SECRET`). `procesar_vencimientos` hace los cambios (renovación, mora, baja a Gratis) y devuelve los avisos;
  * aquí se envían por correo a los administradores. `avisos_enviados` evita repetir un correo si el cron corre dos
- * veces. `?hoy=AAAA-MM-DD` simula otra fecha fuera de producción (o con AVISOS_SIMULAR_FECHA=1).
+ * veces. También envía las campañas programadas (consola → Comunicaciones). `?hoy=AAAA-MM-DD` simula otra fecha
+ * fuera de producción (o con AVISOS_SIMULAR_FECHA=1).
  */
 export async function GET(request: NextRequest) {
   if (!cronAutorizado(request.headers.get("authorization"), process.env.CRON_SECRET)) {
@@ -76,6 +81,39 @@ export async function GET(request: NextRequest) {
     await db.from("avisos_enviados").update({ destinatarios: enviados }).eq("household_id", a.hogar).eq("clave", clave);
   }
 
-  console.log("[cobros]", hoy, JSON.stringify(resumen));
-  return NextResponse.json({ hoy, ...resumen });
+  // ── Campañas programadas (consola → Comunicaciones). Cada una se reclama una sola vez. ──
+  const campanas = { enviadas: 0, correos: 0 };
+  const { data: programadas } = await db
+    .from("campanas")
+    .select("id")
+    .eq("estado", "programada")
+    .lte("programada_para", new Date().toISOString())
+    .limit(5);
+  for (const { id } of programadas ?? []) {
+    const { data: mia } = await db.from("campanas").update({ estado: "enviando" }).eq("id", id).eq("estado", "programada").select("*");
+    const c = mia?.[0];
+    if (!c) continue;
+    const { data: hogares } = await db.rpc("campana_hogares", { p_campana: c.id });
+    let enviados = 0;
+    for (const h of hogares ?? []) {
+      for (const a of await administradores(db, h)) {
+        const r = await enviarCorreo({
+          para: a.email,
+          etiqueta: "campana",
+          contenido: correoCampana({ nombre: a.nombre, asunto: c.asunto, titulo: c.titulo, cuerpo: c.cuerpo, botonTexto: c.boton_texto, botonUrl: c.boton_url, sitio: sitio() }),
+        });
+        if (r.enviado) enviados++;
+        await esperar(Math.ceil(1000 / CORREOS_POR_SEGUNDO));
+      }
+    }
+    await db
+      .from("campanas")
+      .update({ estado: "enviada", alcance: (hogares ?? []).length, enviados, enviada_en: new Date().toISOString() })
+      .eq("id", c.id);
+    campanas.enviadas++;
+    campanas.correos += enviados;
+  }
+
+  console.log("[cobros]", hoy, JSON.stringify({ ...resumen, campanas }));
+  return NextResponse.json({ hoy, ...resumen, campanas });
 }
