@@ -5,6 +5,10 @@
 WebApp (PWA) para que un hogar registre ingresos y gastos, conozca su costo de vida, y llegue a la
 declaración de renta con todo ordenado. MVP para una familia; arquitectura multi-tenant (SaaS) desde el día uno.
 
+**Fase actual: SaaS** (rama `feat/saas`). Abrir la app a muchas familias y contadores, con planes, cobro y una consola
+para el equipo de My House. Objetivo, pantallas, arquitectura y fases S0–S8 en `docs/ROADMAP-SAAS.md` (diseños:
+sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin*.dc.html`).
+
 - Interfaz en español, locale `es-CO`, moneda COP, miles con punto (`$ 1.234.567`). Zona horaria `America/Bogota`.
 - Jurisdicción tributaria inicial: Colombia (DIAN). El módulo tributario es intercambiable por país (`src/lib/impuestos`).
 
@@ -266,7 +270,18 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] 13. Velocidad (JWT con hogar), pantallas del diseño, asistente de comprobantes e importación de PDF
 - [x] 14. Contexto del hogar (personas a cargo, dependientes DIAN), OpenAI como proveedor, filtro Personal/Negocio,
   registro sin conexión, tuteo en toda la app
-- [ ] Publicar en Supabase Cloud + Vercel (requiere las cuentas del usuario)
+- [ ] Publicar en Supabase Cloud + Vercel (requiere las cuentas del usuario) — es la fase S0 del roadmap SaaS
+
+### Fase SaaS (`docs/ROADMAP-SAAS.md`)
+- [ ] S0. Despliegue y bases legales (términos, política Ley 1581, consentimientos)
+- [ ] S1. Consola: acceso con 2FA, equipo y permisos, auditoría
+- [ ] S2. Planes y límites (sin cobro), Hogares, Usuarios
+- [ ] S3. Cobro con Wompi, cupones, recuperación de pagos fallidos, factura electrónica
+- [ ] S4. Métricas (panel, analítica) y comunicaciones (campañas)
+- [ ] S5. Contadores: selector de hogares, panel, referidos y comisiones
+- [ ] S6. Parámetros DIAN, catálogos e IA desde la consola
+- [ ] S7. Soporte y privacidad (acceso con permiso, Ley 1581)
+- [ ] S8. Sistema (feature flags, mantenimiento)
 
 ### Criterios de terminado de la Fase 1 (verificados el 2026-11-04 en local)
 - Dos usuarios del mismo hogar ven los mismos movimientos y otro hogar no ve nada: `tests/rls` + prueba en
