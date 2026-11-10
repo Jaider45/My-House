@@ -24,6 +24,10 @@ export function muestras(sitio: string): Record<string, { nombre: string; conten
       nombre: "Acceso de contador",
       contenido: c.correoContador({ quien: "Andrés", hogar: "Hogar Martínez Rojas", url: `${sitio}/invitacion/demo`, vence: "viernes 13 de noviembre", anio: 2026 }),
     },
+    equipo: {
+      nombre: "Invitación al equipo (consola)",
+      contenido: c.correoEquipo({ quien: "Jaider", nombre: "Daniela", rol: "Soporte", url: `${sitio}/consola/invitacion/demo`, vence: "lunes 16 de noviembre" }),
+    },
     seguridad: {
       nombre: "Nuevo inicio de sesión",
       contenido: c.correoSeguridad({ nombre: "Andrés", dispositivo: "Chrome en Android", lugar: "Medellín, Colombia", fecha: "6 nov 2026, 7:31 a. m.", urlProteger: `${sitio}/recuperar`, urlSitio: `${sitio}/` }),

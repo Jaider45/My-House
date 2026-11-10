@@ -77,6 +77,20 @@ isOneToOne: false
       referencedColumns: ["id","household_id"]
     }
                   ]
+                },"auditoria": {
+                  Row: {
+                    "accion": string,"agente": string | null,"creada": string,"detalle": NonNullable<Json>,"id": number,"ip": string | null,"objeto_id": string | null,"objeto_nombre": string | null,"objeto_tipo": string | null,"quien": string | null,"quien_nombre": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "accion": string,"agente"?: string | null,"creada"?: string,"detalle"?: NonNullable<Json>,"id"?: never,"ip"?: string | null,"objeto_id"?: string | null,"objeto_nombre"?: string | null,"objeto_tipo"?: string | null,"quien"?: string | null,"quien_nombre": string
+                  }
+                  Update: {
+                    "accion"?: string,"agente"?: string | null,"creada"?: string,"detalle"?: NonNullable<Json>,"id"?: never,"ip"?: string | null,"objeto_id"?: string | null,"objeto_nombre"?: string | null,"objeto_tipo"?: string | null,"quien"?: string | null,"quien_nombre"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"avisos_enviados": {
                   Row: {
                     "clave": string,"created_at": string,"destinatarios": number,"household_id": string,"tipo": string
@@ -313,6 +327,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"platform_staff": {
+                  Row: {
+                    "activo": boolean,"created_at": string,"invitado_por": string | null,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activo"?: boolean,"created_at"?: string,"invitado_por"?: string | null,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "activo"?: boolean,"created_at"?: string,"invitado_por"?: string | null,"nombre"?: string,"rol"?: Database["public"]['Enums']["rol_staff"],"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"receipts": {
                   Row: {
                     "archivo_path": string | null,"created_at": string,"created_by": string | null,"datos": NonNullable<Json>,"estado": Database["public"]['Enums']["comprobante_estado"],"household_id": string,"id": string,"mime": string | null,"nombre_archivo": string | null,"pregunta": string | null,"transaction_id": string | null
@@ -402,6 +430,20 @@ isOneToOne: false
       referencedRelation: "households"
       referencedColumns: ["id"]
     }
+                  ]
+                },"staff_invitaciones": {
+                  Row: {
+                    "aceptada": string | null,"creada_por": string | null,"created_at": string,"email": string,"id": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"token_hash": string,"vence": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "aceptada"?: string | null,"creada_por"?: string | null,"created_at"?: string,"email": string,"id"?: string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"token_hash": string,"vence"?: string
+                  }
+                  Update: {
+                    "aceptada"?: string | null,"creada_por"?: string | null,"created_at"?: string,"email"?: string,"id"?: string,"nombre"?: string,"rol"?: Database["public"]['Enums']["rol_staff"],"token_hash"?: string,"vence"?: string
+                  }
+                  Relationships: [
+                    
                   ]
                 },"tax_params": {
                   Row: {
@@ -545,6 +587,69 @@ isOneToOne: false
               "compras_consumos": number,"consignaciones": number,"consumos_tarjeta": number,"ingresos_brutos": number,"member_id": string,"nombre": string,"patrimonio_bruto": number
             }[]
                            },
+"consola_aceptar_invitacion":
+{ Args: { "p_token": string }; Returns: Database["public"]['Enums']["rol_staff"]
+                           },
+"consola_activar":
+{ Args: { "p_activo": boolean,"p_user": string }; Returns: undefined
+                           },
+"consola_auditoria":
+{ Args: { "p_antes"?: number,"p_limite"?: number }; Returns: {
+              "accion": string,"creada": string,"detalle": Json,"id": number,"ip": string,"objeto_nombre": string,"objeto_tipo": string,"quien_nombre": string
+            }[]
+                           },
+"consola_cambiar_rol":
+{ Args: { "p_rol": Database["public"]['Enums']["rol_staff"],"p_user": string }; Returns: undefined
+                           },
+"consola_cancelar_invitacion":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"consola_equipo":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "activo": boolean,"created_at": string,"dos_pasos": string,"email": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"ultimo_ingreso": string,"user_id": string
+            }[]
+                           },
+"consola_exportar_auditoria":
+{ Args: { "p_desde": string,"p_hasta": string }; Returns: {
+              "accion": string,
+"agente": string | null,
+"creada": string,
+"detalle": NonNullable<Json>,
+"id": number,
+"ip": string | null,
+"objeto_id": string | null,
+"objeto_nombre": string | null,
+"objeto_tipo": string | null,
+"quien": string | null,
+"quien_nombre": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "auditoria"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
+"consola_invitaciones":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "creada_por": string,"created_at": string,"email": string,"id": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"vence": string
+            }[]
+                           },
+"consola_invitar":
+{ Args: { "p_email": string,"p_nombre": string,"p_rol": Database["public"]['Enums']["rol_staff"] }; Returns: string
+                           },
+"consola_matriz_permisos":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "permisos": (Database["public"]['Enums']["permiso_staff"])[],"rol": Database["public"]['Enums']["rol_staff"]
+            }[]
+                           },
+"consola_registrar_ingreso":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"consola_ver_invitacion":
+{ Args: { "p_token": string }; Returns: {
+              "email": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"vencida": boolean
+            }[]
+                           },
 "correos_de_usuarios":
 { Args: { "p_ids": (string)[] }; Returns: {
               "email": string,"id": string
@@ -580,7 +685,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "adjunto_tipo": "factura"|"certificado"|"extracto","ambito": "personal"|"negocio","categoria_clase": "gasto"|"ingreso","categoria_tipo": "fijo"|"variable","comprobante_estado": "procesando"|"registrado"|"soporte"|"por_revisar"|"descartado"|"error","cuenta_tipo": "banco"|"efectivo"|"tarjeta"|"billetera","frecuencia": "semanal"|"quincenal"|"mensual"|"bimestral"|"trimestral"|"semestral"|"anual","meta_tipo": "presupuesto"|"meta","mov_estado": "confirmado"|"programado","mov_origen": "manual"|"importacion"|"recurrente"|"ocr"|"whatsapp"|"banco","mov_tipo": "ingreso"|"gasto"|"transferencia","periodo": "mensual"|"anual"|"unico","repeticion": "una_vez"|"mensual"|"anual","rol_miembro": "admin"|"editor"|"contador"
+            "adjunto_tipo": "factura"|"certificado"|"extracto","ambito": "personal"|"negocio","categoria_clase": "gasto"|"ingreso","categoria_tipo": "fijo"|"variable","comprobante_estado": "procesando"|"registrado"|"soporte"|"por_revisar"|"descartado"|"error","cuenta_tipo": "banco"|"efectivo"|"tarjeta"|"billetera","frecuencia": "semanal"|"quincenal"|"mensual"|"bimestral"|"trimestral"|"semestral"|"anual","meta_tipo": "presupuesto"|"meta","mov_estado": "confirmado"|"programado","mov_origen": "manual"|"importacion"|"recurrente"|"ocr"|"whatsapp"|"banco","mov_tipo": "ingreso"|"gasto"|"transferencia","periodo": "mensual"|"anual"|"unico","permiso_staff": "ver_hogares"|"ver_finanzas"|"tickets"|"cobros"|"planes"|"parametros"|"campanas"|"equipo"|"exportar"|"sistema"|"auditoria","repeticion": "una_vez"|"mensual"|"anual","rol_miembro": "admin"|"editor"|"contador","rol_staff": "superadmin"|"soporte"|"finanzas"|"contenido"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -696,7 +801,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "adjunto_tipo": ["factura", "certificado", "extracto"],"ambito": ["personal", "negocio"],"categoria_clase": ["gasto", "ingreso"],"categoria_tipo": ["fijo", "variable"],"comprobante_estado": ["procesando", "registrado", "soporte", "por_revisar", "descartado", "error"],"cuenta_tipo": ["banco", "efectivo", "tarjeta", "billetera"],"frecuencia": ["semanal", "quincenal", "mensual", "bimestral", "trimestral", "semestral", "anual"],"meta_tipo": ["presupuesto", "meta"],"mov_estado": ["confirmado", "programado"],"mov_origen": ["manual", "importacion", "recurrente", "ocr", "whatsapp", "banco"],"mov_tipo": ["ingreso", "gasto", "transferencia"],"periodo": ["mensual", "anual", "unico"],"repeticion": ["una_vez", "mensual", "anual"],"rol_miembro": ["admin", "editor", "contador"]
+            "adjunto_tipo": ["factura", "certificado", "extracto"],"ambito": ["personal", "negocio"],"categoria_clase": ["gasto", "ingreso"],"categoria_tipo": ["fijo", "variable"],"comprobante_estado": ["procesando", "registrado", "soporte", "por_revisar", "descartado", "error"],"cuenta_tipo": ["banco", "efectivo", "tarjeta", "billetera"],"frecuencia": ["semanal", "quincenal", "mensual", "bimestral", "trimestral", "semestral", "anual"],"meta_tipo": ["presupuesto", "meta"],"mov_estado": ["confirmado", "programado"],"mov_origen": ["manual", "importacion", "recurrente", "ocr", "whatsapp", "banco"],"mov_tipo": ["ingreso", "gasto", "transferencia"],"periodo": ["mensual", "anual", "unico"],"permiso_staff": ["ver_hogares", "ver_finanzas", "tickets", "cobros", "planes", "parametros", "campanas", "equipo", "exportar", "sistema", "auditoria"],"repeticion": ["una_vez", "mensual", "anual"],"rol_miembro": ["admin", "editor", "contador"],"rol_staff": ["superadmin", "soporte", "finanzas", "contenido"]
           }
         }
 } as const

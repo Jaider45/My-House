@@ -4,8 +4,11 @@ import { cookies } from "next/headers";
 import { connection } from "next/server";
 import type { Database } from "./database.types";
 
-/** Cliente con la sesión del usuario (RLS aplica). Llamar solo detrás de <Suspense> o en Server Actions. */
-export async function crearClienteServidor() {
+/**
+ * Cliente con la sesión del usuario (RLS aplica). Llamar solo detrás de <Suspense> o en Server Actions.
+ * `cabeceras` viajan en cada petición a PostgREST (la consola manda IP y navegador para la auditoría).
+ */
+export async function crearClienteServidor(cabeceras?: Record<string, string>) {
   // Todo lo que pasa por Supabase es por request: supabase-js usa Date.now() para la sesión y los datos
   // financieros no se cachean.
   await connection();
@@ -14,6 +17,7 @@ export async function crearClienteServidor() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      ...(cabeceras && { global: { headers: cabeceras } }),
       cookies: {
         getAll: () => almacen.getAll(),
         setAll: (lista) => {

@@ -142,6 +142,17 @@ que aparecen en filtraciones conocidas (HaveIBeenPwned). La app ya muestra un me
 
 ## 3. Primer uso
 
+**Consola del equipo (`/consola`).** Para entrar tú primero, crea tu cuenta en `/registro` y dale el rol de superadmin
+desde tu computador (la llave `service_role` no sale de ahí):
+
+```bash
+SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<llave service_role> \
+  node scripts/crear-superadmin.mjs tu@correo.com "Tu nombre"
+```
+
+Luego abre `https://tu-dominio/consola`: te pide activar la verificación en dos pasos (obligatoria para el equipo).
+Al resto del equipo lo invitas desde **Equipo y permisos**.
+
 1. Abre la URL en el celular, crea tu cuenta (confirma el correo) y luego el hogar.
 2. **Configuración → Seguridad:** activa la verificación en dos pasos.
 3. **Configuración → Miembros:** invita a tu pareja y comparte el enlace por WhatsApp.

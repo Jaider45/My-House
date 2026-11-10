@@ -135,7 +135,7 @@ Sin esto no se puede abrir el registro a terceros.
 
 **Criterio:** la app corre en producción con dominio propio y nadie se registra sin aceptar la política.
 
-### S1 · Consola: acceso, equipo y auditoría (2 semanas) — pantallas 1, 15, 16 (parte de auditoría)
+### S1 · Consola: acceso, equipo y auditoría (2 semanas) — pantallas 1, 15, 16 (parte de auditoría) · ✅ hecha
 
 - Migración: `platform_staff`, `permisos_staff` (matriz fija en SQL), `auditoria`, claim `staff_rol` en el hook.
 - `/consola/ingresar` (pantalla 1): mismo flujo de contraseña + TOTP, AAL2 obligatorio, registro de cada ingreso.

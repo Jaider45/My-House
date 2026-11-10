@@ -238,6 +238,21 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     Seguridad) usa acciones de servidor, no `crearClienteNavegador`. Consultas independientes de una página van en
     `Promise.all` (Movimientos arranca catálogos y movimientos juntos). Medir: suma de chunks de
     `.next/server/app/<ruta>/page_client-reference-manifest.js` tras `npm run build`.
+33. Consola del equipo (`/consola`, SaaS S1; migración `consola`). El equipo de My House (`platform_staff`, roles
+    `superadmin`/`soporte`/`finanzas`/`contenido`) NO es miembro de ningún hogar. Todo pasa por funciones `consola_*`
+    (security definer) que llaman `private.exigir_staff(permiso)`: persona activa + **AAL2 exigido en la base** + permiso
+    de la matriz `private.permisos_de_rol` (réplica en `src/lib/consola/permisos.ts`; `tests/rls/consola.test.ts` verifica
+    que coincidan). Tablas sin políticas de escritura; las funciones devuelven datos del equipo y agregados, nunca
+    movimientos ni montos de un hogar. `auditoria` es inmutable (trigger bloquea update/delete/truncate, también a
+    service_role); `private.auditar` guarda IP y navegador de las cabeceras `x-mh-ip`/`x-mh-agente`, que manda
+    `crearClienteConsola()`. El JWT trae `staff: {rol, nombre}` (hook) solo para el chequeo optimista del proxy;
+    `obtenerStaff()` relee la fila propia en cada request (desactivar corta el acceso en el siguiente clic).
+    Proxy: sin sesión → `/consola/ingresar`; cliente → `/`; equipo sin AAL2 → código o `/consola/dos-pasos` (2FA
+    obligatoria); 30 min sin abrir pantallas de la consola (cookie `mh_consola_actividad`, path `/consola`) →
+    `/consola/salir?motivo=inactividad`. El ingreso termina en `entrar()` (`src/lib/consola/ingreso.ts`: registra
+    `ingreso_consola` y reinicia la cookie). Invitaciones: token en el enlace, en la base solo su sha256; se acepta con
+    el mismo correo. Primer superadmin: `node scripts/crear-superadmin.mjs correo "Nombre"` (service_role).
+    No hechos del diseño: «confiar en este equipo 12 h» (bajaría a AAL1), llave de seguridad (WebAuthn), IP permitidas.
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
@@ -274,7 +289,7 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 
 ### Fase SaaS (`docs/ROADMAP-SAAS.md`)
 - [ ] S0. Despliegue y bases legales (términos, política Ley 1581, consentimientos)
-- [ ] S1. Consola: acceso con 2FA, equipo y permisos, auditoría
+- [x] S1. Consola: acceso con 2FA, equipo y permisos, auditoría (verificado en local el 2026-11-09)
 - [ ] S2. Planes y límites (sin cobro), Hogares, Usuarios
 - [ ] S3. Cobro con Wompi, cupones, recuperación de pagos fallidos, factura electrónica
 - [ ] S4. Métricas (panel, analítica) y comunicaciones (campañas)

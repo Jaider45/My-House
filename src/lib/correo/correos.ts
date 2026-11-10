@@ -172,6 +172,23 @@ export function correoContador(d: { quien: string; hogar: string; url: string; v
   };
 }
 
+/** Invitación al equipo de My House (consola). Exige 2FA: se avisa desde el correo. */
+export function correoEquipo(d: { quien: string; nombre: string; rol: string; url: string; vence: string }): Contenido {
+  return {
+    asunto: `${d.quien} te invitó al equipo de My House`,
+    vistaPrevia: `Acceso a la consola con el rol ${d.rol}.`,
+    etiqueta: "Equipo",
+    icono: { nombre: "configuracion", tono: "claro" },
+    titulo: `Hola ${d.nombre}, te invitaron a la consola de My House`,
+    intro: `${d.quien} te dio acceso a la consola de administración con el rol ${d.rol}.`,
+    tarjeta: { filas: [{ k: "Rol", v: d.rol }, { k: "Vence", v: d.vence }] },
+    botones: [{ texto: "Aceptar invitación", url: d.url }],
+    enlaceAlterno: d.url,
+    nota: { texto: "Al entrar activarás la verificación en dos pasos: es obligatoria para el equipo. Si no esperabas este correo, ignóralo." },
+    porque: `Recibes este correo porque ${d.quien} escribió tu dirección en la consola de My House.`,
+  };
+}
+
 export function correoSeguridad(d: { nombre: string; dispositivo: string; lugar: string | null; fecha: string; urlProteger: string; urlSitio: string }): Contenido {
   const filas: Fila[] = [{ k: "Dispositivo", v: d.dispositivo }];
   if (d.lugar) filas.push({ k: "Lugar aproximado", v: d.lugar });
