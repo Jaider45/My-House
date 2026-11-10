@@ -25,6 +25,8 @@ type ClaimHogar = {
   pais: string;
   moneda: string;
   cuota_imprevistos_pct: number;
+  /** Hogar suspendido desde la consola: solo lectura (la base lo hace cumplir en private.tiene_rol). */
+  suspendido?: boolean;
 };
 
 /**

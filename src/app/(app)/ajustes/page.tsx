@@ -17,6 +17,7 @@ const SECCIONES: { href: string; titulo: string; texto: string; icono: NombreIco
   { href: "/importar", titulo: "Importar extracto", texto: "PDF o CSV del banco, sin duplicados", icono: "egresos" },
   { href: "/ajustes/hogar", titulo: "Hogar", texto: "Nombre y cuota de imprevistos", icono: "casa" },
   { href: "/ajustes/miembros", titulo: "Miembros", texto: "Pareja, hijos, contador e invitaciones", icono: "familia" },
+  { href: "/ajustes/plan", titulo: "Plan", texto: "Lo que incluye, cuánto usas y tus pagos", icono: "ahorro" },
   { href: "/categorias", titulo: "Categorías", texto: "Árbol de gastos e ingresos", icono: "resumen" },
   { href: "/ajustes/seguridad", titulo: "Seguridad", texto: "Verificación en dos pasos", icono: "certificados" },
 ];

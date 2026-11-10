@@ -8,6 +8,8 @@ import { ETIQUETA_FRECUENCIA, montoMensual } from "@/lib/recurrentes";
 import { filasPresupuesto, semaforo as semaforoTotal, type Semaforo } from "@/lib/presupuesto";
 import { cargarPlan } from "@/lib/presupuesto/servidor";
 import { cargarCatalogos } from "@/lib/catalogos";
+import { tieneFuncion } from "@/lib/planes/servidor";
+import Link from "next/link";
 import type { TotalCategoria } from "@/lib/finanzas";
 import { FormularioRegla } from "../recurrentes/formulario";
 import { FormularioPresupuesto } from "./formulario";
@@ -37,10 +39,11 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
   const editar = sp.editar === "1" && ctx.puedeEditar;
   const { hasta } = rangoMes(mes);
 
-  const [catalogos, { reglas: activas, presupuestos }, { data: filas }] = await Promise.all([
+  const [catalogos, { reglas: activas, presupuestos }, { data: filas }, conPronostico] = await Promise.all([
     cargarCatalogos(ctx),
     cargarPlan(ctx, mes, fecha),
     ctx.supabase.rpc("totales_por_categoria", { p_household: ctx.hogar.id, p_desde: rangoMes(sumarMeses(mes, -3)).desde, p_hasta: hasta }),
+    tieneFuncion("metas"),
   ]);
   const categorias = catalogos.categorias as Categoria[];
   const reglas = activas.filter((r) => r.tipo === "gasto");
@@ -157,8 +160,8 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
             <Kpi
               icono="resumen"
               etiqueta="Pronóstico de cierre"
-              valor={formatearCOP(total.pronostico)}
-              detalle={
+              valor={conPronostico ? formatearCOP(total.pronostico) : "Plan Familia"}
+              detalle={!conPronostico ? <Link href="/ajustes/plan" className="font-semibold underline-offset-4 hover:underline">Ver planes</Link> :
                 <span className="inline-flex flex-wrap items-center gap-1.5">
                   <Chip tono={estadoTotal.tono}>{estadoTotal.texto}</Chip>
                   {total.pronostico > total.presupuesto ? `${formatearCOP(total.pronostico - total.presupuesto)} sobre el presupuesto` : `${formatearCOP(total.presupuesto - total.pronostico)} por debajo`}

@@ -140,6 +140,20 @@ que aparecen en filtraciones conocidas (HaveIBeenPwned). La app ya muestra un me
 3. Despliega. Si cambia la URL (dominio propio), actualiza `NEXT_PUBLIC_SITE_URL`, las URLs de Supabase, el dominio
    del widget de Turnstile y los orígenes de Google.
 
+### 2.1 Cobro de los planes (Wompi)
+
+1. Crea la cuenta de comercio en <https://comercios.wompi.co> (necesita RUT o razón social).
+2. **Desarrolladores → Llaves del API**: copia la llave pública, el secreto de integridad y el secreto de eventos. En
+   el sandbox empiezan por `pub_test_`, `test_integrity_` y `test_events_`. Agrégalas en Vercel como
+   `WOMPI_PUBLIC_KEY`, `WOMPI_INTEGRITY_SECRET` y `WOMPI_EVENTS_SECRET` (solo servidor, sin `NEXT_PUBLIC_`).
+3. **Desarrolladores → URL de eventos**: `https://tu-dominio/api/pagos/wompi`. Es lo único que da por pagado un plan.
+4. Prueba en sandbox con las tarjetas de prueba de Wompi: el plan pasa a Familia en segundos y llega el correo «Recibimos
+   tu pago». En la consola, **Suscripciones y cobros** avisa si Wompi está en modo pruebas.
+5. El cron `/api/cobros` (7:15 a. m.) renueva, avisa la mora y baja a Gratis al día 14. Usa `CRON_SECRET` y
+   `SUPABASE_SERVICE_ROLE_KEY`, como `/api/avisos`.
+6. Factura electrónica: falta elegir el proveedor (Alegra, Factus u otro con API). Mientras tanto los cobros quedan
+   con factura «Pendiente» en la consola.
+
 ## 3. Primer uso
 
 **Consola del equipo (`/consola`).** Para entrar tú primero, crea tu cuenta en `/registro` y dale el rol de superadmin

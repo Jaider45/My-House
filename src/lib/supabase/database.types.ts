@@ -163,6 +163,78 @@ isOneToOne: false
       referencedColumns: ["id","household_id"]
     }
                   ]
+                },"cobros": {
+                  Row: {
+                    "creado": string,"cupon": string | null,"descuento": number,"error": string | null,"estado": string,"factura_estado": string,"factura_numero": string | null,"factura_url": string | null,"household_id": string,"id": string,"metodo": string | null,"metodo_detalle": string | null,"monto": number,"motivo": string,"pagado_en": string | null,"pasarela": string,"periodo": string,"periodo_vence": string | null,"plan": string,"precio": number,"reembolso_motivo": string | null,"referencia": string,"transaccion_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "creado"?: string,"cupon"?: string | null,"descuento"?: number,"error"?: string | null,"estado"?: string,"factura_estado"?: string,"factura_numero"?: string | null,"factura_url"?: string | null,"household_id": string,"id"?: string,"metodo"?: string | null,"metodo_detalle"?: string | null,"monto": number,"motivo": string,"pagado_en"?: string | null,"pasarela"?: string,"periodo": string,"periodo_vence"?: string | null,"plan": string,"precio": number,"reembolso_motivo"?: string | null,"referencia": string,"transaccion_id"?: string | null
+                  }
+                  Update: {
+                    "creado"?: string,"cupon"?: string | null,"descuento"?: number,"error"?: string | null,"estado"?: string,"factura_estado"?: string,"factura_numero"?: string | null,"factura_url"?: string | null,"household_id"?: string,"id"?: string,"metodo"?: string | null,"metodo_detalle"?: string | null,"monto"?: number,"motivo"?: string,"pagado_en"?: string | null,"pasarela"?: string,"periodo"?: string,"periodo_vence"?: string | null,"plan"?: string,"precio"?: number,"reembolso_motivo"?: string | null,"referencia"?: string,"transaccion_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "cobros_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cobros_plan_fkey"
+      columns: ["plan"]
+isOneToOne: false
+      referencedRelation: "planes"
+      referencedColumns: ["codigo"]
+    }
+                  ]
+                },"cupones": {
+                  Row: {
+                    "activo": boolean,"codigo": string,"created_at": string,"descripcion": string,"desde": string,"hasta": string | null,"periodo": string | null,"periodos": number | null,"planes": (string)[],"tipo": string,"usos": number,"usos_max": number | null,"valor": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activo"?: boolean,"codigo": string,"created_at"?: string,"descripcion"?: string,"desde"?: string,"hasta"?: string | null,"periodo"?: string | null,"periodos"?: number | null,"planes"?: (string)[],"tipo": string,"usos"?: number,"usos_max"?: number | null,"valor": number
+                  }
+                  Update: {
+                    "activo"?: boolean,"codigo"?: string,"created_at"?: string,"descripcion"?: string,"desde"?: string,"hasta"?: string | null,"periodo"?: string | null,"periodos"?: number | null,"planes"?: (string)[],"tipo"?: string,"usos"?: number,"usos_max"?: number | null,"valor"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"cupones_usos": {
+                  Row: {
+                    "cobro_id": string | null,"creado": string,"cupon": string,"household_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cobro_id"?: string | null,"creado"?: string,"cupon": string,"household_id": string
+                  }
+                  Update: {
+                    "cobro_id"?: string | null,"creado"?: string,"cupon"?: string,"household_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "cupones_usos_cobro_id_fkey"
+      columns: ["cobro_id"]
+isOneToOne: false
+      referencedRelation: "cobros"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cupones_usos_cupon_fkey"
+      columns: ["cupon"]
+isOneToOne: false
+      referencedRelation: "cupones"
+      referencedColumns: ["codigo"]
+    },{
+      foreignKeyName: "cupones_usos_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"debts": {
                   Row: {
                     "archivada": boolean,"created_at": string,"cuota": number | null,"cuotas_total": number | null,"detalle": string | null,"dia_pago": number | null,"fecha_limite": string | null,"household_id": string,"id": string,"member_id": string | null,"monto": number,"nombre": string,"pagado_inicial": number
@@ -189,19 +261,59 @@ isOneToOne: false
       referencedColumns: ["id","household_id"]
     }
                   ]
-                },"households": {
+                },"eventos_pasarela": {
                   Row: {
-                    "ciudad": string | null,"config": NonNullable<Json>,"created_at": string,"id": string,"moneda": string,"nombre": string,"pais": string,"plan": string
+                    "estado": string | null,"id": string,"pasarela": string,"payload": NonNullable<Json>,"recibido": string,"referencia": string | null,"resultado": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "ciudad"?: string | null,"config"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"moneda"?: string,"nombre": string,"pais"?: string,"plan"?: string
+                    "estado"?: string | null,"id": string,"pasarela"?: string,"payload": NonNullable<Json>,"recibido"?: string,"referencia"?: string | null,"resultado"?: string | null
                   }
                   Update: {
-                    "ciudad"?: string | null,"config"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"moneda"?: string,"nombre"?: string,"pais"?: string,"plan"?: string
+                    "estado"?: string | null,"id"?: string,"pasarela"?: string,"payload"?: NonNullable<Json>,"recibido"?: string,"referencia"?: string | null,"resultado"?: string | null
                   }
                   Relationships: [
                     
+                  ]
+                },"hogar_notas": {
+                  Row: {
+                    "autor": string | null,"autor_nombre": string,"creada": string,"household_id": string,"id": number,"texto": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "autor"?: string | null,"autor_nombre": string,"creada"?: string,"household_id": string,"id"?: never,"texto": string
+                  }
+                  Update: {
+                    "autor"?: string | null,"autor_nombre"?: string,"creada"?: string,"household_id"?: string,"id"?: never,"texto"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "hogar_notas_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"households": {
+                  Row: {
+                    "ciudad": string | null,"config": NonNullable<Json>,"created_at": string,"estado": string,"id": string,"moneda": string,"nombre": string,"pais": string,"plan": string,"prueba_hasta": string | null,"prueba_usada": boolean,"suspendido_motivo": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "ciudad"?: string | null,"config"?: NonNullable<Json>,"created_at"?: string,"estado"?: string,"id"?: string,"moneda"?: string,"nombre": string,"pais"?: string,"plan"?: string,"prueba_hasta"?: string | null,"prueba_usada"?: boolean,"suspendido_motivo"?: string | null
+                  }
+                  Update: {
+                    "ciudad"?: string | null,"config"?: NonNullable<Json>,"created_at"?: string,"estado"?: string,"id"?: string,"moneda"?: string,"nombre"?: string,"pais"?: string,"plan"?: string,"prueba_hasta"?: string | null,"prueba_usada"?: boolean,"suspendido_motivo"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "households_plan_fk"
+      columns: ["plan"]
+isOneToOne: false
+      referencedRelation: "planes"
+      referencedColumns: ["codigo"]
+    }
                   ]
                 },"ia_usos": {
                   Row: {
@@ -327,6 +439,34 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"planes": {
+                  Row: {
+                    "codigo": string,"descripcion": string,"limites": NonNullable<Json>,"nombre": string,"orden": number,"para": string,"precio_anual": number,"precio_mensual": number,"publicado": boolean,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "codigo": string,"descripcion"?: string,"limites"?: NonNullable<Json>,"nombre": string,"orden"?: number,"para"?: string,"precio_anual": number,"precio_mensual": number,"publicado"?: boolean,"updated_at"?: string
+                  }
+                  Update: {
+                    "codigo"?: string,"descripcion"?: string,"limites"?: NonNullable<Json>,"nombre"?: string,"orden"?: number,"para"?: string,"precio_anual"?: number,"precio_mensual"?: number,"publicado"?: boolean,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"plataforma_config": {
+                  Row: {
+                    "clave": string,"updated_at": string,"valor": NonNullable<Json>
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "clave": string,"updated_at"?: string,"valor": NonNullable<Json>
+                  }
+                  Update: {
+                    "clave"?: string,"updated_at"?: string,"valor"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"platform_staff": {
                   Row: {
                     "activo": boolean,"created_at": string,"invitado_por": string | null,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"updated_at": string,"user_id": string
@@ -444,6 +584,32 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"suscripciones": {
+                  Row: {
+                    "cancelar_al_vencer": boolean,"created_at": string,"cupon": string | null,"cupon_periodos_restantes": number | null,"desde": string,"estado": string,"household_id": string,"monto_periodo": number,"periodo": string,"plan": string,"updated_at": string,"vence": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cancelar_al_vencer"?: boolean,"created_at"?: string,"cupon"?: string | null,"cupon_periodos_restantes"?: number | null,"desde": string,"estado"?: string,"household_id": string,"monto_periodo": number,"periodo": string,"plan": string,"updated_at"?: string,"vence": string
+                  }
+                  Update: {
+                    "cancelar_al_vencer"?: boolean,"created_at"?: string,"cupon"?: string | null,"cupon_periodos_restantes"?: number | null,"desde"?: string,"estado"?: string,"household_id"?: string,"monto_periodo"?: number,"periodo"?: string,"plan"?: string,"updated_at"?: string,"vence"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "suscripciones_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: true
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "suscripciones_plan_fkey"
+      columns: ["plan"]
+isOneToOne: false
+      referencedRelation: "planes"
+      referencedColumns: ["codigo"]
+    }
                   ]
                 },"tax_params": {
                   Row: {
@@ -587,6 +753,12 @@ isOneToOne: false
               "compras_consumos": number,"consignaciones": number,"consumos_tarjeta": number,"ingresos_brutos": number,"member_id": string,"nombre": string,"patrimonio_bruto": number
             }[]
                            },
+"cancelar_al_vencer":
+{ Args: { "p_cancelar": boolean,"p_hogar": string }; Returns: undefined
+                           },
+"cobro_pendiente":
+{ Args: { "p_hogar": string }; Returns: Json
+                           },
 "consola_aceptar_invitacion":
 { Args: { "p_token": string }; Returns: Database["public"]['Enums']["rol_staff"]
                            },
@@ -598,12 +770,48 @@ isOneToOne: false
               "accion": string,"creada": string,"detalle": Json,"id": number,"ip": string,"objeto_nombre": string,"objeto_tipo": string,"quien_nombre": string
             }[]
                            },
+"consola_cambiar_plan":
+{ Args: { "p_id": string,"p_motivo": string,"p_plan": string }; Returns: undefined
+                           },
 "consola_cambiar_rol":
 { Args: { "p_rol": Database["public"]['Enums']["rol_staff"],"p_user": string }; Returns: undefined
                            },
 "consola_cancelar_invitacion":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"consola_cerrar_sesiones":
+{ Args: { "p_user": string }; Returns: number
+                           },
+"consola_cobros":
+{ Args: { "p_antes"?: string,"p_estado"?: string,"p_limite"?: number }; Returns: {
+              "creado": string,"cupon": string,"descuento": number,"error": string,"estado": string,"factura_estado": string,"hogar": string,"household_id": string,"id": string,"metodo": string,"metodo_detalle": string,"monto": number,"motivo": string,"pagado_en": string,"pasarela": string,"periodo": string,"plan": string,"referencia": string
+            }[]
+                           },
+"consola_cobros_resumen":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"consola_cupones":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "activo": boolean,
+"codigo": string,
+"created_at": string,
+"descripcion": string,
+"desde": string,
+"hasta": string | null,
+"periodo": string | null,
+"periodos": number | null,
+"planes": (string)[],
+"tipo": string,
+"usos": number,
+"usos_max": number | null,
+"valor": number
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "cupones"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "consola_equipo":
 { Args: Record<PropertyKey, never>; Returns: {
               "activo": boolean,"created_at": string,"dos_pasos": string,"email": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"ultimo_ingreso": string,"user_id": string
@@ -629,6 +837,29 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"consola_guardar_config":
+{ Args: { "p_clave": string,"p_valor": Json }; Returns: undefined
+                           },
+"consola_guardar_cupon":
+{ Args: { "p_activo": boolean,"p_codigo": string,"p_descripcion": string,"p_desde": string,"p_hasta": string,"p_periodo": string,"p_periodos": number,"p_planes": (string)[],"p_tipo": string,"p_usos_max": number,"p_valor": number }; Returns: undefined
+                           },
+"consola_guardar_plan":
+{ Args: { "p_anual": number,"p_codigo": string,"p_limites": Json,"p_mensual": number,"p_nombre": string,"p_publicado": boolean }; Returns: undefined
+                           },
+"consola_hogar":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"consola_hogar_cobros":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"consola_hogares":
+{ Args: { "p_antes"?: string,"p_buscar"?: string,"p_filtro"?: string,"p_limite"?: number }; Returns: {
+              "admin_nombre": string,"created_at": string,"en_prueba": boolean,"estado": string,"id": string,"miembros": number,"movimientos_30d": number,"mrr": number,"nombre": string,"plan": string,"plan_efectivo": string,"ultimo_uso": string
+            }[]
+                           },
+"consola_hogares_conteos":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "consola_invitaciones":
 { Args: Record<PropertyKey, never>; Returns: {
               "creada_por": string,"created_at": string,"email": string,"id": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"vence": string
@@ -637,13 +868,55 @@ isOneToOne: false
 "consola_invitar":
 { Args: { "p_email": string,"p_nombre": string,"p_rol": Database["public"]['Enums']["rol_staff"] }; Returns: string
                            },
+"consola_marcar_reembolso":
+{ Args: { "p_bajar_plan": boolean,"p_cobro": string,"p_motivo": string }; Returns: undefined
+                           },
 "consola_matriz_permisos":
 { Args: Record<PropertyKey, never>; Returns: {
               "permisos": (Database["public"]['Enums']["permiso_staff"])[],"rol": Database["public"]['Enums']["rol_staff"]
             }[]
                            },
+"consola_nota_hogar":
+{ Args: { "p_id": string,"p_texto": string }; Returns: undefined
+                           },
+"consola_planes":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "codigo": string,
+"descripcion": string,
+"limites": NonNullable<Json>,
+"nombre": string,
+"orden": number,
+"para": string,
+"precio_anual": number,
+"precio_mensual": number,
+"publicado": boolean,
+"updated_at": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "planes"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "consola_registrar_ingreso":
 { Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"consola_restablecer_2fa":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
+"consola_suspender":
+{ Args: { "p_id": string,"p_motivo": string,"p_suspender": boolean }; Returns: undefined
+                           },
+"consola_usuarios":
+{ Args: { "p_antes"?: string,"p_buscar"?: string,"p_filtro"?: string,"p_limite"?: number }; Returns: {
+              "created_at": string,"dos_pasos": boolean,"email": string,"es_equipo": boolean,"hogar": string,"hogar_id": string,"nombre": string,"rol": Database["public"]['Enums']["rol_miembro"],"ultimo_ingreso": string,"user_id": string
+            }[]
+                           },
+"consola_usuarios_conteos":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"consola_ver_correo":
+{ Args: { "p_user": string }; Returns: string
                            },
 "consola_ver_invitacion":
 { Args: { "p_token": string }; Returns: {
@@ -654,6 +927,12 @@ isOneToOne: false
 { Args: { "p_ids": (string)[] }; Returns: {
               "email": string,"id": string
             }[]
+                           },
+"cotizar_plan":
+{ Args: { "p_cupon"?: string,"p_hogar": string,"p_periodo": string,"p_plan": string }; Returns: Json
+                           },
+"crear_cobro":
+{ Args: { "p_cupon"?: string,"p_hogar": string,"p_periodo": string,"p_plan": string }; Returns: Json
                            },
 "crear_hogar":
 { Args: { "p_nombre": string,"p_nombre_miembro": string }; Returns: string
@@ -666,6 +945,18 @@ isOneToOne: false
                            },
 "guardar_presupuesto":
 { Args: { "p_hogar": string,"p_items": Json }; Returns: undefined
+                           },
+"iniciar_prueba":
+{ Args: { "p_hogar": string }; Returns: string
+                           },
+"mi_plan":
+{ Args: { "p_hogar": string }; Returns: Json
+                           },
+"procesar_vencimientos":
+{ Args: { "p_hoy": string }; Returns: Json
+                           },
+"registrar_pago_wompi":
+{ Args: { "p_detalle": string,"p_estado": string,"p_evento": string,"p_metodo": string,"p_monto_centavos": number,"p_payload": Json,"p_referencia": string,"p_transaccion": string }; Returns: Json
                            },
 "reservar_uso_ia":
 { Args: { "p_cantidad"?: number,"p_hogar": string,"p_tipo": string }; Returns: undefined
@@ -685,7 +976,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "adjunto_tipo": "factura"|"certificado"|"extracto","ambito": "personal"|"negocio","categoria_clase": "gasto"|"ingreso","categoria_tipo": "fijo"|"variable","comprobante_estado": "procesando"|"registrado"|"soporte"|"por_revisar"|"descartado"|"error","cuenta_tipo": "banco"|"efectivo"|"tarjeta"|"billetera","frecuencia": "semanal"|"quincenal"|"mensual"|"bimestral"|"trimestral"|"semestral"|"anual","meta_tipo": "presupuesto"|"meta","mov_estado": "confirmado"|"programado","mov_origen": "manual"|"importacion"|"recurrente"|"ocr"|"whatsapp"|"banco","mov_tipo": "ingreso"|"gasto"|"transferencia","periodo": "mensual"|"anual"|"unico","permiso_staff": "ver_hogares"|"ver_finanzas"|"tickets"|"cobros"|"planes"|"parametros"|"campanas"|"equipo"|"exportar"|"sistema"|"auditoria","repeticion": "una_vez"|"mensual"|"anual","rol_miembro": "admin"|"editor"|"contador","rol_staff": "superadmin"|"soporte"|"finanzas"|"contenido"
+            "adjunto_tipo": "factura"|"certificado"|"extracto","ambito": "personal"|"negocio","categoria_clase": "gasto"|"ingreso","categoria_tipo": "fijo"|"variable","comprobante_estado": "procesando"|"registrado"|"soporte"|"por_revisar"|"descartado"|"error","cuenta_tipo": "banco"|"efectivo"|"tarjeta"|"billetera","frecuencia": "semanal"|"quincenal"|"mensual"|"bimestral"|"trimestral"|"semestral"|"anual","meta_tipo": "presupuesto"|"meta","mov_estado": "confirmado"|"programado","mov_origen": "manual"|"importacion"|"recurrente"|"ocr"|"whatsapp"|"banco","mov_tipo": "ingreso"|"gasto"|"transferencia","periodo": "mensual"|"anual"|"unico","permiso_staff": "ver_hogares"|"ver_finanzas"|"usuarios"|"tickets"|"cobros"|"planes"|"parametros"|"campanas"|"equipo"|"exportar"|"sistema"|"auditoria","repeticion": "una_vez"|"mensual"|"anual","rol_miembro": "admin"|"editor"|"contador","rol_staff": "superadmin"|"soporte"|"finanzas"|"contenido"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -801,7 +1092,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "adjunto_tipo": ["factura", "certificado", "extracto"],"ambito": ["personal", "negocio"],"categoria_clase": ["gasto", "ingreso"],"categoria_tipo": ["fijo", "variable"],"comprobante_estado": ["procesando", "registrado", "soporte", "por_revisar", "descartado", "error"],"cuenta_tipo": ["banco", "efectivo", "tarjeta", "billetera"],"frecuencia": ["semanal", "quincenal", "mensual", "bimestral", "trimestral", "semestral", "anual"],"meta_tipo": ["presupuesto", "meta"],"mov_estado": ["confirmado", "programado"],"mov_origen": ["manual", "importacion", "recurrente", "ocr", "whatsapp", "banco"],"mov_tipo": ["ingreso", "gasto", "transferencia"],"periodo": ["mensual", "anual", "unico"],"permiso_staff": ["ver_hogares", "ver_finanzas", "tickets", "cobros", "planes", "parametros", "campanas", "equipo", "exportar", "sistema", "auditoria"],"repeticion": ["una_vez", "mensual", "anual"],"rol_miembro": ["admin", "editor", "contador"],"rol_staff": ["superadmin", "soporte", "finanzas", "contenido"]
+            "adjunto_tipo": ["factura", "certificado", "extracto"],"ambito": ["personal", "negocio"],"categoria_clase": ["gasto", "ingreso"],"categoria_tipo": ["fijo", "variable"],"comprobante_estado": ["procesando", "registrado", "soporte", "por_revisar", "descartado", "error"],"cuenta_tipo": ["banco", "efectivo", "tarjeta", "billetera"],"frecuencia": ["semanal", "quincenal", "mensual", "bimestral", "trimestral", "semestral", "anual"],"meta_tipo": ["presupuesto", "meta"],"mov_estado": ["confirmado", "programado"],"mov_origen": ["manual", "importacion", "recurrente", "ocr", "whatsapp", "banco"],"mov_tipo": ["ingreso", "gasto", "transferencia"],"periodo": ["mensual", "anual", "unico"],"permiso_staff": ["ver_hogares", "ver_finanzas", "usuarios", "tickets", "cobros", "planes", "parametros", "campanas", "equipo", "exportar", "sistema", "auditoria"],"repeticion": ["una_vez", "mensual", "anual"],"rol_miembro": ["admin", "editor", "contador"],"rol_staff": ["superadmin", "soporte", "finanzas", "contenido"]
           }
         }
 } as const

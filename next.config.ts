@@ -26,7 +26,8 @@ function politicaSeguridad(): string {
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     // El ingreso con Google (sin JavaScript) es un POST que redirige a Supabase y de ahí a Google.
-    "form-action": ["'self'", supabase, google],
+    // Pagar el plan: la acción redirige al Web Checkout de Wompi (form-action también rige las redirecciones).
+    "form-action": ["'self'", supabase, google, "https://checkout.wompi.co"],
     "frame-ancestors": ["'none'"],
   };
   return Object.entries(directivas)

@@ -56,6 +56,9 @@ beforeAll(async () => {
   hogarA = await rpc<string>(ana, "crear_hogar", { p_nombre: "Hogar A", p_nombre_miembro: "Ana" });
   hogarB = await rpc<string>(carla, "crear_hogar", { p_nombre: "Hogar B", p_nombre_miembro: "Carla" });
   hogares.push(hogarA, hogarB);
+  // Estas pruebas son de aislamiento, no de límites: el hogar A (con 3 personas) va en Familia.
+  const plan = await admin.from("households").update({ plan: "familia" }).eq("id", hogarA);
+  if (plan.error) throw plan.error;
 
   await rpc(beto, "aceptar_invitacion", { p_token: await invitar(ana, hogarA, b.email, "editor"), p_nombre: "Beto" });
   await rpc(dora, "aceptar_invitacion", { p_token: await invitar(ana, hogarA, d.email, "contador"), p_nombre: "Dora" });

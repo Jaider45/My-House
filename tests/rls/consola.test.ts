@@ -2,34 +2,12 @@
  * Consola del equipo (roadmap SaaS S1): solo personas activas del equipo, con AAL2 y el permiso de su rol, usan las
  * funciones consola_*; la auditoría registra todo y no se puede editar; la matriz SQL coincide con la de TS.
  */
-import { createHmac } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { MATRIZ } from "../../src/lib/consola/permisos";
-import { entornoDePrueba } from "./utilidades";
+import { conDosPasos, entornoDePrueba } from "./utilidades";
 
 const entorno = entornoDePrueba();
-
-/** Código TOTP (RFC 6238, SHA-1, 30 s, 6 dígitos) a partir de la clave base32 que entrega Supabase. */
-function totp(secreto: string, ahora = Date.now()): string {
-  const alfabeto = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-  let bits = "";
-  for (const c of secreto.replace(/=+$/, "").toUpperCase()) bits += alfabeto.indexOf(c).toString(2).padStart(5, "0");
-  const clave = Buffer.from(bits.match(/.{8}/g)!.map((b) => parseInt(b, 2)));
-  const contador = Buffer.alloc(8);
-  contador.writeBigUInt64BE(BigInt(Math.floor(ahora / 30_000)));
-  const h = createHmac("sha1", clave).update(contador).digest();
-  const o = h[h.length - 1] & 0xf;
-  return String((h.readUInt32BE(o) & 0x7fffffff) % 1_000_000).padStart(6, "0");
-}
-
-/** Inscribe un autenticador y sube la sesión a AAL2 (como /consola/dos-pasos). */
-async function conDosPasos(db: SupabaseClient) {
-  const { data, error } = await db.auth.mfa.enroll({ factorType: "totp", friendlyName: `prueba-${Math.random()}` });
-  if (error) throw error;
-  const v = await db.auth.mfa.challengeAndVerify({ factorId: data.id, code: totp(data.totp.secret) });
-  if (v.error) throw v.error;
-}
 
 let jefe: SupabaseClient, soporte: SupabaseClient, cliente: SupabaseClient;
 let jefeId: string, soporteId: string;

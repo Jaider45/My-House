@@ -2,6 +2,8 @@ import { Barra, Chip, CuadroIcono, Tarjeta, Titulo, Vacio, cx, type Tono } from 
 import { Icono, type NombreIcono } from "@/components/marca";
 import { ICONOS } from "@/components/marca-datos";
 import { obtenerContexto } from "@/lib/sesion";
+import { tieneFuncion } from "@/lib/planes/servidor";
+import { MejoraPlan } from "@/components/mejora-plan";
 import { formatearCOP } from "@/lib/dinero";
 import { formatearMes, hoy } from "@/lib/fechas";
 import { avanceMeta, type AvanceMeta } from "@/lib/metas";
@@ -31,7 +33,7 @@ const veces = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 });
 async function Contenido() {
   const ctx = await obtenerContexto(); // antes de hoy(): marca el render como dinámico
   const fecha = hoy();
-  const [{ data: metas }, { data: aportes }, { data: cuentas }] = await Promise.all([
+  const [{ data: metas }, { data: aportes }, { data: cuentas }, conMetas] = await Promise.all([
     ctx.supabase
       .from("budgets_goals")
       .select("id, nombre, monto, ahorrado_inicial, aporte_mensual, fecha_objetivo, icono, es_emergencia")
@@ -40,7 +42,17 @@ async function Contenido() {
       .order("created_at"),
     ctx.supabase.from("transactions").select("goal_id, monto").not("goal_id", "is", null).eq("estado", "confirmado"),
     ctx.supabase.from("accounts").select("id, nombre").eq("archivada", false).neq("tipo", "tarjeta").order("created_at"),
+    tieneFuncion("metas"),
   ]);
+  const nueva = conMetas ? (
+    <Tarjeta titulo="Nueva meta">
+      <FormularioMeta />
+    </Tarjeta>
+  ) : (
+    <MejoraPlan titulo="Metas de ahorro con el plan Familia">
+      Fondo de emergencia, estudio, vivienda o vacaciones: cuánto apartar cada mes y si van a tiempo.
+    </MejoraPlan>
+  );
   const aportado = new Map<string, number>();
   for (const a of aportes ?? []) aportado.set(a.goal_id!, (aportado.get(a.goal_id!) ?? 0) + a.monto);
   const lista = (metas ?? []).map((m) => {
@@ -60,11 +72,7 @@ async function Contenido() {
         <Vacio icono="ahorro" titulo="Aún no hay metas">
           Empieza por el fondo de emergencia: tres meses del número mínimo del hogar.
         </Vacio>
-        {ctx.puedeEditar && (
-          <Tarjeta titulo="Nueva meta">
-            <FormularioMeta />
-          </Tarjeta>
-        )}
+        {ctx.puedeEditar && nueva}
       </div>
     );
   }
@@ -179,11 +187,7 @@ async function Contenido() {
             ) : null}
           </section>
         ))}
-        {ctx.puedeEditar && (
-          <Tarjeta titulo="Nueva meta">
-            <FormularioMeta />
-          </Tarjeta>
-        )}
+        {ctx.puedeEditar && nueva}
       </div>
 
       {emergencia && ctx.puedeEditar && cuentas?.length ? (

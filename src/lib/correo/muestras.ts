@@ -3,6 +3,7 @@ import type { Contenido } from "./plantilla";
 
 /** Datos de ejemplo de cada correo (los del diseño): vista previa en /dev/correos y pruebas. */
 export function muestras(sitio: string): Record<string, { nombre: string; contenido: Contenido }> {
+  const plan = { nombre: "Andrés", hogar: "Hogar Martínez Rojas", plan: "Familia", urlPlan: `${sitio}/ajustes/plan`, sitio };
   return {
     codigo: { nombre: "Código para entrar", contenido: c.correoCodigo({ hola: "Hola Andrés,", codigo: "482 913", asuntoCodigo: "482913", minutos: 30 }) },
     restablecer: { nombre: "Restablecer contraseña", contenido: c.correoRestablecer({ hola: "Hola Andrés,", url: `${sitio}/auth/confirmar?code=demo`, minutos: 30 }) },
@@ -28,6 +29,14 @@ export function muestras(sitio: string): Record<string, { nombre: string; conten
       nombre: "Invitación al equipo (consola)",
       contenido: c.correoEquipo({ quien: "Jaider", nombre: "Daniela", rol: "Soporte", url: `${sitio}/consola/invitacion/demo`, vence: "lunes 16 de noviembre" }),
     },
+    "pago-recibido": {
+      nombre: "Pago recibido (plan)",
+      contenido: c.correoPagoRecibido({ ...plan, monto: "$ 19.900", periodo: "mensual", hasta: "10 dic 2026", metodo: "Tarjeta VISA ···4242", referencia: "MH-7F2A91C04B11" }),
+    },
+    renovacion: { nombre: "Renovación del plan", contenido: c.correoRenovacion({ ...plan, monto: "$ 19.900", vence: "10 dic 2026", periodo: "Mensual" }) },
+    mora: { nombre: "Pago del plan pendiente (día 7)", contenido: c.correoMora({ ...plan, monto: "$ 19.900", vencio: "10 dic 2026", baja: "24 dic 2026", dia: 7 }) },
+    "plan-gratis": { nombre: "Pasó al plan Gratis", contenido: c.correoPlanGratis({ ...plan, motivo: "mora" }) },
+    "prueba-termina": { nombre: "Prueba por terminar", contenido: c.correoPruebaTermina({ ...plan, hasta: "24 nov 2026", precio: "$ 19.900" }) },
     seguridad: {
       nombre: "Nuevo inicio de sesión",
       contenido: c.correoSeguridad({ nombre: "Andrés", dispositivo: "Chrome en Android", lugar: "Medellín, Colombia", fecha: "6 nov 2026, 7:31 a. m.", urlProteger: `${sitio}/recuperar`, urlSitio: `${sitio}/` }),

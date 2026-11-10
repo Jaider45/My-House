@@ -22,6 +22,7 @@ export const nombreRol = (r: RolStaff) => ROLES_STAFF.find((x) => x.valor === r)
 export const PERMISOS: { valor: Permiso; texto: string }[] = [
   { valor: "ver_hogares", texto: "Ver lista de hogares y métricas" },
   { valor: "ver_finanzas", texto: "Ver datos financieros de un hogar (con permiso)" },
+  { valor: "usuarios", texto: "Cerrar sesiones y restablecer la verificación de una cuenta" },
   { valor: "tickets", texto: "Responder tickets" },
   { valor: "cobros", texto: "Reembolsos y cambios de plan" },
   { valor: "planes", texto: "Editar planes, precios y cupones" },
@@ -35,7 +36,7 @@ export const PERMISOS: { valor: Permiso; texto: string }[] = [
 
 export const MATRIZ: Record<RolStaff, Permiso[]> = {
   superadmin: PERMISOS.map((p) => p.valor),
-  soporte: ["ver_hogares", "ver_finanzas", "tickets"],
+  soporte: ["ver_hogares", "ver_finanzas", "usuarios", "tickets"],
   finanzas: ["ver_hogares", "cobros", "planes", "exportar"],
   contenido: ["ver_hogares", "tickets", "parametros", "campanas"],
 };

@@ -337,3 +337,97 @@ export function correoReporte(d: { nombre: string; hogar: string; anio: number; 
     ...avisoDe(d.hogar, d.sitio),
   };
 }
+
+// ── Plan y cobros (SaaS S3; los envían el webhook de Wompi y el cron /api/cobros) ─────────────────────────────
+
+type DatosPlan = { nombre: string; hogar: string; plan: string; urlPlan: string; sitio: string };
+const porqueAdmin = (hogar: string) => ({ porque: `Recibes este correo porque administras ${hogar} en My House.` });
+
+export function correoPagoRecibido(d: DatosPlan & { monto: string; periodo: string; hasta: string; metodo: string | null; referencia: string }): Contenido {
+  const filas: Fila[] = [
+    { k: "Pagaste", v: d.monto, grande: true },
+    { k: "Plan", v: `${d.plan} ${d.periodo}` },
+    { k: "Activo hasta", v: d.hasta },
+  ];
+  if (d.metodo) filas.push({ k: "Medio de pago", v: d.metodo });
+  filas.push({ k: "Referencia", v: d.referencia });
+  return {
+    asunto: `Recibimos tu pago: plan ${d.plan} hasta el ${d.hasta}`,
+    vistaPrevia: "Gracias por apoyar My House.",
+    etiqueta: "Pago recibido",
+    icono: { nombre: "resumen", tono: "claro" },
+    titulo: "Recibimos tu pago",
+    intro: `${hola(d.nombre)} ${d.hogar} sigue en el plan ${d.plan}. Gracias por confiar en My House.`,
+    tarjeta: { filas, tono: "ok" },
+    botones: [{ texto: "Ver mi plan", url: d.urlPlan }],
+    nota: { texto: "La factura electrónica te llegará por separado cuando la emitamos." },
+    ...porqueAdmin(d.hogar),
+  };
+}
+
+export function correoRenovacion(d: DatosPlan & { monto: string; vence: string; periodo: string }): Contenido {
+  return {
+    asunto: `Tu plan ${d.plan} vence el ${d.vence}: ${d.monto}`,
+    vistaPrevia: "Págalo con tarjeta, PSE, Nequi o Daviplata.",
+    etiqueta: "Renovación",
+    icono: { nombre: "calendario", tono: "claro" },
+    titulo: `Tu plan ${d.plan} vence el ${d.vence}`,
+    intro: `${hola(d.nombre)} para que ${d.hogar} siga con el plan ${d.plan}, paga el siguiente periodo antes de esa fecha.`,
+    tarjeta: { filas: [{ k: "Valor", v: d.monto, grande: true }, { k: "Periodo", v: d.periodo }, { k: "Vence", v: d.vence }] },
+    botones: [{ texto: "Pagar ahora", url: d.urlPlan }],
+    enlaceAlterno: d.urlPlan,
+    nota: { texto: "Si no quieres renovar, no hagas nada: al vencer seguirás con el plan Gratis y tus datos se conservan." },
+    ...porqueAdmin(d.hogar),
+  };
+}
+
+export function correoMora(d: DatosPlan & { monto: string | null; vencio: string; baja: string; dia: number }): Contenido {
+  const ultimo = d.dia >= 7;
+  return {
+    asunto: ultimo ? `Último aviso: el ${d.baja} tu hogar pasa a Gratis` : `No hemos recibido el pago de tu plan ${d.plan}`,
+    vistaPrevia: `Tienes hasta el ${d.baja} para pagar sin perder tu plan.`,
+    etiqueta: "Pago pendiente",
+    icono: { nombre: "alertas", tono: ultimo ? "error" : "alerta" },
+    titulo: ultimo ? "Tu plan está por pasar a Gratis" : "Tu pago está pendiente",
+    intro: `${hola(d.nombre)} el plan ${d.plan} de ${d.hogar} venció el ${d.vencio} y aún no vemos el pago.`,
+    tarjeta: {
+      filas: [...(d.monto ? [{ k: "Valor", v: d.monto, grande: true, tono: "error" as const }] : []), { k: "Venció", v: d.vencio }, { k: "Pasa a Gratis", v: d.baja }],
+      tono: "error",
+    },
+    botones: [{ texto: "Pagar ahora", url: d.urlPlan }],
+    enlaceAlterno: d.urlPlan,
+    nota: { texto: "Si pasa a Gratis, tus datos se conservan; solo se apagan el asistente de comprobantes ilimitado, las metas y el reporte de renta.", tono: "alerta" },
+    ...porqueAdmin(d.hogar),
+  };
+}
+
+export function correoPlanGratis(d: DatosPlan & { motivo: "mora" | "cancelada" }): Contenido {
+  return {
+    asunto: `${d.hogar} pasó al plan Gratis`,
+    vistaPrevia: "Tus datos siguen ahí. Vuelve a Familia cuando quieras.",
+    etiqueta: "Plan Gratis",
+    icono: { nombre: "casa", tono: "claro" },
+    titulo: "Tu hogar pasó al plan Gratis",
+    intro:
+      d.motivo === "mora"
+        ? `${hola(d.nombre)} no recibimos el pago del plan ${d.plan}, así que ${d.hogar} quedó en el plan Gratis.`
+        : `${hola(d.nombre)} como lo pediste, ${d.hogar} quedó en el plan Gratis al terminar el periodo pagado.`,
+    nota: { texto: "Tus movimientos, cuentas y soportes se conservan. Puedes volver al plan Familia en cualquier momento." },
+    botones: [{ texto: "Volver a Familia", url: d.urlPlan }],
+    ...porqueAdmin(d.hogar),
+  };
+}
+
+export function correoPruebaTermina(d: DatosPlan & { hasta: string; precio: string }): Contenido {
+  return {
+    asunto: `Tu prueba de Familia termina el ${d.hasta}`,
+    vistaPrevia: `Sigue con Familia por ${d.precio} al mes.`,
+    etiqueta: "Prueba",
+    icono: { nombre: "calendario", tono: "claro" },
+    titulo: "Tu prueba de Familia está por terminar",
+    intro: `${hola(d.nombre)} la prueba del plan Familia de ${d.hogar} termina el ${d.hasta}. Después seguirás en Gratis, sin cobros automáticos.`,
+    tarjeta: { filas: [{ k: "Plan Familia", v: `${d.precio} al mes` }, { k: "Termina", v: d.hasta }] },
+    botones: [{ texto: "Seguir con Familia", url: d.urlPlan }],
+    ...porqueAdmin(d.hogar),
+  };
+}

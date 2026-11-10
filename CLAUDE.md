@@ -253,6 +253,33 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     `ingreso_consola` y reinicia la cookie). Invitaciones: token en el enlace, en la base solo su sha256; se acepta con
     el mismo correo. Primer superadmin: `node scripts/crear-superadmin.mjs correo "Nombre"` (service_role).
     No hechos del diseño: «confiar en este equipo 12 h» (bajaría a AAL1), llave de seguridad (WebAuthn), IP permitidas.
+34. Planes y límites (SaaS S2; migración `planes`). `planes` (precios con IVA, `limites` jsonb: personas,
+    comprobantes_mes —null = ilimitados—, almacenamiento_mb, metas, renta_reporte, whatsapp; claves del plan Contador
+    para S5) y `plataforma_config` (prueba_dias, descuento_anual_visible, iva_incluido). **La base hace cumplir**:
+    triggers en `invitations`/`members` (personas = miembros con usuario + invitaciones vigentes; dependientes no
+    cuentan), `budgets_goals` (metas), política de Storage (`cabe_en_almacenamiento`) y `reservar_uso_ia` (lecturas del
+    mes; el tope técnico por hora/día sigue). Los límites solo frenan a personas (`auth.uid()` no nulo): scripts y
+    service_role pasan. Leer límites con `private.limite_num`/`limite_bool` (un `null` jsonb no se castea).
+    Plan efectivo = `households.plan`, o Familia si `prueba_hasta` está vigente (prueba una vez por hogar,
+    `iniciar_prueba`). El plan solo lo cambian el cobro y la consola (trigger `proteger_plan`). Hogar suspendido = solo
+    lectura: `private.tiene_rol` exige `estado = 'activo'`; el JWT trae `hogar.suspendido` para el aviso del layout.
+    En TS: `src/lib/planes` (liviano, cliente) y `servidor.ts` (`cargarMiPlan` con uso; `limitesHogar`/`tieneFuncion`
+    livianos para Metas y Presupuesto). `cargarPlan` de `src/lib/presupuesto` es otra cosa (plan de gastos).
+    Consola: Hogares (lista por cursor, filtros, CSV con permiso exportar), Detalle (uso, miembros, cobros, cambiar plan
+    y suspender con permiso `cobros`, notas internas en `hogar_notas`), Usuarios (correo enmascarado; verlo, cerrar
+    sesiones y restablecer 2FA quedan auditados; permiso nuevo `usuarios`, Superadmin y Soporte) y Planes.
+35. Cobros (SaaS S3; migración `cobros`). **Web Checkout de Wompi por periodo**, sin guardar datos de pago:
+    `crear_cobro` (admin, cotiza con cupón y anula pendientes) → la acción redirige al checkout con firma de integridad
+    → Wompi vuelve a `/ajustes/plan?id=` (solo se muestra el estado) → **solo el webhook** `/api/pagos/wompi` (checksum
+    con WOMPI_EVENTS_SECRET, `registrar_pago_wompi` service_role, idempotente por `transacción:estado`, monto exacto en
+    centavos) da por pagado y extiende `suscripciones` (si paga en mora conserva el ciclo). `/api/cobros` (Vercel Cron
+    7:15 Bogotá) llama `procesar_vencimientos`: renovación 3 días antes (cobro con `periodo_vence`, único), mora días
+    1/3/7 con correo, día 14 a Gratis; pidió no renovar → Gratis al vencer; prueba que termina en 2 días. Los correos no
+    se repiten (`avisos_enviados`). Cupones: porcentaje por N cobros (null = siempre) o meses gratis (solo el alta);
+    uno por hogar; si el cobro queda en $0 se activa sin Wompi. Reembolso: el dinero se devuelve en el panel de Wompi y
+    la consola lo registra (permiso `cobros`). Factura electrónica: `cobros.factura_estado` queda `pendiente` hasta
+    elegir proveedor. Débito automático (tarjeta tokenizada) queda para después. Sin las 3 variables WOMPI_* la app no
+    ofrece pagar. En local: llaves de prueba inventadas en `.env.local` + `AVISOS_SIMULAR_FECHA=1` para `?hoy=`.
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
@@ -290,8 +317,8 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 ### Fase SaaS (`docs/ROADMAP-SAAS.md`)
 - [ ] S0. Despliegue y bases legales (términos, política Ley 1581, consentimientos)
 - [x] S1. Consola: acceso con 2FA, equipo y permisos, auditoría (verificado en local el 2026-11-09)
-- [ ] S2. Planes y límites (sin cobro), Hogares, Usuarios
-- [ ] S3. Cobro con Wompi, cupones, recuperación de pagos fallidos, factura electrónica
+- [x] S2. Planes y límites, Hogares, Usuarios, Planes (verificado en local el 2026-11-10)
+- [x] S3. Cobro con Wompi, cupones, recuperación de pagos fallidos (factura electrónica: falta el proveedor)
 - [ ] S4. Métricas (panel, analítica) y comunicaciones (campañas)
 - [ ] S5. Contadores: selector de hogares, panel, referidos y comisiones
 - [ ] S6. Parámetros DIAN, catálogos e IA desde la consola

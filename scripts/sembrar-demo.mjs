@@ -50,6 +50,8 @@ const andres = await usuario(CORREOS.andres, "Andrés");
 const camila = await usuario(CORREOS.camila, "Camila");
 
 const H = ok(await andres.rpc("crear_hogar", { p_nombre: "Hogar Martínez Rojas", p_nombre_miembro: "Andrés Martínez" }), "crear hogar");
+// Plan Familia (cortesía): la demostración usa metas y más de 2 personas, que en Gratis no caben.
+ok(await admin.from("households").update({ plan: "familia" }).eq("id", H), "plan familia");
 ok(
   await andres
     .from("households")

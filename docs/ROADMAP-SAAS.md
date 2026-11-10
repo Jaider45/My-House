@@ -100,10 +100,11 @@ rol de quien entra.
    y `private.limite(h, clave)`. Se aplican **en la base**: trigger al agregar miembros o invitaciones, `reservar_uso_ia`
    lee el tope del plan, Storage revisa el tamaño. En la interfaz se muestran como aviso con botón «Mejorar plan». Los
    precios se versionan (cambiar precio no cambia lo que paga un suscriptor actual hasta su renovación).
-8. **Cobro con Wompi** (tarjeta, PSE, Nequi, Daviplata en COP). Tarjeta y Nequi permiten cobro recurrente con fuente de
-   pago tokenizada; **PSE y Daviplata no**: se cobran con enlace de pago en cada periodo (el aviso del día 0 lo lleva).
-   Webhooks firmados e idempotentes (`eventos_pasarela` con id único). Stripe queda para tarjetas internacionales,
-   después de la beta.
+8. **Cobro con Wompi** (tarjeta, PSE, Nequi, Daviplata y Bancolombia en COP). **Decidido en S3:** cada periodo se paga
+   con el Web Checkout (sin guardar datos de pago ni alcance PCI): 3 días antes del vencimiento se crea el cobro de
+   renovación y se avisa por correo. Funciona igual para todos los medios (PSE y Daviplata no permiten débito
+   automático). El débito automático con tarjeta o Nequi tokenizados queda como mejora. Webhooks firmados e
+   idempotentes (`eventos_pasarela`). Stripe queda para tarjetas internacionales, después de la beta.
 9. **Factura electrónica DIAN por un proveedor** (Alegra, Siigo, Factus u otro con API): la app manda los datos y guarda
    número, CUFE y PDF. Hace falta antes la razón social y la resolución de facturación.
 10. **Eventos de producto** para analítica: `eventos (household_id, tipo, creado)` con pocos tipos (`registro`,
@@ -147,7 +148,7 @@ Sin esto no se puede abrir el registro a terceros.
 
 **Criterio:** tú entras a la consola con 2FA, invitas a otra persona con rol Soporte y cada acción queda auditada.
 
-### S2 · Planes y límites, sin cobro todavía (2 semanas) — pantallas 4, 5, 6, 8 (sin cupones)
+### S2 · Planes y límites, sin cobro todavía (2 semanas) — pantallas 4, 5, 6, 8 (sin cupones) · ✅ hecha
 
 - Migración: `planes` (sembrar Gratis, Familia, Contador con los límites del diseño), `households.plan` pasa a FK,
   `households.estado` (`activo`, `prueba`, `suspendido`, `supresion_pedida`), `prueba_hasta`.
@@ -162,7 +163,7 @@ Sin esto no se puede abrir el registro a terceros.
 **Criterio:** cambiar un límite en la consola cambia lo que un hogar puede hacer, y la base lo hace cumplir aunque se
 salte la interfaz.
 
-### S3 · Cobro y facturación (3 semanas) — pantallas 7, 8 (cupones), 5 (facturas, reembolso)
+### S3 · Cobro y facturación (3 semanas) — pantallas 7, 8 (cupones), 5 (facturas, reembolso) · ✅ hecha (falta proveedor de factura)
 
 - Migración: `suscripciones`, `cobros`, `facturas`, `cupones`, `cupones_usos`, `eventos_pasarela`.
 - Wompi: checkout, tokenización de tarjeta y Nequi, enlace de pago para PSE/Daviplata, webhook `/api/pagos/wompi`

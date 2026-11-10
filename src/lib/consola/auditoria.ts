@@ -1,3 +1,4 @@
+import { formatearCOP } from "@/lib/dinero";
 import { nombreRol, type RolStaff } from "./permisos";
 
 export type Registro = { accion: string; objeto_nombre: string | null; detalle: unknown };
@@ -27,6 +28,28 @@ export function describirAccion({ accion, objeto_nombre, detalle }: Registro): s
       return "Exportó el registro de auditoría";
     case "superadmin_creado":
       return `Dio acceso de superadmin a ${quien}`;
+    case "cambio_plan":
+      return `Cambió el plan de ${quien}: ${d.antes} → ${d.despues}${d.motivo ? ` (${d.motivo})` : ""}`;
+    case "suspendio_hogar":
+      return `Suspendió ${quien}${d.motivo ? ` (${d.motivo})` : ""}`;
+    case "reactivo_hogar":
+      return `Reactivó ${quien}`;
+    case "vio_correo":
+      return `Vio el correo completo de ${quien}`;
+    case "cerro_sesiones":
+      return `Cerró las sesiones de ${quien}`;
+    case "restablecio_2fa":
+      return `Restableció la verificación en dos pasos de ${quien}`;
+    case "edito_plan":
+      return `Editó el plan ${quien}`;
+    case "edito_regla":
+      return `Cambió la regla de cobro ${quien}`;
+    case "reembolso":
+      return `Registró un reembolso de ${formatearCOP(Number(d.monto ?? 0))} a ${quien}`;
+    case "creo_cupon":
+      return `Creó el cupón ${quien}`;
+    case "edito_cupon":
+      return `Editó el cupón ${quien}`;
     default:
       return accion.replace(/_/g, " ");
   }
