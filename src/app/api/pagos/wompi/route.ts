@@ -1,6 +1,7 @@
 import { after, NextResponse, type NextRequest } from "next/server";
-import { configWompi, describirMetodo, eventoValido, type EventoWompi } from "@/lib/pagos/wompi";
-import { avisarAdministradores, crearClienteServicio } from "@/lib/pagos/servidor";
+import { describirMetodo, eventoValido, type EventoWompi } from "@/lib/pagos/wompi";
+import { avisarAdministradores, crearClienteServicio, obtenerWompi } from "@/lib/pagos/servidor";
+import { registrarEvento } from "@/lib/integraciones/servidor";
 import { correoPagoRecibido } from "@/lib/correo/correos";
 import { sitio } from "@/lib/correo/enviar";
 import { formatearCOP } from "@/lib/dinero";
@@ -12,7 +13,7 @@ import { formatearFechaCorta } from "@/lib/consola/formato";
  * Wompi reintenta mientras no respondamos 200: los errores de la base responden 500 a propósito.
  */
 export async function POST(request: NextRequest) {
-  const config = configWompi();
+  const config = await obtenerWompi();
   if (!config) return NextResponse.json({ error: "Pagos no configurados" }, { status: 503 });
 
   let evento: EventoWompi;
@@ -23,6 +24,7 @@ export async function POST(request: NextRequest) {
   }
   if (!eventoValido(evento, config.eventos)) return NextResponse.json({ error: "Firma no válida" }, { status: 401 });
 
+  after(() => registrarEvento("wompi"));
   const t = evento.data?.transaction;
   if (evento.event !== "transaction.updated" || !t?.reference) return NextResponse.json({ resultado: "ignorado" });
 

@@ -281,6 +281,21 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     elegir proveedor. Débito automático (tarjeta tokenizada) queda para después. Sin las 3 variables WOMPI_* la app no
     ofrece pagar. En local: llaves de prueba inventadas en `.env.local` + `AVISOS_SIMULAR_FECHA=1` para `?hoy=`.
 
+36. Integraciones (consola → Integraciones, permiso `sistema`; migración `integraciones`). Resend, Wompi, WhatsApp
+    (Meta Cloud API), Anthropic y OpenAI se conectan sin código: `integraciones` guarda valores no secretos y, por
+    secreto, el id en **Supabase Vault** y sus últimos 4 caracteres; solo `integracion_leer` (service_role) descifra.
+    Campos permitidos en `private.campos_integracion` (= `src/lib/integraciones/catalogo.ts`). `leerIntegracion` lee la
+    consola y, si no hay, las variables de entorno de antes (caché 60 s por instancia; `olvidar()` al guardar).
+    «Conectar» guarda y prueba contra la API real (`probar`); correo y WhatsApp tienen envío de prueba. Webhooks:
+    `/api/pagos/wompi` y `/api/whatsapp` (GET verifica `verify_token`; POST exige `X-Hub-Signature-256` con el secreto
+    de la app; hoy solo registra `ultimo_evento`). La IA recibe la llave por petición (`llave` en
+    `PeticionEstructurada`, un cliente por llave); nunca pasar `entornoIa()` a un componente de cliente.
+    La conexión «de un clic» de WhatsApp (Embedded Signup) exige ser proveedor tecnológico aprobado por Meta.
+37. Seguridad: ver `docs/SEGURIDAD.md`. `revision_seguridad()` (service_role) lista configuración insegura (tablas sin
+    RLS, vistas sin `security_invoker`, funciones para anon fuera de la lista, definer sin `search_path`, funciones de
+    servidor expuestas, tablas sensibles con permisos, buckets públicos); `tests/rls/seguridad.test.ts` exige cero.
+    Una función nueva que solo debe usar el servidor va en esa lista; una tabla sensible nueva, también.
+
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
   (pasó con `storage-api`: migraciones vacías y Storage arrancaba sin tablas). Síntoma: `relation "storage.buckets"
@@ -323,7 +338,7 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [ ] S5. Contadores: selector de hogares, panel, referidos y comisiones
 - [ ] S6. Parámetros DIAN, catálogos e IA desde la consola
 - [ ] S7. Soporte y privacidad (acceso con permiso, Ley 1581)
-- [ ] S8. Sistema (feature flags, mantenimiento)
+- [ ] S8. Sistema (feature flags, mantenimiento) — Integraciones ya está hecha (decisión 36)
 
 ### Criterios de terminado de la Fase 1 (verificados el 2026-11-04 en local)
 - Dos usuarios del mismo hogar ven los mismos movimientos y otro hogar no ve nada: `tests/rls` + prueba en

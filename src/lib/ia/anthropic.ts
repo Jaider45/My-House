@@ -7,8 +7,13 @@ import { ErrorIa, RespuestaCortada, type Archivo, type PeticionEstructurada } fr
 // Si el modelo declina una solicitud, el servidor la reintenta con el modelo de respaldo que corresponda.
 const RESPALDO = { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const };
 
-let cliente: Anthropic | null = null;
-const anthropic = () => (cliente ??= new Anthropic());
+// Un cliente por llave: si cambian la llave en la consola, el siguiente pedido usa la nueva.
+const clientes = new Map<string, Anthropic>();
+const anthropic = (llave?: string) => {
+  let c = clientes.get(llave ?? "");
+  if (!c) clientes.set(llave ?? "", (c = new Anthropic(llave ? { apiKey: llave } : {})));
+  return c;
+};
 
 const bloqueArchivo = (a: Archivo): Anthropic.Beta.BetaContentBlockParam =>
   a.mime === "application/pdf"
@@ -23,7 +28,7 @@ export async function pedirEstructurado<T extends z.ZodType>(p: PeticionEstructu
   const contenido: Anthropic.Beta.BetaContentBlockParam[] = [];
   if (p.archivo) contenido.push(bloqueArchivo(p.archivo));
   contenido.push({ type: "text", text: p.texto });
-  const stream = anthropic().beta.messages.stream({
+  const stream = anthropic(p.llave).beta.messages.stream({
     model: p.modelo,
     max_tokens: p.maxTokens,
     ...RESPALDO,

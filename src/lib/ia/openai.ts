@@ -4,8 +4,13 @@ import { zodTextFormat } from "openai/helpers/zod";
 import type * as z from "zod/v4";
 import { ErrorIa, RespuestaCortada, type Archivo, type PeticionEstructurada } from "./tipos";
 
-let cliente: OpenAI | null = null;
-const openai = () => (cliente ??= new OpenAI());
+// Un cliente por llave: si cambian la llave en la consola, el siguiente pedido usa la nueva.
+const clientes = new Map<string, OpenAI>();
+const openai = (llave?: string) => {
+  let c = clientes.get(llave ?? "");
+  if (!c) clientes.set(llave ?? "", (c = new OpenAI(llave ? { apiKey: llave } : {})));
+  return c;
+};
 
 type Contenido = OpenAI.Responses.ResponseInputContent;
 
@@ -19,7 +24,7 @@ export async function pedirEstructurado<T extends z.ZodType>(p: PeticionEstructu
   const contenido: Contenido[] = [];
   if (p.archivo) contenido.push(bloqueArchivo(p.archivo));
   contenido.push({ type: "input_text", text: p.texto });
-  const respuesta = await openai().responses.parse({
+  const respuesta = await openai(p.llave).responses.parse({
     model: p.modelo,
     instructions: p.sistema,
     input: [{ role: "user", content: contenido }],

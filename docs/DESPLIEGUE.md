@@ -142,6 +142,10 @@ que aparecen en filtraciones conocidas (HaveIBeenPwned). La app ya muestra un me
 
 ### 2.1 Cobro de los planes (Wompi)
 
+También se conecta sin variables desde la consola: **Integraciones → Pagos · Wompi** (cifra los secretos y prueba la
+conexión). Lo mismo para Resend, WhatsApp, Anthropic y OpenAI. Las variables de entorno siguen funcionando como respaldo.
+
+
 1. Crea la cuenta de comercio en <https://comercios.wompi.co> (necesita RUT o razón social).
 2. **Desarrolladores → Llaves del API**: copia la llave pública, el secreto de integridad y el secreto de eventos. En
    el sandbox empiezan por `pub_test_`, `test_integrity_` y `test_events_`. Agrégalas en Vercel como

@@ -266,7 +266,7 @@ describe("avisos por correo", () => {
   it("avisos_enviados solo la usa el servidor: ni el admin del hogar la lee ni la escribe", async () => {
     await admin.from("avisos_enviados").insert({ household_id: hogarA, clave: `prueba:${sufijo}`, tipo: "prueba" });
     const { data: leidos } = await ana.from("avisos_enviados").select("clave").eq("household_id", hogarA);
-    expect(leidos).toEqual([]);
+    expect(leidos ?? []).toEqual([]); // sin permisos directos: error o vacío
     const escrito = await ana.from("avisos_enviados").insert({ household_id: hogarA, clave: `falsa:${sufijo}`, tipo: "prueba" });
     expect(escrito.error).not.toBeNull();
     const { data: borrados } = await ana.from("avisos_enviados").delete().eq("household_id", hogarA).select("clave");

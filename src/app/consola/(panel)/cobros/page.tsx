@@ -5,7 +5,8 @@ import { mensajeError } from "@/lib/acciones";
 import { obtenerStaff } from "@/lib/consola/sesion";
 import { formatearMomento } from "@/lib/consola/formato";
 import { formatearCOP } from "@/lib/dinero";
-import { configWompi, esPruebas } from "@/lib/pagos/wompi";
+import { esPruebas } from "@/lib/pagos/wompi";
+import { obtenerWompi } from "@/lib/pagos/servidor";
 import { TarjetaTabla } from "../tarjeta-tabla";
 import { etiquetaPlan } from "../hogares/comun";
 
@@ -82,7 +83,7 @@ export default async function CobrosConsola({ searchParams }: PageProps<"/consol
   const filas = (lista.data ?? []) as Cobro[];
   const metodos = Object.entries(r.metodos ?? {}).sort((a, b) => b[1] - a[1]);
   const totalMetodos = metodos.reduce((s, [, n]) => s + n, 0);
-  const wompi = configWompi();
+  const wompi = await obtenerWompi();
   const url = (cambios: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries({ estado: estado || undefined, ...cambios })) if (v) p.set(k, v);
@@ -97,7 +98,7 @@ export default async function CobrosConsola({ searchParams }: PageProps<"/consol
       {(resumen.error || lista.error) && <Aviso>{mensajeError(resumen.error ?? lista.error)}</Aviso>}
       {!wompi ? (
         <div className="mb-4">
-          <Aviso tipo="info">Wompi no está configurado (WOMPI_PUBLIC_KEY, WOMPI_INTEGRITY_SECRET, WOMPI_EVENTS_SECRET): los hogares aún no pueden pagar. Ver docs/DESPLIEGUE.md.</Aviso>
+          <Aviso tipo="info">Wompi no está conectado: los hogares aún no pueden pagar. Conéctalo en Integraciones.</Aviso>
         </div>
       ) : (
         esPruebas(wompi.publica) && (

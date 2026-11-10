@@ -4,8 +4,7 @@ import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { cargarMiPlan } from "@/lib/planes/servidor";
 import { diasDePrueba, porcentajeUso, textoLimite } from "@/lib/planes";
-import { configWompi } from "@/lib/pagos/wompi";
-import { consultarTransaccion } from "@/lib/pagos/servidor";
+import { consultarTransaccion, obtenerWompi } from "@/lib/pagos/servidor";
 import { formatearCOP } from "@/lib/dinero";
 import { formatearFechaCorta, formatearMomento } from "@/lib/consola/formato";
 import { PestanasConfiguracion } from "../pestanas";
@@ -39,7 +38,7 @@ function Uso({ etiqueta, usado, tope, texto }: { etiqueta: string; usado: number
 
 /** Resultado del Web Checkout: Wompi vuelve con `?id=<transacción>`. El plan lo activa el webhook. */
 async function Resultado({ id }: { id: string }) {
-  const wompi = configWompi();
+  const wompi = await obtenerWompi();
   const t = wompi ? await consultarTransaccion(id, wompi.publica) : null;
   if (!t) return null;
   if (t.status === "APPROVED") return <Aviso tipo="ok">Recibimos tu pago de {formatearCOP(t.amount_in_cents / 100)}. Tu plan se actualiza en unos segundos (te llega un correo).</Aviso>;
@@ -130,7 +129,7 @@ export default async function PlanHogar({ searchParams }: PageProps<"/ajustes/pl
           efectivo={estado.efectivo}
           suscripcion={sus ? { plan: sus.plan, periodo: sus.periodo, estado: sus.estado } : null}
           esAdmin={ctx.esAdmin}
-          pagosActivos={configWompi() !== null}
+          pagosActivos={(await obtenerWompi()) !== null}
           pruebaDisponible={!estado.prueba_usada && estado.plan === "gratis"}
           pruebaDias={pruebaDias}
           descuentoAnualVisible={descuentoAnualVisible}

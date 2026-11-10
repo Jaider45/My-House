@@ -1,6 +1,7 @@
 import { Tarjeta, Titulo } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { leerConfigHogar } from "@/lib/hogar";
+import { entornoIa } from "@/lib/ia";
 import { MODELO_POR_DEFECTO, MODELOS_SUGERIDOS, NOMBRE_PROVEEDOR, proveedoresDisponibles, resolverIa } from "@/lib/ia/proveedores";
 import { FormularioAsistente, FormularioHogar } from "./formulario";
 import { PestanasConfiguracion } from "@/app/(app)/ajustes/pestanas";
@@ -19,10 +20,11 @@ export default function Hogar() {
 
 async function Contenido() {
   const ctx = await obtenerContexto();
-  const { data } = await ctx.supabase.from("households").select("ciudad, config").eq("id", ctx.hogar.id).single();
+  const [{ data }, entorno] = await Promise.all([ctx.supabase.from("households").select("ciudad, config").eq("id", ctx.hogar.id).single(), entornoIa()]);
   const config = leerConfigHogar(data?.config);
-  const disponibles = proveedoresDisponibles(process.env);
-  const efectiva = resolverIa(config.ia, process.env);
+  // Solo nombres de proveedor y modelo llegan al formulario; las llaves se quedan en el servidor.
+  const disponibles = proveedoresDisponibles(entorno);
+  const efectiva = resolverIa(config.ia, entorno);
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Tarjeta titulo="Datos del hogar" subtitulo="Lo que el asistente sabe de ustedes sale de aquí y de las personas a cargo">

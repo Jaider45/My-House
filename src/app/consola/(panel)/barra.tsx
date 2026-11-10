@@ -21,6 +21,7 @@ const SECCIONES: { texto: string; icono: NombreIcono; href?: string; fase?: stri
   { texto: "Comunicaciones", icono: "servicios", fase: "S4" },
   { texto: "Equipo y permisos", icono: "certificados", href: "/consola/equipo" },
   { texto: "Privacidad y auditoría", icono: "documentos", href: "/consola/privacidad" },
+  { texto: "Integraciones", icono: "conectividad", href: "/consola/integraciones" },
   { texto: "Sistema", icono: "configuracion", fase: "S8" },
 ];
 

@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { mensajeError, SOLO_ADMIN, type Estado } from "@/lib/acciones";
 import { obtenerContexto } from "@/lib/sesion";
-import { configWompi, urlCheckout } from "@/lib/pagos/wompi";
+import { urlCheckout } from "@/lib/pagos/wompi";
+import { obtenerWompi } from "@/lib/pagos/servidor";
 import { sitio } from "@/lib/correo/enviar";
 
 /*
@@ -58,7 +59,7 @@ export async function pagar(_: Estado, datos: FormData): Promise<Estado> {
   if (!ctx.esAdmin) return { error: SOLO_ADMIN };
   const r = eleccion.safeParse({ plan: datos.get("plan"), periodo: datos.get("periodo"), cupon: datos.get("cupon") ?? undefined });
   if (!r.success) return { error: r.error.issues[0].message };
-  const wompi = configWompi();
+  const wompi = await obtenerWompi();
 
   // Sin pasarela solo se puede usar un cupón que deje el cobro en $0 (crear_cobro lo activa de una vez).
   if (!wompi) {
@@ -81,7 +82,7 @@ export async function pagar(_: Estado, datos: FormData): Promise<Estado> {
 export async function pagarPendiente(): Promise<Estado> {
   const ctx = await obtenerContexto();
   if (!ctx.esAdmin) return { error: SOLO_ADMIN };
-  const wompi = configWompi();
+  const wompi = await obtenerWompi();
   if (!wompi) return { error: SIN_PAGOS };
   const { data, error } = await ctx.supabase.rpc("cobro_pendiente", { p_hogar: ctx.hogar.id });
   if (error) return { error: mensajeError(error) };

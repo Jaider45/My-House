@@ -367,6 +367,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"integraciones": {
+                  Row: {
+                    "activa": boolean,"actualizada_en": string,"actualizada_por": string | null,"config": NonNullable<Json>,"proveedor": string,"secretos": NonNullable<Json>,"ultimo_evento": string | null,"verificacion": Json | null,"verificada_en": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activa"?: boolean,"actualizada_en"?: string,"actualizada_por"?: string | null,"config"?: NonNullable<Json>,"proveedor": string,"secretos"?: NonNullable<Json>,"ultimo_evento"?: string | null,"verificacion"?: Json | null,"verificada_en"?: string | null
+                  }
+                  Update: {
+                    "activa"?: boolean,"actualizada_en"?: string,"actualizada_por"?: string | null,"config"?: NonNullable<Json>,"proveedor"?: string,"secretos"?: NonNullable<Json>,"ultimo_evento"?: string | null,"verificacion"?: Json | null,"verificada_en"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"invitations": {
                   Row: {
                     "aceptada_en": string | null,"creada_por": string | null,"created_at": string,"email": string,"expira_en": string,"household_id": string,"id": string,"rol": Database["public"]['Enums']["rol_miembro"],"token": string
@@ -812,6 +826,9 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"consola_desconectar_integracion":
+{ Args: { "p_proveedor": string }; Returns: undefined
+                           },
 "consola_equipo":
 { Args: Record<PropertyKey, never>; Returns: {
               "activo": boolean,"created_at": string,"dos_pasos": string,"email": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"ultimo_ingreso": string,"user_id": string
@@ -843,6 +860,9 @@ isOneToOne: false
 "consola_guardar_cupon":
 { Args: { "p_activo": boolean,"p_codigo": string,"p_descripcion": string,"p_desde": string,"p_hasta": string,"p_periodo": string,"p_periodos": number,"p_planes": (string)[],"p_tipo": string,"p_usos_max": number,"p_valor": number }; Returns: undefined
                            },
+"consola_guardar_integracion":
+{ Args: { "p_activa": boolean,"p_config": Json,"p_proveedor": string,"p_secretos": Json }; Returns: undefined
+                           },
 "consola_guardar_plan":
 { Args: { "p_anual": number,"p_codigo": string,"p_limites": Json,"p_mensual": number,"p_nombre": string,"p_publicado": boolean }; Returns: undefined
                            },
@@ -859,6 +879,11 @@ isOneToOne: false
                            },
 "consola_hogares_conteos":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"consola_integraciones":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "activa": boolean,"actualizada_en": string,"actualizada_por": string,"config": Json,"proveedor": string,"secretos": Json,"ultimo_evento": string,"verificacion": Json,"verificada_en": string
+            }[]
                            },
 "consola_invitaciones":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -900,6 +925,9 @@ isOneToOne: false
       } },
 "consola_registrar_ingreso":
 { Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"consola_registrar_verificacion":
+{ Args: { "p_detalle": string,"p_ok": boolean,"p_proveedor": string }; Returns: undefined
                            },
 "consola_restablecer_2fa":
 { Args: { "p_user": string }; Returns: undefined
@@ -949,6 +977,12 @@ isOneToOne: false
 "iniciar_prueba":
 { Args: { "p_hogar": string }; Returns: string
                            },
+"integracion_evento":
+{ Args: { "p_proveedor": string }; Returns: undefined
+                           },
+"integracion_leer":
+{ Args: { "p_proveedor": string }; Returns: Json
+                           },
 "mi_plan":
 { Args: { "p_hogar": string }; Returns: Json
                            },
@@ -960,6 +994,11 @@ isOneToOne: false
                            },
 "reservar_uso_ia":
 { Args: { "p_cantidad"?: number,"p_hogar": string,"p_tipo": string }; Returns: undefined
+                           },
+"revision_seguridad":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "objeto": string,"tipo": string
+            }[]
                            },
 "totales_por_categoria":
 { Args: { "p_desde": string,"p_hasta": string,"p_household": string }; Returns: {

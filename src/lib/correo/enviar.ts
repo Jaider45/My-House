@@ -1,15 +1,16 @@
 import "server-only";
+import { leerIntegracion } from "@/lib/integraciones/servidor";
 import { armarCorreo, type Contenido } from "./plantilla";
 
 /**
  * Envío de los correos propios de la app (los de acceso los envía Supabase). Orden:
- * 1. Resend, si existe RESEND_API_KEY (producción).
+ * 1. Resend, si está conectado en la consola (Integraciones) o con RESEND_API_KEY (producción).
  * 2. Mailpit de Supabase local, si la base es local (desarrollo: se ven en http://127.0.0.1:54324).
  * 3. Ninguno: no se envía y se avisa en el log. Un correo que falla nunca rompe la acción que lo pidió.
  */
 
 export const sitio = () => (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
-const REMITENTE = () => process.env.CORREO_REMITENTE ?? "My House <no-responder@myhouse.test>";
+const REMITENTE_POR_DEFECTO = "My House <no-responder@myhouse.test>";
 
 type Destino = { para: string; contenido: Contenido; etiqueta?: string; cabeceras?: Record<string, string> };
 export type Resultado = { enviado: boolean; via: "resend" | "mailpit" | "ninguno"; error?: string };
@@ -21,17 +22,23 @@ function mailpit(): string | null {
 }
 
 /** ¿Hay por dónde enviar? Para decidir qué decirle a la persona (p. ej. «te enviamos la invitación»). */
-export const puedeEnviarCorreo = () => Boolean(process.env.RESEND_API_KEY || mailpit());
+export const puedeEnviarCorreo = async () => Boolean((await leerIntegracion("resend")) || mailpit());
 
-export async function enviarCorreo({ para, contenido, etiqueta, cabeceras }: Destino): Promise<Resultado> {
+/**
+ * Envía con Resend (o Mailpit en local). `probarCon`: llave y remitente aún sin guardar, para el botón «Enviar correo de
+ * prueba» de la consola (así se confirma una llave de solo envío, que no puede listar nada en Resend).
+ */
+export async function enviarCorreo({ para, contenido, etiqueta, cabeceras, probarCon }: Destino & { probarCon?: { api_key: string; remitente?: string } }): Promise<Resultado> {
   const { asunto, html, texto } = armarCorreo(contenido, sitio());
+  const resend = probarCon ?? (await leerIntegracion("resend"))?.valores;
+  const remitente = resend?.remitente || process.env.CORREO_REMITENTE || REMITENTE_POR_DEFECTO;
   try {
-    if (process.env.RESEND_API_KEY) {
+    if (resend?.api_key) {
       const r = await fetch("https://api.resend.com/emails", {
         method: "POST",
-        headers: { authorization: `Bearer ${process.env.RESEND_API_KEY}`, "content-type": "application/json" },
+        headers: { authorization: `Bearer ${resend.api_key}`, "content-type": "application/json" },
         body: JSON.stringify({
-          from: REMITENTE(),
+          from: remitente,
           to: [para],
           subject: asunto,
           html,
@@ -46,7 +53,7 @@ export async function enviarCorreo({ para, contenido, etiqueta, cabeceras }: Des
     }
     const local = mailpit();
     if (local) {
-      const [, nombre, correo] = REMITENTE().match(/^(.*?)\s*<(.+)>$/) ?? [null, "My House", REMITENTE()];
+      const [, nombre, correo] = remitente.match(/^(.*?)\s*<(.+)>$/) ?? [null, "My House", remitente];
       const r = await fetch(`${local}/api/v1/send`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -56,11 +63,11 @@ export async function enviarCorreo({ para, contenido, etiqueta, cabeceras }: Des
       if (!r.ok) throw new Error(`Mailpit ${r.status}`);
       return { enviado: true, via: "mailpit" };
     }
-    console.warn(`[correo] sin RESEND_API_KEY: no se envió «${asunto}» a ${para}`);
+    console.warn(`[correo] Resend no está conectado: no se envió «${asunto}» a ${para}`);
     return { enviado: false, via: "ninguno" };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     console.error(`[correo] falló «${asunto}» a ${para}: ${error}`);
-    return { enviado: false, via: process.env.RESEND_API_KEY ? "resend" : "mailpit", error };
+    return { enviado: false, via: resend?.api_key ? "resend" : "mailpit", error };
   }
 }

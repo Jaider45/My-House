@@ -1,5 +1,5 @@
 /** Rutas accesibles sin sesión. */
-export const RUTAS_PUBLICAS = ["/ingresar", "/registro", "/recuperar", "/invitacion", "/auth", "/sin-conexion", "/api/avisos", "/api/cobros", "/api/pagos", "/dev/correos"];
+export const RUTAS_PUBLICAS = ["/ingresar", "/registro", "/recuperar", "/invitacion", "/auth", "/sin-conexion", "/api/avisos", "/api/cobros", "/api/pagos", "/api/whatsapp", "/dev/correos"];
 
 export function esRutaPublica(ruta: string): boolean {
   return RUTAS_PUBLICAS.some((p) => ruta === p || ruta.startsWith(`${p}/`));

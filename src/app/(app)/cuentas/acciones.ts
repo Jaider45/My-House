@@ -79,9 +79,11 @@ export async function archivarCuenta(_: Estado, datos: FormData): Promise<Estado
 
 /** Solo se borra si no tiene movimientos; si tiene, se archiva (borrar en cascada perdería historia). */
 export async function eliminarCuenta(_: Estado, datos: FormData): Promise<Estado> {
-  const id = String(datos.get("id"));
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
+  // Validado como UUID: va dentro de un filtro `or(...)` de PostgREST (decisión 28).
+  const id = idDe(datos);
+  if (!id) return { error: NO_ENCONTRADO };
   const { count } = await ctx.supabase
     .from("transactions")
     .select("id", { count: "exact", head: true })

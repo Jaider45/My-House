@@ -50,6 +50,12 @@ export function describirAccion({ accion, objeto_nombre, detalle }: Registro): s
       return `Creó el cupón ${quien}`;
     case "edito_cupon":
       return `Editó el cupón ${quien}`;
+    case "conecto_integracion":
+      return `Conectó la integración ${quien}`;
+    case "edito_integracion":
+      return `Cambió la integración ${quien}${Array.isArray(d.secretos_cambiados) && d.secretos_cambiados.length ? ` (secretos: ${d.secretos_cambiados.join(", ")})` : ""}`;
+    case "desconecto_integracion":
+      return `Desconectó la integración ${quien}`;
     default:
       return accion.replace(/_/g, " ");
   }

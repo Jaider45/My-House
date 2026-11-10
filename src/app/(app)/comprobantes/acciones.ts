@@ -6,7 +6,7 @@ import { obtenerContexto } from "@/lib/sesion";
 import { idDe, mensajeError, NO_ENCONTRADO, SOLO_LECTURA, type Estado } from "@/lib/acciones";
 import { formatearCOP } from "@/lib/dinero";
 import { hoy, sumarDias } from "@/lib/fechas";
-import { IaNoConfigurada, leerComprobante, type Archivo } from "@/lib/ia";
+import { entornoIa, IaNoConfigurada, leerComprobante, type Archivo } from "@/lib/ia";
 import { resolverIa } from "@/lib/ia/proveedores";
 import { describirHogar, leerConfigHogar, type PersonaHogar } from "@/lib/hogar";
 import type { Database } from "@/lib/supabase/database.types";
@@ -40,7 +40,7 @@ async function catalogos(ctx: Ctx) {
     cuentas: cuentas ?? [],
     etiquetas: etiquetas ?? [],
     reglas: (reglas ?? []) as ReglaComercio[],
-    ia: resolverIa(config.ia, process.env),
+    ia: resolverIa(config.ia, await entornoIa()),
     hogar: describirHogar((personas ?? []) as PersonaHogar[], config.contexto, hoy()),
   };
 }

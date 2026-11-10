@@ -1,22 +1,22 @@
 import "server-only";
 import { createHash, timingSafeEqual } from "node:crypto";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/supabase/database.types";
+import { crearClienteServicio, type Servicio } from "@/lib/supabase/servicio";
 import { enviarCorreo } from "@/lib/correo/enviar";
 import type { Contenido } from "@/lib/correo/plantilla";
-import { apiWompi, type TransaccionWompi } from "./wompi";
+import { leerIntegracion } from "@/lib/integraciones/servidor";
+import { apiWompi, type ConfigWompi, type TransaccionWompi } from "./wompi";
 
 /*
  * Piezas de servidor de los cobros. La llave service_role solo la usan el webhook de Wompi (/api/pagos/wompi) y el
  * cron de vencimientos (/api/cobros): confirman pagos y cambian planes, cosas que ningún usuario puede hacer.
  */
 
-export type Servicio = SupabaseClient<Database>;
+export { crearClienteServicio, type Servicio };
 
-export function crearClienteServicio(): Servicio {
-  return createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+/** Wompi conectado en la consola (Integraciones) o por variables de entorno. null = no se puede cobrar. */
+export async function obtenerWompi(): Promise<ConfigWompi | null> {
+  const w = await leerIntegracion("wompi");
+  return w ? { publica: w.valores.llave_publica, integridad: w.valores.integridad, eventos: w.valores.eventos } : null;
 }
 
 /** Compara `Authorization` con `Bearer <secreto>` en tiempo constante (Vercel Cron manda CRON_SECRET). */

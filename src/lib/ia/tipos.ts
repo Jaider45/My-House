@@ -5,6 +5,8 @@ export type Archivo = { mime: string; base64: string; nombre: string };
 /** Lo que cada proveedor sabe hacer: un mensaje (archivo opcional + texto) → JSON validado con Zod. */
 export type PeticionEstructurada<T extends z.ZodType> = {
   modelo: string;
+  /** Llave del proveedor (Integraciones o entorno). Sin ella, el SDK la toma de su variable de entorno. */
+  llave?: string;
   sistema: string;
   archivo?: Archivo;
   texto: string;

@@ -5,7 +5,8 @@ import { leerConfigHogar } from "@/lib/hogar";
 import * as anthropic from "./anthropic";
 import * as openai from "./openai";
 import { LecturaComprobante, LecturaExtracto, mensajeComprobante, sistemaComprobante, sistemaExtracto, type ContextoLectura } from "./esquemas";
-import { NOMBRE_PROVEEDOR, resolverIa, type ConfigIa } from "./proveedores";
+import { leerIntegracion } from "@/lib/integraciones/servidor";
+import { llaveDe, NOMBRE_PROVEEDOR, resolverIa, type ConfigIa, type Entorno } from "./proveedores";
 import { ErrorIa, RespuestaCortada, type Archivo, type PeticionEstructurada } from "./tipos";
 
 /**
@@ -20,16 +21,31 @@ export type { ConfigIa } from "./proveedores";
 
 export class IaNoConfigurada extends Error {
   constructor() {
-    super("El asistente no está configurado en este servidor: falta ANTHROPIC_API_KEY u OPENAI_API_KEY.");
+    super("El asistente no está configurado: conecta Anthropic u OpenAI en la consola (Integraciones).");
   }
 }
 
 type Ctx = Awaited<ReturnType<typeof obtenerContexto>>;
 
-/** Proveedor y modelo del hogar (o null si el servidor no tiene ninguna llave). */
+/**
+ * Llaves y modelos de IA efectivos: los conectados en la consola (Integraciones) o, si no, las variables de entorno.
+ * Solo en el servidor: nunca pasar este objeto a un componente de cliente.
+ */
+export async function entornoIa(): Promise<Entorno> {
+  const [a, o] = await Promise.all([leerIntegracion("anthropic"), leerIntegracion("openai")]);
+  return {
+    IA_PROVEEDOR: process.env.IA_PROVEEDOR,
+    ANTHROPIC_API_KEY: a?.valores.api_key,
+    ANTHROPIC_MODEL: a?.valores.modelo || process.env.ANTHROPIC_MODEL,
+    OPENAI_API_KEY: o?.valores.api_key,
+    OPENAI_MODEL: o?.valores.modelo || process.env.OPENAI_MODEL,
+  };
+}
+
+/** Proveedor y modelo del hogar (o null si no hay ninguna llave). */
 export async function iaDelHogar(ctx: Ctx): Promise<ConfigIa | null> {
-  const { data } = await ctx.supabase.from("households").select("config").eq("id", ctx.hogar.id).single();
-  return resolverIa(leerConfigHogar(data?.config).ia, process.env);
+  const [{ data }, entorno] = await Promise.all([ctx.supabase.from("households").select("config").eq("id", ctx.hogar.id).single(), entornoIa()]);
+  return resolverIa(leerConfigHogar(data?.config).ia, entorno);
 }
 
 /** Traduce los errores de las API a algo que la familia (o quien administra) pueda resolver. */
@@ -56,7 +72,8 @@ export function explicarError(e: unknown, ia: ConfigIa): string {
 async function pedir<T extends z.ZodType>(ia: ConfigIa, p: Omit<PeticionEstructurada<T>, "modelo">): Promise<z.infer<T>> {
   const adaptador = ia.proveedor === "openai" ? openai : anthropic;
   try {
-    return await adaptador.pedirEstructurado({ ...p, modelo: ia.modelo });
+    const llave = (await entornoIa())[llaveDe(ia.proveedor)];
+    return await adaptador.pedirEstructurado({ ...p, modelo: ia.modelo, llave });
   } catch (e) {
     if (e instanceof RespuestaCortada) throw e;
     throw new ErrorIa(explicarError(e, ia));
