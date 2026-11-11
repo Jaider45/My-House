@@ -139,14 +139,14 @@ isOneToOne: false
                   ]
                 },"campanas": {
                   Row: {
-                    "alcance": number,"asunto": string,"boton_texto": string | null,"boton_url": string | null,"creada_nombre": string,"creada_por": string | null,"created_at": string,"cuerpo": string,"enviada_en": string | null,"enviados": number,"estado": string,"id": string,"nombre": string,"programada_para": string | null,"segmento": string,"titulo": string
+                    "alcance": number,"asunto": string,"boton_texto": string | null,"boton_url": string | null,"creada_nombre": string,"creada_por": string | null,"created_at": string,"cuerpo": string,"cursor_hogar": string | null,"enviada_en": string | null,"enviados": number,"estado": string,"id": string,"intentos": number,"nombre": string,"programada_para": string | null,"segmento": string,"titulo": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "alcance"?: number,"asunto": string,"boton_texto"?: string | null,"boton_url"?: string | null,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo": string,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"nombre": string,"programada_para"?: string | null,"segmento": string,"titulo": string
+                    "alcance"?: number,"asunto": string,"boton_texto"?: string | null,"boton_url"?: string | null,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo": string,"cursor_hogar"?: string | null,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"intentos"?: number,"nombre": string,"programada_para"?: string | null,"segmento": string,"titulo": string
                   }
                   Update: {
-                    "alcance"?: number,"asunto"?: string,"boton_texto"?: string | null,"boton_url"?: string | null,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo"?: string,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"nombre"?: string,"programada_para"?: string | null,"segmento"?: string,"titulo"?: string
+                    "alcance"?: number,"asunto"?: string,"boton_texto"?: string | null,"boton_url"?: string | null,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo"?: string,"cursor_hogar"?: string | null,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"intentos"?: number,"nombre"?: string,"programada_para"?: string | null,"segmento"?: string,"titulo"?: string
                   }
                   Relationships: [
                     
@@ -861,9 +861,39 @@ isOneToOne: false
               "compras_consumos": number,"consignaciones": number,"consumos_tarjeta": number,"ingresos_brutos": number,"member_id": string,"nombre": string,"patrimonio_bruto": number
             }[]
                            },
+"campana_avance":
+{ Args: { "p_alcance": number,"p_cursor": string,"p_enviados": number,"p_id": string,"p_termino": boolean }; Returns: undefined
+                           },
 "campana_hogares":
 { Args: { "p_campana": string }; Returns: string[]
                            },
+"campana_reclamar":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "alcance": number,
+"asunto": string,
+"boton_texto": string | null,
+"boton_url": string | null,
+"creada_nombre": string,
+"creada_por": string | null,
+"created_at": string,
+"cuerpo": string,
+"cursor_hogar": string | null,
+"enviada_en": string | null,
+"enviados": number,
+"estado": string,
+"id": string,
+"intentos": number,
+"nombre": string,
+"programada_para": string | null,
+"segmento": string,
+"titulo": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "campanas"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "cancelar_al_vencer":
 { Args: { "p_cancelar": boolean,"p_hogar": string }; Returns: undefined
                            },
@@ -900,10 +930,12 @@ isOneToOne: false
 "creada_por": string | null,
 "created_at": string,
 "cuerpo": string,
+"cursor_hogar": string | null,
 "enviada_en": string | null,
 "enviados": number,
 "estado": string,
 "id": string,
+"intentos": number,
 "nombre": string,
 "programada_para": string | null,
 "segmento": string,

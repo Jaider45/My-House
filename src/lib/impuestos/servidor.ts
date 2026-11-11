@@ -11,12 +11,15 @@ export type SemaforoAnio =
 type Ctx = Awaited<ReturnType<typeof obtenerContexto>>;
 
 /** Acumulado del año de cada persona del hogar contra los topes para declarar del país del hogar. */
-export async function cargarSemaforo(ctx: Ctx, anio: number): Promise<SemaforoAnio> {
+export async function cargarSemaforo(ctx: Ctx, anio: number, parametros?: ParametrosAnio | null): Promise<SemaforoAnio> {
   const j = jurisdiccion(ctx.hogar.pais);
   if (!j) return { ok: false, motivo: `Aún no hay módulo tributario para ${ctx.hogar.pais}.` };
 
+  // `parametros` evita releer tax_params por cada hogar cuando se calculan varios (panel del contador).
   const [{ data: params }, { data: acumulados, error }] = await Promise.all([
-    ctx.supabase.from("tax_params").select("anio, uvt_valor, topes, deducciones").eq("pais", ctx.hogar.pais).eq("anio", anio).maybeSingle(),
+    parametros !== undefined
+      ? Promise.resolve({ data: parametros })
+      : ctx.supabase.from("tax_params").select("anio, uvt_valor, topes, deducciones").eq("pais", ctx.hogar.pais).eq("anio", anio).maybeSingle(),
     ctx.supabase.rpc("acumulados_tributarios", { p_household: ctx.hogar.id, p_anio: anio }),
   ]);
   if (!params) return { ok: false, motivo: `No hay valor de ${j.unidad} cargado para ${anio}.` };
@@ -28,6 +31,12 @@ export async function cargarSemaforo(ctx: Ctx, anio: number): Promise<SemaforoAn
     return { member_id: a.member_id, nombre: a.nombre, topes, estado: peorSemaforo(topes) };
   });
   return { ok: true, anio, jurisdiccion: j, params: p, personas };
+}
+
+/** Parámetros tributarios de un país y año, para reusarlos entre varios hogares. */
+export async function cargarParametros(ctx: Ctx, pais: string, anio: number): Promise<ParametrosAnio | null> {
+  const { data } = await ctx.supabase.from("tax_params").select("anio, uvt_valor, topes, deducciones").eq("pais", pais).eq("anio", anio).maybeSingle();
+  return (data as ParametrosAnio | null) ?? null;
 }
 
 /** Presentación del semáforo: tono de chip, color del medidor (hex, va en SVG) y textos. */

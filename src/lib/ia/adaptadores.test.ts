@@ -3,6 +3,9 @@ import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+// Los SDK reales tardan en cargar y conectarse: con el disco ocupado (npm run check corre lint y typecheck en paralelo
+// en un HDD) el límite de 5 s por prueba se quedaba corto y fallaban de forma intermitente.
+vi.setConfig({ testTimeout: 30_000 });
 
 /**
  * Los adaptadores se prueban con los SDK reales contra un servidor local que imita las API de OpenAI y Anthropic:

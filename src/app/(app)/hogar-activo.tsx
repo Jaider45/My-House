@@ -5,6 +5,7 @@ import { obtenerContexto } from "@/lib/sesion";
 import { mensajeError, type Estado } from "@/lib/acciones";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
+import { misHogares } from "./mis-hogares";
 
 /** Cambia el hogar activo: la base valida la membresía y el JWT nuevo trae el hogar elegido. */
 export async function cambiarHogar(_: Estado, datos: FormData): Promise<Estado> {
@@ -26,9 +27,7 @@ export async function cambiarHogar(_: Estado, datos: FormData): Promise<Estado> 
  * quien tiene su hogar y una firma). Reemplaza la decisión 14 («un usuario opera un hogar»).
  */
 export async function SelectorHogar() {
-  const ctx = await obtenerContexto();
-  const { data } = await ctx.supabase.rpc("mis_hogares_lista");
-  const hogares = data ?? [];
+  const [ctx, hogares] = await Promise.all([obtenerContexto(), misHogares()]);
   if (hogares.length <= 1) return null;
   return (
     <FormularioAccion

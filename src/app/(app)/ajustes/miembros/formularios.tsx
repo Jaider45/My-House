@@ -30,7 +30,7 @@ export function CopiarEnlace({ enlace }: { enlace: string }) {
   const [copiado, setCopiado] = useState(false);
   return (
     <div className="flex gap-2">
-      <input readOnly value={enlace} className="min-w-0 flex-1 rounded-xl border border-control bg-mosaico px-3 text-xs" onFocus={(e) => e.target.select()} />
+      <input readOnly value={enlace} aria-label="Enlace de la invitación" className="min-w-0 flex-1 rounded-xl border border-control bg-mosaico px-3 text-xs" onFocus={(e) => e.target.select()} />
       <Boton
         type="button"
         variante="secundario"

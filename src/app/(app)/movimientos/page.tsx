@@ -240,6 +240,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
               type="search"
               name="q"
               defaultValue={buscar}
+              aria-label="Buscar comercio o concepto"
               placeholder="Buscar comercio o concepto"
               className="h-11 w-full rounded-lg border border-control bg-elevada pr-3 pl-[38px] text-[15px] outline-none focus:border-monte"
             />

@@ -4,7 +4,7 @@ import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { MejoraPlan } from "@/components/mejora-plan";
 import { obtenerContexto } from "@/lib/sesion";
-import { cargarSemaforo } from "@/lib/impuestos/servidor";
+import { cargarParametros, cargarSemaforo } from "@/lib/impuestos/servidor";
 import { formatearCOP } from "@/lib/dinero";
 import { formatearFecha, hoy } from "@/lib/fechas";
 import { sitio } from "@/lib/correo/enviar";
@@ -42,9 +42,13 @@ async function Contenido() {
   // Semáforo DIAN de cada cliente (es la razón de ser del panel): solo con plan Contador, hasta su tope de hogares.
   const semaforos = new Map<string, { texto: string; tono: Tono }>();
   if (firma) {
+    const visibles = lista.slice(0, firma.limites.hogares ?? 30);
+    // Los parámetros del año se leen una vez por país y se reusan en todos los clientes (no uno por hogar).
+    const paises = [...new Set(visibles.map((c) => c.pais))];
+    const params = new Map(await Promise.all(paises.map(async (p) => [p, await cargarParametros(ctx, p, anio)] as const)));
     const estados = await Promise.all(
-      lista.slice(0, firma.limites.hogares ?? 30).map(async (c) => {
-        const s = await cargarSemaforo({ ...ctx, hogar: { ...ctx.hogar, id: c.id, pais: c.pais } }, anio);
+      visibles.map(async (c) => {
+        const s = await cargarSemaforo({ ...ctx, hogar: { ...ctx.hogar, id: c.id, pais: c.pais } }, anio, params.get(c.pais) ?? null);
         if (!s.ok || !s.personas.length) return [c.id, { texto: "Sin datos", tono: "neutro" as Tono }] as const;
         const peor = s.personas.some((p) => p.estado === "rojo") ? "rojo" : s.personas.some((p) => p.estado === "amarillo") ? "amarillo" : "verde";
         return [c.id, SEMAFORO[peor]] as const;

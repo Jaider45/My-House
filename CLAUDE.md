@@ -319,6 +319,19 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     referidos, mes cerrado, upsert solo pendientes) y marcar pagada (la transferencia se hace por fuera). El plan
     Contador se compra en Configuración → Plan (ahora lista también planes `para = contador`).
 
+40. Revisión general (2026-11-10). Hallazgos corregidos: el cron de campañas no terminaba si no había campaña (una
+    función SQL que devuelve un registro compuesto responde un objeto con todo en `null`, no `null`: chequear `id`;
+    tumbaba el servidor); campañas grandes se envían por tandas con cursor (`campana_reclamar`/`campana_avance`,
+    migración `campanas_reanudar`); métricas y el evento «primer gasto» ignoran lo que genera el cron de pagos fijos
+    (`private.mov_activo`: origen ≠ `recurrente`); el rol contador no ocupa cupo de personas del plan del cliente;
+    `eliminarCuenta` validaba mal el id de un filtro `or()`; `cerrarSesion` vacía la caché del navegador
+    (`revalidatePath("/", "layout")`); la lista de hogares del layout se pide una vez por request (`misHogares`, `cache`);
+    el semáforo de clientes lee `tax_params` una vez por país; `/api/avisos` usa `cronAutorizado` y
+    `crearClienteServicio` compartidos; tres campos sin nombre accesible; el formulario de campañas conserva lo escrito
+    tras guardar. `adaptadores.test.ts` con 30 s por prueba (fallaba intermitente bajo carga en el HDD).
+    Constantes compartidas entre un componente de servidor y uno `"use client"` van en un módulo aparte
+    (`comunicaciones/segmentos.ts`): importadas desde el archivo de cliente llegan como referencias, no valores.
+
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
   (pasó con `storage-api`: migraciones vacías y Storage arrancaba sin tablas). Síntoma: `relation "storage.buckets"

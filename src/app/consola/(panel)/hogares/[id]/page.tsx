@@ -201,7 +201,7 @@ export default async function HogarConsola({ params }: PageProps<"/consola/hogar
                             <FormularioAccion accion={registrarReembolso} className="mt-2 flex w-64 flex-col gap-2">
                               <input type="hidden" name="hogar" value={h.id} />
                               <input type="hidden" name="cobro" value={x.id} />
-                              <input name="motivo" required minLength={3} placeholder="Motivo" className="h-9 rounded-lg border border-control px-2" />
+                              <input name="motivo" required minLength={3} placeholder="Motivo" aria-label="Motivo del reembolso" className="h-9 rounded-lg border border-control px-2" />
                               <label className="flex items-center gap-2">
                                 <input type="checkbox" name="bajar" className="accent-monte" /> Pasar a Gratis
                               </label>

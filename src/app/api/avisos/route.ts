@@ -1,12 +1,11 @@
-import { createHash, timingSafeEqual } from "node:crypto";
-import { createClient } from "@supabase/supabase-js";
 import { after, NextResponse, type NextRequest } from "next/server";
 import { planificarAvisos, type Aviso, type DatosHogar } from "@/lib/avisos";
 import { enviarCorreo, sitio } from "@/lib/correo/enviar";
 import { hoy as hoyBogota, sumarDias } from "@/lib/fechas";
 import { leerConfigHogar } from "@/lib/hogar";
 import { cargarSemaforo } from "@/lib/impuestos/servidor";
-import type { Database } from "@/lib/supabase/database.types";
+import { crearClienteServicio, hayServicio } from "@/lib/supabase/servicio";
+import { cronAutorizado } from "@/lib/pagos/servidor";
 
 /** Vercel corta la función a los `maxDuration` segundos (300 = tope con Fluid compute en Hobby y Pro). */
 export const maxDuration = 300;
@@ -27,12 +26,6 @@ const MAX_VUELTAS = 30;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Compara el encabezado con el secreto en tiempo constante (hash de ambos: mismo largo siempre). */
-function autorizado(encabezado: string | null, secreto: string): boolean {
-  const a = createHash("sha256").update(encabezado ?? "").digest();
-  const b = createHash("sha256").update(`Bearer ${secreto}`).digest();
-  return timingSafeEqual(a, b);
-}
 
 /**
  * Avisos programados por correo. Lo llama Vercel Cron cada día a las 7:00 a. m. de Bogotá (vercel.json) con
@@ -47,16 +40,13 @@ function autorizado(encabezado: string | null, secreto: string): boolean {
  */
 export async function GET(request: NextRequest) {
   const inicio = Date.now();
-  const secreto = process.env.CRON_SECRET;
-  if (!secreto || !autorizado(request.headers.get("authorization"), secreto)) {
+  if (!cronAutorizado(request.headers.get("authorization"), process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hayServicio()) {
     return NextResponse.json({ error: "Falta SUPABASE_SERVICE_ROLE_KEY" }, { status: 500 });
   }
-  const db = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const db = crearClienteServicio();
   const params = request.nextUrl.searchParams;
   const simulado = params.get("hoy");
   const simular = process.env.NODE_ENV !== "production" || process.env.AVISOS_SIMULAR_FECHA === "1";
@@ -212,7 +202,7 @@ export async function GET(request: NextRequest) {
     url.searchParams.set("vuelta", String(vuelta + 1));
     if (simulado) url.searchParams.set("hoy", simulado);
     // Se despacha y no se espera la respuesta: la siguiente vuelta corre con su propio tiempo límite.
-    after(() => Promise.race([fetch(url, { headers: { authorization: `Bearer ${secreto}` } }).catch(() => null), esperar(5000)]));
+    after(() => Promise.race([fetch(url, { headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } }).catch(() => null), esperar(5000)]));
   }
   console.info(`[avisos] ${JSON.stringify({ hoy, vuelta, desde, ...resumen, siguiente })}`);
   return NextResponse.json({ hoy, vuelta, ...resumen, siguiente });

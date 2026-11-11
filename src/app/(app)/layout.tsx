@@ -4,7 +4,7 @@ import { ColaSinConexion } from "@/components/cola-sin-conexion";
 import { AvisoSuspendido } from "@/components/aviso-suspendido";
 import { BarraNavegacion, Navegacion } from "./navegacion";
 import { SelectorHogar } from "./hogar-activo";
-import { obtenerContexto } from "@/lib/sesion";
+import { misHogares } from "./mis-hogares";
 
 export default function LayoutApp({ children }: { children: React.ReactNode }) {
   return (
@@ -28,8 +28,6 @@ export default function LayoutApp({ children }: { children: React.ReactNode }) {
 
 /** La barra suma «Clientes» para quien es contador de algún hogar (una consulta pequeña, cacheada por request). */
 async function NavegacionConDatos() {
-  const ctx = await obtenerContexto();
-  const { data } = await ctx.supabase.rpc("mis_hogares_lista");
-  const esContador = (data ?? []).some((h) => h.rol === "contador");
+  const esContador = (await misHogares()).some((h) => h.rol === "contador");
   return <Navegacion extras={esContador ? [{ href: "/clientes", texto: "Clientes", icono: "certificados" }] : undefined} />;
 }

@@ -48,6 +48,13 @@ describe("eventos de producto", () => {
     expect(await eventos(hogar)).toEqual(["invito_pareja", "pagos_fijos_cargados", "primer_gasto", "registro"]);
   });
 
+  it("lo que genera el cron de pagos fijos no cuenta como actividad ni como primer gasto", async () => {
+    const otro = await entorno.hogar(admin, "Hogar solo cron", "gratis");
+    const cuenta = await admin.from("accounts").insert({ household_id: otro, tipo: "banco", nombre: "Banco" }).select("id").single();
+    await sr.from("transactions").insert({ household_id: otro, account_id: cuenta.data!.id, fecha: "2026-11-01", monto: 50, tipo: "gasto", origen: "recurrente", estado: "programado" });
+    expect(await eventos(otro)).toEqual(["registro"]);
+  });
+
   it("canal de llegada: se guarda saneado al crear el hogar", async () => {
     const { data } = await admin.rpc("crear_hogar", { p_nombre: "Hogar canal", p_nombre_miembro: "Ana", p_canal: "Meta-Ads " });
     entorno.recordarHogar(data as string);
@@ -112,6 +119,28 @@ describe("campañas", () => {
 
     const seg = await contenido.rpc("consola_segmentos");
     expect((seg.data as Record<string, { con_permiso: number }>).gratis.con_permiso).toBeGreaterThan(0);
+  });
+
+  it("una campaña grande se envía por tandas y nunca repite destinatarios", async () => {
+    // El cron reclama la campaña (la deja en «enviando») y avanza con un cursor por hogar.
+    await sr.from("campanas").update({ estado: "programada", programada_para: new Date(Date.now() - 60_000).toISOString(), cursor_hogar: null, enviados: 0, alcance: 0 }).eq("id", id);
+    const reclamada = await sr.rpc("campana_reclamar");
+    expect((reclamada.data as { id: string; estado: string }).estado).toBe("enviando");
+    // Mientras está en «enviando» nadie más la reclama a medias (otra corrida la retoma, no la duplica).
+    const primeros = (await sr.rpc("campana_hogares", { p_campana: id })).data as string[];
+    expect(primeros).toContain(hogar);
+
+    await sr.rpc("campana_avance", { p_id: id, p_cursor: hogar, p_enviados: 1, p_alcance: 1, p_termino: false });
+    const siguientes = (await sr.rpc("campana_hogares", { p_campana: id })).data as string[];
+    expect(siguientes).not.toContain(hogar);
+    expect(siguientes.every((h) => h > hogar)).toBe(true);
+
+    await sr.rpc("campana_avance", { p_id: id, p_cursor: null, p_enviados: 0, p_alcance: 0, p_termino: true });
+    const fin = (await sr.from("campanas").select("estado, enviados, enviada_en").eq("id", id).single()).data!;
+    expect(fin).toMatchObject({ estado: "enviada", enviados: 1 });
+    expect(fin.enviada_en).not.toBeNull();
+    // La prueba siguiente la cancela: vuelve a programada.
+    await sr.from("campanas").update({ estado: "programada", programada_para: new Date(Date.now() + 3600_000).toISOString() }).eq("id", id);
   });
 
   it("cancelar y no editar una enviada", async () => {
