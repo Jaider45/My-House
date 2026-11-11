@@ -94,7 +94,7 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
 15. Velocidad: el JWT trae el hogar, el miembro y el rol (`public.custom_access_token_hook`, activado en
     `config.toml` y en el panel de Supabase Cloud). `obtenerContexto()` los lee con `getClaims()` (verificación local
     con la llave pública, sin red) y solo consulta la base si el token no los trae. Tras crear hogar, aceptar
-    invitación o editar hogar/rol propio se llama `auth.refreshSession()`. Vercel en `gru1`, junto a Supabase.
+    invitación o editar hogar/rol propio se llama `auth.refreshSession()`. Vercel en `iad1`, junto a Supabase (`us-east-1`).
     `crearClienteServidor()` llama `await connection()`: todo lo que toca Supabase se renderiza por request
     (supabase-js usa `Date.now()` y Cache Components lo rechaza en prerender).
     Navegación: `staleTimes.dynamic: 30` reutiliza en el navegador lo visitado hace < 30 s. Toda acción que guarda

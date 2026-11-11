@@ -5,8 +5,8 @@ app queda en una URL `https://…vercel.app` (o tu dominio) que se instala como 
 
 ## 1. Supabase Cloud
 
-1. Crea un proyecto en <https://supabase.com/dashboard> (región **São Paulo** `sa-east-1`, la más cercana a
-   Colombia). Guarda la contraseña de la base de datos en tu gestor de contraseñas.
+1. Crea un proyecto en <https://supabase.com/dashboard>. El de My House está en **us-east-1** (Virginia); la
+   región debe coincidir con la de Vercel en `vercel.json` (ver §2). Guarda la contraseña de la base de datos en tu gestor de contraseñas.
 2. Vincula el repositorio y sube las migraciones (desde la raíz del proyecto):
 
    ```bash
@@ -107,8 +107,9 @@ que aparecen en filtraciones conocidas (HaveIBeenPwned). La app ya muestra un me
 ## 2. Vercel
 
 1. Importa el repositorio `Jaider45/My-House` en <https://vercel.com/new> (framework: Next.js, sin cambios).
-   `vercel.json` fija la región `gru1` (São Paulo), la misma de Supabase: cada consulta cruza la ciudad y no el
-   continente (~5 ms en vez de ~120 ms).
+   `vercel.json` fija la región `iad1` (Washington), junto a Supabase `us-east-1`: cada consulta cruza la ciudad y
+   no el continente (~5 ms en vez de ~120 ms). Si el proyecto de Supabase está en otra región, cambia `regions` a
+   la de Vercel más cercana (São Paulo `sa-east-1` → `gru1`). La región de Supabase no se puede cambiar después.
 2. Variables de entorno (Production y Preview):
 
    | Variable | Valor |

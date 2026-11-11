@@ -178,7 +178,7 @@ flowchart TD
 | **Procesos programados** | `pg_cron` en Postgres (generación diaria de pagos fijos) |
 | **Validación** | Zod 4 · CSV con Papa Parse en el navegador |
 | **Calidad** | Vitest (unitarias, adaptadores de IA contra API simulada y aislamiento RLS contra Postgres real) · ESLint · `tsc` |
-| **Despliegue previsto** | Vercel (`gru1`) + Supabase Cloud (São Paulo) |
+| **Despliegue previsto** | Vercel (`iad1`) + Supabase Cloud (`us-east-1`) |
 
 ### Arquitectura
 
