@@ -331,6 +331,20 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     tras guardar. `adaptadores.test.ts` con 30 s por prueba (fallaba intermitente bajo carga en el HDD).
     Constantes compartidas entre un componente de servidor y uno `"use client"` van en un módulo aparte
     (`comunicaciones/segmentos.ts`): importadas desde el archivo de cliente llegan como referencias, no valores.
+41. Contenido y parámetros (SaaS S6; migración `contenido`). **Parámetros DIAN**: `tax_params` con `publicado` +
+    `borrador` (jsonb): guardar crea/actualiza el borrador y solo `consola_publicar_parametros` lo aplica (los hogares
+    leen solo publicados; las consultas TS filtran `publicado` porque el cron usa service_role). `calendario_tributario`
+    (pais, año gravable, dígitos 0–99, fecha; se pega como lo publica la DIAN, `src/lib/consola/calendario.ts`) +
+    `members.nit_digitos` (solo los 2 últimos, `guardar_digitos_cedula`: la persona o el admin) → fecha en Renta DIAN y
+    correo 60/30/7 días antes a quien alcanzó un tope el año gravable (`/api/avisos`, clave `plazo:año:miembro:días`).
+    **Catálogos**: `categorias_base` (sin políticas; `sembrar_categorias` la lee, cae a CO si el país no tiene),
+    `reglas_comercio_globales` (por nombre de categoría; `decidir` las usa solo si ninguna del hogar aplica; «aprendidas»
+    = patrón en ≥ 3 hogares) y `formatos_extracto` (`formatoPara` en el importador, después del mapeo guardado de la
+    cuenta). **IA**: `plataforma_config` `ia_umbral` (reemplaza `CONFIANZA_MINIMA` en la decisión), `ia_tope_usd_mes`
+    (`reservar_uso_ia` frena todo al pasarlo) e `ia_precios` (prefijo de modelo → US$/M tokens; vacío hasta que el equipo
+    los cargue). Los adaptadores reportan tokens (`alUsar`) y `registrarUsos` llama `registrar_costo_ia`, que calcula el
+    costo en la base. Precisión = comprobantes registrados cuya categoría sigue siendo la que leyó la IA.
+    Ojo: un jsonb `null` no se escribe con supabase-js (llega NULL de SQL): las funciones hacen `coalesce(p, 'null')`.
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
@@ -372,7 +386,7 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] S3. Cobro con Wompi, cupones, recuperación de pagos fallidos (factura electrónica: falta el proveedor)
 - [x] S4. Métricas (panel, analítica) y comunicaciones (campañas por correo) — CAC y canal WhatsApp pendientes
 - [x] S5. Contadores: selector de hogares, panel con semáforo por cliente, referidos y comisiones — descarga masiva y recordatorios masivos pendientes
-- [ ] S6. Parámetros DIAN, catálogos e IA desde la consola
+- [x] S6. Parámetros DIAN (borrador/publicar, calendario por cédula), catálogos (categorías base, reglas globales, formatos de extracto) e IA (umbral, tope de gasto, costo y precisión)
 - [ ] S7. Soporte y privacidad (acceso con permiso, Ley 1581)
 - [ ] S8. Sistema (feature flags, mantenimiento) — Integraciones ya está hecha (decisión 36)
 

@@ -36,11 +36,19 @@ export type Decision =
       porRegla: boolean;
     };
 
-/** Confianza mínima para registrar sin preguntar. */
+/** Confianza mínima para registrar sin preguntar (la consola la cambia: `plataforma_config.ia_umbral`). */
 export const CONFIANZA_MINIMA = 70;
 
 const clave = (t: string) => normalizarDescripcion(t);
 const buscar = (opciones: Opcion[], nombre: string | null) => (nombre ? (opciones.find((o) => clave(o.nombre) === clave(nombre))?.id ?? null) : null);
+
+/** Reglas globales (por nombre de categoría) con la categoría del hogar que se llama igual; sin ella no aplican. */
+export function reglasGlobalesDelHogar(globales: { patron: string; categoria: string; ambito: "personal" | "negocio" | null }[], categorias: Opcion[]): ReglaComercio[] {
+  return globales.flatMap((g) => {
+    const id = buscar(categorias, g.categoria);
+    return id ? [{ patron: g.patron, category_id: id, ambito: g.ambito, activa: true }] : [];
+  });
+}
 
 /** Regla activa cuyo patrón aparece en el comercio; si varias, la más específica (patrón más largo). */
 export function reglaPara(comercio: string, reglas: ReglaComercio[]): ReglaComercio | undefined {
@@ -65,11 +73,21 @@ export function patronDe(comercio: string): string {
  */
 export function decidir(
   l: Lectura,
-  o: { categorias: Opcion[]; cuentas: Opcion[]; etiquetas: Opcion[]; reglas: ReglaComercio[]; hoy: string; cuentaPorDefecto: string | null },
+  o: {
+    categorias: Opcion[];
+    cuentas: Opcion[];
+    etiquetas: Opcion[];
+    reglas: ReglaComercio[];
+    /** Reglas de la plataforma (consola → Catálogos): solo si ninguna del hogar aplica. */
+    reglasGlobales?: ReglaComercio[];
+    umbral?: number;
+    hoy: string;
+    cuentaPorDefecto: string | null;
+  },
 ): Decision {
   if (!l.es_comprobante) return { accion: "descartar", motivo: l.pregunta ?? "No parece un comprobante de pago." };
 
-  const regla = reglaPara(l.comercio, o.reglas);
+  const regla = reglaPara(l.comercio, o.reglas) ?? reglaPara(l.comercio, o.reglasGlobales ?? []);
   const category_id = regla?.category_id ?? buscar(o.categorias, l.categoria);
   const fecha = l.fecha ? parsearFecha(l.fecha) : null;
   const fechaValida = fecha && fecha <= o.hoy ? fecha : null;
@@ -81,7 +99,7 @@ export function decidir(
       ? "¿De qué fecha es?"
       : !category_id
         ? `¿En qué categoría va ${l.comercio || "este pago"}?`
-        : !regla && l.confianza < CONFIANZA_MINIMA
+        : !regla && l.confianza < (o.umbral ?? CONFIANZA_MINIMA)
           ? (l.pregunta ?? "¿Confirmas estos datos?")
           : null;
 

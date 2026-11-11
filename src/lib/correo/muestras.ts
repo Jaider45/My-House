@@ -90,6 +90,19 @@ export function muestras(sitio: string): Record<string, { nombre: string; conten
         sitio,
       }),
     },
+    plazo: {
+      nombre: "Renta DIAN: fecha de declarar",
+      contenido: c.correoPlazoDian({
+        persona: "Andrés",
+        hogar: "Hogar Martínez Rojas",
+        anio: 2026,
+        fecha: "Miércoles 12 de agosto de 2027",
+        dias: 30,
+        digitos: "07",
+        url: `${sitio}/impuestos?anio=2026`,
+        sitio,
+      }),
+    },
     reporte: {
       nombre: "Reporte para el contador (diseño, sin función aún)",
       contenido: c.correoReporte({

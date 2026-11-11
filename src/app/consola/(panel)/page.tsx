@@ -61,7 +61,7 @@ export default async function PanelConsola() {
       alertas.push({ tono: "error", titulo: `La integración ${i.proveedor} está fallando`, texto: (i.verificacion as { detalle: string }).detalle, href: "/consola/integraciones" });
   }
   if (Number(hoy().slice(5, 7)) >= 11 && !uvt.data)
-    alertas.push({ tono: "alerta", titulo: `UVT ${anioSiguiente} sin cargar`, texto: "La DIAN la publica en diciembre; los topes del año nuevo dependen de ella." });
+    alertas.push({ tono: "alerta", titulo: `UVT ${anioSiguiente} sin cargar`, texto: "La DIAN la publica en diciembre; los topes del año nuevo dependen de ella.", href: "/consola/parametros" });
   if ((m.en_prueba ?? 0) > 0) alertas.push({ tono: "ok", titulo: `${m.en_prueba} ${m.en_prueba === 1 ? "hogar" : "hogares"} probando Familia`, texto: "Al terminar la prueba vuelven a Gratis si no pagan." });
 
   return (

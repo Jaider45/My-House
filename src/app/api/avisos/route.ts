@@ -1,5 +1,5 @@
 import { after, NextResponse, type NextRequest } from "next/server";
-import { planificarAvisos, type Aviso, type DatosHogar } from "@/lib/avisos";
+import { DIAS_PLAZO_DIAN, planificarAvisos, type Aviso, type DatosHogar } from "@/lib/avisos";
 import { enviarCorreo, sitio } from "@/lib/correo/enviar";
 import { hoy as hoyBogota, sumarDias } from "@/lib/fechas";
 import { leerConfigHogar } from "@/lib/hogar";
@@ -66,7 +66,12 @@ export async function GET(request: NextRequest) {
   const ids = hogares.map((h) => h.id);
 
   // Adultos que escriben (admin/editor), recordatorios por correo y pagos vencidos ayer: solo de esta página.
-  const [miembros, recordatorios, vencidos] = ids.length
+  // Fechas para declarar el año anterior que caen en 60, 30 o 7 días: solo esas terminaciones de cédula importan hoy.
+  const fechasPlazo = DIAS_PLAZO_DIAN.map((n) => sumarDias(hoy, n));
+  const { data: calendario } = await db.from("calendario_tributario").select("pais, digitos, fecha").eq("anio_gravable", anio - 1).in("fecha", fechasPlazo);
+  const plazoDe = (pais: string, digitos: string | null) => (digitos ? calendario?.find((c) => c.pais === pais && c.digitos === Number(digitos))?.fecha : undefined);
+
+  const [miembros, recordatorios, vencidos, conCedula] = ids.length
     ? await Promise.all([
         db.from("members").select("household_id, nombre, user_id, rol").in("household_id", ids).not("user_id", "is", null).in("rol", ["admin", "editor"]),
         db.from("reminders").select("id, household_id, nombre, fecha, monto, repetir, avisos, canales, activo").in("household_id", ids).eq("activo", true).contains("canales", ["correo"]),
@@ -77,9 +82,12 @@ export async function GET(request: NextRequest) {
           .eq("estado", "programado")
           .eq("tipo", "gasto")
           .eq("fecha", ayer),
+        calendario?.length
+          ? db.from("members").select("id, household_id, nombre, nit_digitos").in("household_id", ids).not("nit_digitos", "is", null)
+          : Promise.resolve({ data: [] as { id: string; household_id: string; nombre: string; nit_digitos: string | null }[], error: null }),
       ])
     : [];
-  const fallo = [miembros, recordatorios, vencidos].find((r) => r?.error)?.error;
+  const fallo = [miembros, recordatorios, vencidos, conCedula].find((r) => r?.error)?.error;
   if (fallo) return NextResponse.json({ error: fallo.message }, { status: 500 });
 
   // Correos de Auth solo de esas personas, en una llamada (antes: toda la lista de usuarios).
@@ -130,6 +138,16 @@ export async function GET(request: NextRequest) {
       };
     }
     if (semaforo.ok) datos.dian = { anio, personas: semaforo.personas };
+    // Plazo de declarar: solo si a alguien le toca en 60/30/7 días y el año anterior alcanzó un tope.
+    const conPlazo = (conCedula?.data ?? []).filter((m) => m.household_id === h.id && plazoDe(h.pais, m.nit_digitos));
+    if (conPlazo.length) {
+      const anterior = await cargarSemaforo({ supabase: db, hogar: { id: h.id, pais: h.pais } } as unknown as Parameters<typeof cargarSemaforo>[0], anio - 1);
+      const deben = new Set(anterior.ok ? anterior.personas.filter((p) => p.estado === "rojo").map((p) => p.member_id) : []);
+      datos.plazos = {
+        anio: anio - 1,
+        personas: conPlazo.filter((m) => deben.has(m.id)).map((m) => ({ member_id: m.id, nombre: m.nombre, digitos: m.nit_digitos!, fecha: plazoDe(h.pais, m.nit_digitos)! })),
+      };
+    }
     return planificarAvisos(datos, hoy, sitio()).map((aviso) => ({ hogar: h.id, aviso }));
   }
 

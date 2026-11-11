@@ -7,7 +7,8 @@ import { idDe, mensajeError, NO_ENCONTRADO, SOLO_LECTURA, type Estado } from "@/
 import { clasificar, huellas, normalizarDescripcion, type Clasificacion, type FilaLeida } from "@/lib/importacion";
 import { validarMovimiento } from "@/lib/ingesta";
 import { hoy, sumarDias } from "@/lib/fechas";
-import { IaNoConfigurada, iaDelHogar, leerExtracto } from "@/lib/ia";
+import { IaNoConfigurada, iaDelHogar, leerExtracto, type UsoIa } from "@/lib/ia";
+import { registrarUsos } from "@/lib/ia/uso";
 
 const MAX_FILAS = 5000;
 
@@ -177,8 +178,12 @@ export async function leerExtractoPdf(datos: FormData): Promise<{ filas?: { fech
   ]);
   if (!ia) return { error: new IaNoConfigurada().message };
   if (cupo.error) return { error: mensajeError(cupo.error) };
+  const usos: UsoIa[] = [];
+  const inicio = Date.now();
   try {
-    const { banco, filas } = await leerExtracto(ia, { mime: "application/pdf", base64, nombre: archivo.name }, hoy());
+    const { banco, filas } = await leerExtracto(ia, { mime: "application/pdf", base64, nombre: archivo.name }, hoy(), (u) => usos.push(u)).finally(() =>
+      registrarUsos(ctx, usos, Date.now() - inicio),
+    );
     if (!filas.length) return { error: "No encontré movimientos en ese PDF. ¿Es un extracto?" };
     if (filas.length > MAX_FILAS) return { error: `El extracto tiene más de ${MAX_FILAS} movimientos: divídelo.` };
     return { banco, filas };

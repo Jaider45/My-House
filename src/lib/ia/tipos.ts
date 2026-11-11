@@ -16,7 +16,12 @@ export type PeticionEstructurada<T extends z.ZodType> = {
   maxTokens: number;
   /** Poco razonamiento: extraer datos no lo necesita y responde más rápido. */
   esfuerzoBajo?: boolean;
+  /** Recibe los tokens usados (para el costo de la consola → IA). */
+  alUsar?: (uso: UsoIa) => void;
 };
+
+/** Tokens de una llamada al modelo. */
+export type UsoIa = { modelo: string; entrada: number; salida: number };
 
 /** Error con mensaje listo para la familia. */
 export class ErrorIa extends Error {}

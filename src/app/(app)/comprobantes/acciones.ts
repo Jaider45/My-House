@@ -6,11 +6,12 @@ import { obtenerContexto } from "@/lib/sesion";
 import { idDe, mensajeError, NO_ENCONTRADO, SOLO_LECTURA, type Estado } from "@/lib/acciones";
 import { formatearCOP } from "@/lib/dinero";
 import { hoy, sumarDias } from "@/lib/fechas";
-import { entornoIa, IaNoConfigurada, leerComprobante, type Archivo } from "@/lib/ia";
+import { entornoIa, IaNoConfigurada, leerComprobante, type Archivo, type UsoIa } from "@/lib/ia";
+import { registrarUsos } from "@/lib/ia/uso";
 import { resolverIa } from "@/lib/ia/proveedores";
 import { describirHogar, leerConfigHogar, type PersonaHogar } from "@/lib/hogar";
 import type { Database } from "@/lib/supabase/database.types";
-import { decidir, patronDe, type Decision, type ReglaComercio } from "@/lib/comprobantes";
+import { CONFIANZA_MINIMA, decidir, patronDe, reglasGlobalesDelHogar, type Decision, type ReglaComercio } from "@/lib/comprobantes";
 
 type Ctx = Awaited<ReturnType<typeof obtenerContexto>>;
 
@@ -26,13 +27,15 @@ function refrescar() {
 
 /** Catálogos que la lectura y la decisión necesitan, en una sola ida a la base. */
 async function catalogos(ctx: Ctx) {
-  const [{ data: categorias }, { data: cuentas }, { data: etiquetas }, { data: reglas }, { data: hogar }, { data: personas }] = await Promise.all([
+  const [{ data: categorias }, { data: cuentas }, { data: etiquetas }, { data: reglas }, { data: hogar }, { data: personas }, { data: globales }, { data: umbral }] = await Promise.all([
     ctx.supabase.from("categories").select("id, nombre").eq("archivada", false),
     ctx.supabase.from("accounts").select("id, nombre, tipo").eq("archivada", false).order("created_at"),
     ctx.supabase.from("tax_tags").select("id, nombre").eq("pais", ctx.hogar.pais),
     ctx.supabase.from("merchant_rules").select("patron, category_id, ambito, activa"),
     ctx.supabase.from("households").select("config").eq("id", ctx.hogar.id).single(),
     ctx.supabase.from("members").select("id, nombre, es_dependiente, parentesco, fecha_nacimiento, a_cargo_de, nota").order("created_at"),
+    ctx.supabase.from("reglas_comercio_globales").select("patron, categoria, ambito").eq("pais", ctx.hogar.pais),
+    ctx.supabase.from("plataforma_config").select("valor").eq("clave", "ia_umbral").maybeSingle(),
   ]);
   const config = leerConfigHogar(hogar?.config);
   return {
@@ -40,6 +43,8 @@ async function catalogos(ctx: Ctx) {
     cuentas: cuentas ?? [],
     etiquetas: etiquetas ?? [],
     reglas: (reglas ?? []) as ReglaComercio[],
+    reglasGlobales: reglasGlobalesDelHogar(globales ?? [], categorias ?? []),
+    umbral: typeof umbral?.valor === "number" ? umbral.valor : CONFIANZA_MINIMA,
     ia: resolverIa(config.ia, await entornoIa()),
     hogar: describirHogar((personas ?? []) as PersonaHogar[], config.contexto, hoy()),
   };
@@ -93,7 +98,7 @@ async function guardarArchivo(ctx: Ctx, id: string, archivo: File): Promise<stri
 type Resultado = { id: string; resumen: string; registrado?: number };
 
 /** Lee un comprobante (archivo o texto), decide y lo registra, adjunta o deja por revisar. */
-async function procesar(ctx: Ctx, cat: Awaited<ReturnType<typeof catalogos>>, entrada: { archivo?: File; texto?: string }): Promise<Resultado> {
+async function procesar(ctx: Ctx, cat: Awaited<ReturnType<typeof catalogos>>, entrada: { archivo?: File; texto?: string }, usos: UsoIa[]): Promise<Resultado> {
   const fecha = hoy();
   const { data: recibo, error } = await ctx.supabase
     .from("receipts")
@@ -116,6 +121,7 @@ async function procesar(ctx: Ctx, cat: Awaited<ReturnType<typeof catalogos>>, en
           texto: entrada.texto,
         },
         { hoy: fecha, categorias: cat.categorias.map((c) => c.nombre), cuentas: cat.cuentas.map((c) => c.nombre), etiquetas: cat.etiquetas.map((e) => e.nombre), hogar: cat.hogar },
+        (uso) => usos.push(uso),
       ),
     ]);
     const cuentaPorDefecto = cat.cuentas.find((c) => c.tipo !== "tarjeta")?.id ?? cat.cuentas[0]?.id ?? null;
@@ -174,9 +180,12 @@ export async function enviarAlAsistente(_: Estado, datos: FormData): Promise<Est
     .select("id")
     .single();
 
+  const usos: UsoIa[] = [];
+  const inicio = Date.now();
   try {
     const entradas = archivos.length ? archivos.map((archivo) => ({ archivo, texto: texto || undefined })) : [{ texto }];
-    const resultados = await Promise.all(entradas.map((e) => procesar(ctx, cat, e)));
+    const resultados = await Promise.all(entradas.map((e) => procesar(ctx, cat, e, usos)));
+    await registrarUsos(ctx, usos, Date.now() - inicio);
     const ids = resultados.map((r) => r.id);
     if (mensaje) await ctx.supabase.from("assistant_messages").update({ receipt_ids: ids }).eq("id", mensaje.id);
 

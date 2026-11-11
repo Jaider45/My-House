@@ -7,7 +7,7 @@ import * as openai from "./openai";
 import { LecturaComprobante, LecturaExtracto, mensajeComprobante, sistemaComprobante, sistemaExtracto, type ContextoLectura } from "./esquemas";
 import { leerIntegracion } from "@/lib/integraciones/servidor";
 import { llaveDe, NOMBRE_PROVEEDOR, resolverIa, type ConfigIa, type Entorno } from "./proveedores";
-import { ErrorIa, RespuestaCortada, type Archivo, type PeticionEstructurada } from "./tipos";
+import { ErrorIa, RespuestaCortada, type Archivo, type PeticionEstructurada, type UsoIa } from "./tipos";
 
 /**
  * Lectura de comprobantes y extractos con IA (visión + PDF, salida estructurada), con Claude o con GPT.
@@ -16,7 +16,7 @@ import { ErrorIa, RespuestaCortada, type Archivo, type PeticionEstructurada } fr
  */
 
 export { LecturaComprobante, LecturaExtracto, type ContextoLectura } from "./esquemas";
-export type { Archivo } from "./tipos";
+export type { Archivo, UsoIa } from "./tipos";
 export type { ConfigIa } from "./proveedores";
 
 export class IaNoConfigurada extends Error {
@@ -81,8 +81,14 @@ async function pedir<T extends z.ZodType>(ia: ConfigIa, p: Omit<PeticionEstructu
 }
 
 /** Lee un comprobante (foto o PDF) o un mensaje de texto con un gasto. */
-export async function leerComprobante(ia: ConfigIa, entrada: { archivo?: Archivo; texto?: string }, contexto: ContextoLectura): Promise<LecturaComprobante> {
+export async function leerComprobante(
+  ia: ConfigIa,
+  entrada: { archivo?: Archivo; texto?: string },
+  contexto: ContextoLectura,
+  alUsar?: (uso: UsoIa) => void,
+): Promise<LecturaComprobante> {
   return pedir(ia, {
+    alUsar,
     sistema: sistemaComprobante(contexto),
     archivo: entrada.archivo,
     texto: mensajeComprobante({ conArchivo: Boolean(entrada.archivo), texto: entrada.texto }),
@@ -94,9 +100,10 @@ export async function leerComprobante(ia: ConfigIa, entrada: { archivo?: Archivo
 }
 
 /** Extrae los movimientos de un extracto bancario o de tarjeta en PDF. */
-export async function leerExtracto(ia: ConfigIa, pdf: Archivo, hoy: string): Promise<LecturaExtracto> {
+export async function leerExtracto(ia: ConfigIa, pdf: Archivo, hoy: string, alUsar?: (uso: UsoIa) => void): Promise<LecturaExtracto> {
   try {
     return await pedir(ia, {
+      alUsar,
       sistema: sistemaExtracto(hoy),
       archivo: pdf,
       texto: "Extrae todos los movimientos de este extracto.",

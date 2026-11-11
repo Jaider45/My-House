@@ -322,6 +322,24 @@ export function correoDian(d: {
   };
 }
 
+/** Faltan 60, 30 o 7 días para la fecha de declarar de una persona que debe hacerlo (calendario DIAN por cédula). */
+export function correoPlazoDian(d: { persona: string; hogar: string; anio: number; fecha: string; dias: number; digitos: string; url: string; sitio: string }): Contenido {
+  const cuando = d.dias === 7 ? "en una semana" : `en ${d.dias} días`;
+  return {
+    asunto: `${d.persona}: la declaración de renta vence ${cuando}`,
+    vistaPrevia: `Fecha límite: ${d.fecha} (cédula terminada en ${d.digitos}).`,
+    etiqueta: "Renta DIAN",
+    icono: { nombre: "declaracion-renta", tono: d.dias === 7 ? "error" : "alerta" },
+    titulo: `La declaración de ${d.persona} vence ${cuando}`,
+    intro: `Según el calendario de la DIAN, ${d.persona} declara la renta del año ${d.anio} a más tardar el ${d.fecha}.`,
+    tarjeta: { filas: [{ k: "Fecha límite", v: d.fecha, grande: true, ...(d.dias === 7 && { tono: "error" as const }) }, { k: "Cédula terminada en", v: d.digitos }, { k: "Año gravable", v: String(d.anio) }] },
+    nota: { texto: d.dias === 7 ? "Si ya la presentaste, ignora este correo." : "Revisa en Renta DIAN los totales por etiqueta y comparte los soportes con tu contador." },
+    botones: [{ texto: "Ver Renta DIAN", url: d.url }],
+    meta: "Fecha tomada del calendario tributario publicado por la DIAN. Confírmala con tu contador.",
+    ...avisoDe(d.hogar, d.sitio),
+  };
+}
+
 /** Diseño listo; la app aún no genera el reporte para el contador (Fase 2). Solo se usa en la vista previa. */
 export function correoReporte(d: { nombre: string; hogar: string; anio: number; archivos: { nombre: string; tamano: string }[]; url: string; sitio: string }): Contenido {
   return {

@@ -1,5 +1,5 @@
 import type { Contenido } from "@/lib/correo/plantilla";
-import { correoDian, correoRecordatorio, correoResumen, correoVencido } from "@/lib/correo/correos";
+import { correoDian, correoPlazoDian, correoRecordatorio, correoResumen, correoVencido } from "@/lib/correo/correos";
 import { formatearCOP } from "@/lib/dinero";
 import { formatearFechaLarga, sumarDias } from "@/lib/fechas";
 import { proximaFecha, type Repeticion } from "@/lib/recordatorios";
@@ -26,8 +26,13 @@ export type DatosHogar = {
   };
   /** Semáforo DIAN del año en curso. */
   dian?: { anio: number; personas: { member_id: string; nombre: string; topes: ResultadoTope[] }[] };
+  /** Fecha para declarar el año gravable anterior de quienes deben hacerlo (calendario por los dígitos de la cédula). */
+  plazos?: { anio: number; personas: { member_id: string; nombre: string; digitos: string; fecha: string }[] };
 };
 export type Aviso = { clave: string; tipo: "recordatorio" | "vencido" | "resumen" | "dian"; envios: { para: string; contenido: Contenido }[] };
+
+/** Días antes de la fecha de declarar en que sale el aviso. */
+export const DIAS_PLAZO_DIAN = [60, 30, 7];
 
 const MAYUS = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const diaSemana = (fecha: string) => new Date(`${fecha}T00:00:00Z`).getUTCDay(); // 0 = domingo
@@ -164,6 +169,29 @@ export function planificarAvisos(d: DatosHogar, hoy: string, sitio: string): Avi
             fecha: MAYUS(formatearFechaLarga(hoy)),
             otros: cerca.length ? `También está cerca de otros topes: ${cerca.join(" y ")}. Ve guardando los soportes desde ya.` : null,
             url: `${sitio}/impuestos`,
+            sitio,
+          }),
+        ),
+      });
+    }
+  }
+  // Fecha de declarar: 60, 30 y 7 días antes, a quien debe declarar el año anterior.
+  if (d.plazos) {
+    for (const p of d.plazos.personas) {
+      const dias = DIAS_PLAZO_DIAN.find((n) => sumarDias(hoy, n) === p.fecha);
+      if (!dias) continue;
+      avisos.push({
+        clave: `plazo:${d.plazos.anio}:${p.member_id}:${dias}`,
+        tipo: "dian",
+        envios: paraTodos(() =>
+          correoPlazoDian({
+            persona: p.nombre,
+            hogar: d.hogar.nombre,
+            anio: d.plazos!.anio,
+            fecha: MAYUS(formatearFechaLarga(p.fecha)),
+            dias,
+            digitos: p.digitos,
+            url: `${sitio}/impuestos?anio=${d.plazos!.anio}`,
             sitio,
           }),
         ),

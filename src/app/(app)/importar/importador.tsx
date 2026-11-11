@@ -6,7 +6,7 @@ import { Aviso, Boton, Campo, Selector, Tarjeta } from "@/components/ui";
 import { formatearCOP } from "@/lib/dinero";
 import { formatearFecha } from "@/lib/fechas";
 import { opcionesCategoria, type Categoria } from "@/lib/categorias";
-import { detectarEncabezado, leerFilas, sugerirMapeo, type Clasificacion, type Mapeo } from "@/lib/importacion";
+import { detectarEncabezado, formatoPara, leerFilas, sugerirMapeo, type Clasificacion, type FormatoExtracto, type Mapeo } from "@/lib/importacion";
 import { analizarImportacion, importarMovimientos, leerExtractoPdf } from "./acciones";
 
 type Cuenta = { id: string; nombre: string; mapeo_csv: Mapeo | null };
@@ -56,7 +56,7 @@ function aObjetos(texto: string, saltar: number): Omit<Archivo, "nombre"> {
   };
 }
 
-export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categorias: Categoria[] }) {
+export function Importador({ cuentas, categorias, formatos = [] }: { cuentas: Cuenta[]; categorias: Categoria[]; formatos?: FormatoExtracto[] }) {
   const [cuentaId, setCuentaId] = useState(cuentas[0]?.id ?? "");
   const [texto, setTexto] = useState<{ nombre: string; contenido: string }>();
   const [saltar, setSaltar] = useState(0);
@@ -74,10 +74,11 @@ export function Importador({ cuentas, categorias }: { cuentas: Cuenta[]; categor
     setMensaje(undefined);
   }
 
-  /** Usa el mapeo guardado de la cuenta si calza con las columnas; si no, lo adivina. */
+  /** Usa el mapeo guardado de la cuenta si calza con las columnas; si no, el de un formato de banco conocido; si no, lo adivina. */
   function mapeoPara(columnas: string[]): Mapeo {
     const guardado = cuenta?.mapeo_csv;
-    return guardado && columnas.includes(guardado.fecha) ? guardado : sugerirMapeo(columnas);
+    if (guardado && columnas.includes(guardado.fecha)) return guardado;
+    return formatoPara(columnas, formatos)?.mapeo ?? sugerirMapeo(columnas);
   }
 
   /** PDF: el servidor extrae las filas y se arma un CSV equivalente (Fecha, Descripción, Valor con signo). */

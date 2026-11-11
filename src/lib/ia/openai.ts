@@ -32,6 +32,7 @@ export async function pedirEstructurado<T extends z.ZodType>(p: PeticionEstructu
     store: false, // datos financieros: que OpenAI no guarde la conversación
     text: { format: zodTextFormat(p.esquema, p.nombre) },
   });
+  p.alUsar?.({ modelo: respuesta.model ?? p.modelo, entrada: respuesta.usage?.input_tokens ?? 0, salida: respuesta.usage?.output_tokens ?? 0 });
   if (respuesta.status === "incomplete") {
     if (respuesta.incomplete_details?.reason === "max_output_tokens") throw new RespuestaCortada("La respuesta del modelo quedó incompleta.");
     throw new ErrorIa("El modelo no quiso procesar ese archivo.");

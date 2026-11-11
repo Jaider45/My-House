@@ -2,8 +2,11 @@ import Link from "next/link";
 import { Aviso, Chip, Tarjeta, Titulo, Vacio, cx } from "@/components/ui";
 import { Icono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
+import { BotonEnviar } from "@/components/ui/boton-enviar";
+import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { formatearCOP } from "@/lib/dinero";
-import { hoy } from "@/lib/fechas";
+import { formatearFechaLarga, hoy } from "@/lib/fechas";
+import { guardarDigitos } from "./acciones";
 import { cargarSemaforo, COLOR_SEMAFORO, type SemaforoPersona } from "@/lib/impuestos/servidor";
 import type { ResultadoTope } from "@/lib/impuestos/tipos";
 
@@ -27,7 +30,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
   const anioActual = Number(hoy().slice(0, 4));
   const anio = typeof sp.anio === "string" && /^\d{4}$/.test(sp.anio) ? Number(sp.anio) : anioActual;
 
-  const [semaforo, { data: anios }, { data: etiquetados }, { data: aCargo }] = await Promise.all([
+  const [semaforo, { data: anios }, { data: etiquetados }, { data: aCargo }, { data: adultos }, { data: calendario }] = await Promise.all([
     cargarSemaforo(ctx, anio),
     ctx.supabase.from("tax_params").select("anio").eq("pais", ctx.hogar.pais).order("anio", { ascending: false }),
     ctx.supabase
@@ -38,6 +41,8 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
       .gte("fecha", `${anio}-01-01`)
       .lte("fecha", `${anio}-12-31`),
     ctx.supabase.from("members").select("id, nombre, a_cargo_de, dependiente_dian").eq("es_dependiente", true).order("created_at"),
+    ctx.supabase.from("members").select("id, user_id, nit_digitos").eq("es_dependiente", false),
+    ctx.supabase.from("calendario_tributario").select("digitos, fecha").eq("pais", ctx.hogar.pais).eq("anio_gravable", anio),
   ]);
 
   const porEtiqueta = new Map<string, { total: number; cantidad: number }>();
@@ -57,6 +62,13 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
   const beneficio =
     semaforo.ok && persona ? semaforo.jurisdiccion.dependientes?.beneficio(semaforo.params.uvt_valor, semaforo.params.deducciones ?? {}, susDependientes.length) : null;
   const sinAsignar = (aCargo ?? []).filter((d) => d.dependiente_dian && !d.a_cargo_de);
+  // Plazo para declarar según los dos últimos dígitos de la cédula (calendario de la consola → Parámetros DIAN).
+  const adulto = (adultos ?? []).find((a) => a.id === persona?.member_id);
+  const plazo = {
+    digitos: adulto?.nit_digitos ?? null,
+    fecha: adulto?.nit_digitos ? (calendario ?? []).find((c) => c.digitos === Number(adulto.nit_digitos))?.fecha ?? null : null,
+    puedeEditar: ctx.esAdmin || (!!adulto && adulto.user_id === ctx.userId),
+  };
 
   return (
     <>
@@ -107,7 +119,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
               </dl>
             )}
           </Tarjeta>
-          <div className="lg:col-span-2">{!semaforo.ok ? <Aviso tipo="info">{semaforo.motivo}</Aviso> : persona ? <AvisoPersona persona={persona} anio={anio} unidad={unidad} /> : null}</div>
+          <div className="lg:col-span-2">{!semaforo.ok ? <Aviso tipo="info">{semaforo.motivo}</Aviso> : persona ? <AvisoPersona persona={persona} anio={anio} unidad={unidad} plazo={plazo} /> : null}</div>
         </div>
 
         {semaforo.ok && !persona && <Vacio>No hay personas adultas en el hogar.</Vacio>}
@@ -243,7 +255,9 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
   );
 }
 
-function AvisoPersona({ persona, anio, unidad }: { persona: SemaforoPersona; anio: number; unidad: string }) {
+type Plazo = { digitos: string | null; fecha: string | null; puedeEditar: boolean };
+
+function AvisoPersona({ persona, anio, unidad, plazo }: { persona: SemaforoPersona; anio: number; unidad: string; plazo: Plazo }) {
   const rebasados = persona.topes.filter((t) => t.semaforo === "rojo");
   const cerca = persona.topes.filter((t) => t.semaforo === "amarillo");
   const lista = (ts: ResultadoTope[]) => ts.map((t) => `${t.nombre.toLowerCase()} (${t.porcentaje} %)`).join(", ");
@@ -272,9 +286,40 @@ function AvisoPersona({ persona, anio, unidad }: { persona: SemaforoPersona; ani
       <div className="flex min-w-0 flex-col gap-1.5">
         <strong className="text-xl leading-[26px]">{titulo}</strong>
         <span className="text-sm">{texto}</span>
-        <span className="text-sm">El plazo depende de los dos últimos dígitos de la cédula, según el calendario que publique la DIAN.</span>
+        <PlazoDeclarar persona={persona} plazo={plazo} />
       </div>
     </section>
+  );
+}
+
+/** Fecha límite según la cédula, o el campo para escribir sus dos últimos dígitos. */
+function PlazoDeclarar({ persona, plazo }: { persona: SemaforoPersona; plazo: Plazo }) {
+  if (plazo.fecha)
+    return (
+      <span className="text-sm">
+        Plazo para declarar (cédula terminada en {plazo.digitos}): <b>{formatearFechaLarga(plazo.fecha)}</b>. Te avisamos 60, 30 y 7 días antes.
+      </span>
+    );
+  if (plazo.digitos)
+    return <span className="text-sm">Cédula terminada en {plazo.digitos}: la fecha aparece cuando la DIAN publique el calendario de este año.</span>;
+  if (!plazo.puedeEditar) return <span className="text-sm">El plazo depende de los dos últimos dígitos de la cédula de {persona.nombre}.</span>;
+  return (
+    <FormularioAccion accion={guardarDigitos} className="flex flex-wrap items-center gap-2 text-sm">
+      <input type="hidden" name="persona" value={persona.member_id} />
+      <label htmlFor="digitos-cedula">Dos últimos dígitos de la cédula de {persona.nombre}:</label>
+      <input
+        id="digitos-cedula"
+        name="digitos"
+        inputMode="numeric"
+        pattern="[0-9]{2}"
+        maxLength={2}
+        required
+        className="h-8 w-14 rounded-lg border border-control bg-white px-2 text-center text-tinta"
+      />
+      <BotonEnviar variante="secundario" className="h-8 px-3 text-sm" pendiente="Guardando…">
+        Ver mi fecha
+      </BotonEnviar>
+    </FormularioAccion>
   );
 }
 

@@ -131,3 +131,24 @@ export function sugerirMapeo(columnas: string[]): Mapeo {
     gastosNegativos: true,
   };
 }
+
+/** Formato de extracto conocido (consola → Catálogos): encabezados con que se reconoce y cómo se leen. */
+export type FormatoExtracto = { banco: string; encabezados: string[]; mapeo: Mapeo };
+
+/**
+ * Formato conocido cuyos encabezados están todos en el archivo (sin importar mayúsculas ni tildes); si varios
+ * calzan, el más específico. Devuelve el mapeo con los nombres de columna tal como vienen en el archivo.
+ */
+export function formatoPara(columnas: string[], formatos: FormatoExtracto[]): { banco: string; mapeo: Mapeo } | undefined {
+  const reales = new Map(columnas.map((c) => [normalizarDescripcion(c), c]));
+  const f = formatos
+    .filter((x) => x.encabezados.length && x.encabezados.every((e) => reales.has(normalizarDescripcion(e))))
+    .sort((a, b) => b.encabezados.length - a.encabezados.length)[0];
+  if (!f) return undefined;
+  const real = (c?: string) => (c ? (reales.get(normalizarDescripcion(c)) ?? "") : undefined);
+  const m = f.mapeo;
+  return {
+    banco: f.banco,
+    mapeo: { ...m, fecha: real(m.fecha) ?? "", descripcion: real(m.descripcion) ?? "", monto: real(m.monto), debito: real(m.debito), credito: real(m.credito) },
+  };
+}

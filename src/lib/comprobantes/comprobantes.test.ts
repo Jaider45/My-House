@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decidir, patronDe, reglaPara, type Lectura, type ReglaComercio } from ".";
+import { decidir, patronDe, reglaPara, reglasGlobalesDelHogar, type Lectura, type ReglaComercio } from ".";
 
 const opciones = {
   categorias: [
@@ -77,5 +77,30 @@ describe("reglas de comercio", () => {
   it("el patrón aprendido son las dos primeras palabras significativas", () => {
     expect(patronDe("Veterinaria Patitas S.A.S. #123")).toBe("veterinaria patitas");
     expect(patronDe("D1 Tienda 455")).toBe("tienda");
+  });
+});
+
+describe("reglas globales y umbral de la consola", () => {
+  const globales = reglasGlobalesDelHogar(
+    [
+      { patron: "exito", categoria: "mascotas", ambito: null },
+      { patron: "terpel", categoria: "Transporte", ambito: null }, // el hogar no tiene «Transporte»: no aplica
+    ],
+    opciones.categorias,
+  );
+
+  it("solo las que tienen categoría del mismo nombre en el hogar", () => {
+    expect(globales).toEqual([{ patron: "exito", category_id: "c-mascotas", ambito: null, activa: true }]);
+  });
+
+  it("aplican si ninguna del hogar aplica; la del hogar gana", () => {
+    expect(decidir({ ...lectura, confianza: 40 }, { ...opciones, reglasGlobales: globales })).toMatchObject({ accion: "registrar", category_id: "c-mascotas", porRegla: true });
+    const delHogar: ReglaComercio[] = [{ patron: "exito", category_id: "c-salud", ambito: null, activa: true }];
+    expect(decidir(lectura, { ...opciones, reglas: delHogar, reglasGlobales: globales })).toMatchObject({ category_id: "c-salud" });
+  });
+
+  it("el umbral decide cuándo preguntar", () => {
+    expect(decidir({ ...lectura, confianza: 85 }, { ...opciones, umbral: 90 })).toMatchObject({ accion: "revisar" });
+    expect(decidir({ ...lectura, confianza: 85 }, { ...opciones, umbral: 80 })).toMatchObject({ accion: "registrar" });
   });
 });

@@ -201,7 +201,7 @@ baja a Gratis el día 14; cada cobro tiene su factura.
 
 **Criterio:** una contadora ve a sus 3 clientes de prueba en un solo panel, y su comisión se calcula sola.
 
-### S6 · Contenido y parámetros (2 semanas) — pantallas 11, 12, 13
+### S6 · Contenido y parámetros (2 semanas) — pantallas 11, 12, 13 · ✅ hecha (pendientes: tasa de error por formato de extracto, plantillas de WhatsApp y flujos n8n)
 
 - Parámetros DIAN: UVT por año con fuente y estado, topes, etiquetas, `calendario_tributario (pais, anio, digitos,
   fecha)` y avisos 60/30/7 días antes de la fecha de cada persona (pide los dos últimos dígitos de la cédula). Antes

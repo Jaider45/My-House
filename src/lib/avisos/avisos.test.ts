@@ -98,3 +98,16 @@ describe("Renta DIAN", () => {
     expect(plano(c.nota!.texto)).not.toContain("consignaciones");
   });
 });
+
+describe("plazo para declarar", () => {
+  const plazos = { anio: 2026, personas: [{ member_id: "m1", nombre: "Andrés", digitos: "07", fecha: "2027-08-12" }] };
+  it("sale 60, 30 y 7 días antes, una vez por aviso", () => {
+    expect(planificarAvisos(base({ plazos }), "2027-06-13", SITIO).map((x) => x.clave)).toEqual(["plazo:2026:m1:60"]);
+    expect(planificarAvisos(base({ plazos }), "2027-07-13", SITIO).map((x) => x.clave)).toEqual(["plazo:2026:m1:30"]);
+    const semana = planificarAvisos(base({ plazos }), "2027-08-05", SITIO);
+    expect(semana.map((x) => x.clave)).toEqual(["plazo:2026:m1:7"]);
+    expect(plano(semana[0].envios[0].contenido.asunto)).toBe("Andrés: la declaración de renta vence en una semana");
+    expect(semana[0].envios).toHaveLength(2);
+    expect(planificarAvisos(base({ plazos }), "2027-08-04", SITIO)).toEqual([]);
+  });
+});

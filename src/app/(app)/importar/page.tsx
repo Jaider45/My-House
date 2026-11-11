@@ -21,7 +21,7 @@ export default function Importar() {
 async function Contenido() {
   const ctx = await obtenerContexto();
   if (!ctx.puedeEditar) return <Aviso>Tu rol es de solo lectura.</Aviso>;
-  const [catalogos, { data: cuentas }, { data: lotes }] = await Promise.all([
+  const [catalogos, { data: cuentas }, { data: lotes }, { data: formatos }] = await Promise.all([
     cargarCatalogos(ctx),
     ctx.supabase.from("accounts").select("id, nombre, mapeo_csv").eq("archivada", false).order("created_at"),
     ctx.supabase
@@ -29,12 +29,13 @@ async function Contenido() {
       .select("id, archivo_nombre, filas_importadas, created_at, accounts(nombre)")
       .order("created_at", { ascending: false })
       .limit(10),
+    ctx.supabase.from("formatos_extracto").select("banco, encabezados, mapeo").eq("pais", ctx.hogar.pais),
   ]);
 
   if (!cuentas?.length) {
     return (
       <div className="space-y-3">
-        <Aviso tipo="info">Primero cree la cuenta a la que pertenece el extracto.</Aviso>
+        <Aviso tipo="info">Primero crea la cuenta a la que pertenece el extracto.</Aviso>
         <EnlaceBoton href="/cuentas" className="w-full">
           Crear cuenta
         </EnlaceBoton>
@@ -51,6 +52,7 @@ async function Contenido() {
       <Importador
         cuentas={cuentas.map((c) => ({ ...c, mapeo_csv: c.mapeo_csv as Mapeo | null }))}
         categorias={catalogos.categorias}
+        formatos={(formatos ?? []).map((f) => ({ ...f, mapeo: f.mapeo as Mapeo }))}
       />
       <Tarjeta titulo="Importaciones recientes">
         {lotes?.length ? (

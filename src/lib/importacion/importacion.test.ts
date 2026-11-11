@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clasificar, detectarEncabezado, huellas, leerFilas, normalizarDescripcion, sugerirMapeo, type Existente, type Mapeo } from ".";
+import { clasificar, detectarEncabezado, formatoPara, huellas, leerFilas, normalizarDescripcion, sugerirMapeo, type Existente, type Mapeo } from ".";
 
 const CUENTA = "cuenta-1";
 const unico: Mapeo = { fecha: "Fecha", descripcion: "Descripción", modo: "unico", monto: "Valor", gastosNegativos: true };
@@ -148,5 +148,24 @@ describe("detectarEncabezado", () => {
     expect(detectarEncabezado([["BANCO S.A.", "", ""], ["Cuenta ****1234", "", ""], ["FECHA", "DESCRIPCIÓN", "VALOR"], ["01/08/2026", "x", "1"]])).toBe(2);
     expect(detectarEncabezado([["Fecha", "Concepto", "Valor"]])).toBe(0);
     expect(detectarEncabezado([["a", "b", "c"]])).toBe(0);
+  });
+});
+
+describe("formatoPara", () => {
+  const formatos = [
+    { banco: "Genérico", encabezados: ["Fecha", "Valor"], mapeo: { fecha: "Fecha", descripcion: "Fecha", modo: "unico" as const, monto: "Valor", gastosNegativos: true } },
+    {
+      banco: "Banco X",
+      encabezados: ["FECHA", "DESCRIPCIÓN", "DÉBITO", "CRÉDITO"],
+      mapeo: { fecha: "FECHA", descripcion: "DESCRIPCIÓN", modo: "separado" as const, debito: "DÉBITO", credito: "CRÉDITO", gastosNegativos: true },
+    },
+  ];
+  it("elige el más específico y usa los nombres de columna del archivo", () => {
+    const r = formatoPara(["Fecha", "Descripcion", "Debito", "Credito", "Saldo"], formatos);
+    expect(r?.banco).toBe("Banco X");
+    expect(r?.mapeo).toMatchObject({ fecha: "Fecha", descripcion: "Descripcion", debito: "Debito", credito: "Credito", modo: "separado" });
+  });
+  it("sin formato que calce, nada", () => {
+    expect(formatoPara(["Date", "Amount"], formatos)).toBeUndefined();
   });
 });

@@ -19,7 +19,7 @@ export async function cargarSemaforo(ctx: Ctx, anio: number, parametros?: Parame
   const [{ data: params }, { data: acumulados, error }] = await Promise.all([
     parametros !== undefined
       ? Promise.resolve({ data: parametros })
-      : ctx.supabase.from("tax_params").select("anio, uvt_valor, topes, deducciones").eq("pais", ctx.hogar.pais).eq("anio", anio).maybeSingle(),
+      : ctx.supabase.from("tax_params").select("anio, uvt_valor, topes, deducciones").eq("pais", ctx.hogar.pais).eq("anio", anio).eq("publicado", true).maybeSingle(),
     ctx.supabase.rpc("acumulados_tributarios", { p_household: ctx.hogar.id, p_anio: anio }),
   ]);
   if (!params) return { ok: false, motivo: `No hay valor de ${j.unidad} cargado para ${anio}.` };
@@ -35,7 +35,7 @@ export async function cargarSemaforo(ctx: Ctx, anio: number, parametros?: Parame
 
 /** Parámetros tributarios de un país y año, para reusarlos entre varios hogares. */
 export async function cargarParametros(ctx: Ctx, pais: string, anio: number): Promise<ParametrosAnio | null> {
-  const { data } = await ctx.supabase.from("tax_params").select("anio, uvt_valor, topes, deducciones").eq("pais", pais).eq("anio", anio).maybeSingle();
+  const { data } = await ctx.supabase.from("tax_params").select("anio, uvt_valor, topes, deducciones").eq("pais", pais).eq("anio", anio).eq("publicado", true).maybeSingle();
   return (data as ParametrosAnio | null) ?? null;
 }
 

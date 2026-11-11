@@ -37,6 +37,7 @@ export async function pedirEstructurado<T extends z.ZodType>(p: PeticionEstructu
     messages: [{ role: "user", content: contenido }],
   });
   const respuesta = await stream.finalMessage();
+  p.alUsar?.({ modelo: respuesta.model ?? p.modelo, entrada: respuesta.usage?.input_tokens ?? 0, salida: respuesta.usage?.output_tokens ?? 0 });
   if (respuesta.stop_reason === "refusal") throw new ErrorIa("El modelo no quiso procesar ese archivo.");
   if (respuesta.stop_reason === "max_tokens") throw new RespuestaCortada("La respuesta del modelo quedó incompleta.");
   const texto = respuesta.content.find((b) => b.type === "text");
