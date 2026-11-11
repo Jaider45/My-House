@@ -206,7 +206,8 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     por tipo (código, restablecer, registro, cambio de correo, contraseña cambiada, bienvenida, invitación, contador,
     nuevo inicio de sesión, recordatorio, vencido, resumen, DIAN, reporte). Vista previa: `/dev/correos` (en
     producción 404 salvo `VISTA_CORREOS=1`).
-    **Supabase** envía los de acceso: `supabase/templates/*.html` se GENERAN desde `src/lib/correo/supabase.ts` con
+    **Supabase** envía los de acceso (en la nube se suben con `node scripts/subir-correos-supabase.mjs`: plantillas,
+    asuntos, vigencia y SMTP Resend; token en `.env.produccion.local`): `supabase/templates/*.html` se GENERAN desde `src/lib/correo/supabase.ts` con
     variables de Go como texto crudo (`crudo("{{ .Token }}")`); `plantillas-supabase.test.ts` falla si se
     desincronizan (regenerar con `ACTUALIZAR_CORREOS=1 npx vitest run src/lib/correo`). Vigencia 30 min
     (`otp_expiry = 1800` = `MINUTOS_OTP`). Saludo con `{{ .Data.nombre }}`; el código se parte con `slice`.
