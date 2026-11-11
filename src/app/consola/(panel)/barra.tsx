@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import { Icono, Logo, type NombreIcono } from "@/components/marca";
 import { cx } from "@/components/ui";
 
-/** Secciones del diseño Admin SaaS. Las que no tienen `href` llegan en la fase indicada del roadmap. */
-const SECCIONES: { texto: string; icono: NombreIcono; href?: string; fase?: string }[] = [
+/** Secciones del diseño Admin SaaS (las 16 ya tienen pantalla). */
+const SECCIONES: { texto: string; icono: NombreIcono; href: string }[] = [
   { texto: "Panel general", icono: "resumen", href: "/consola" },
   { texto: "Analítica", icono: "meta", href: "/consola/analitica" },
   { texto: "Hogares", icono: "casa", href: "/consola/hogares" },
@@ -64,14 +64,6 @@ export function BarraConsola({ lugar, ruta }: { lugar: Lugar; ruta: string | nul
           <nav className="flex flex-col">
             {SECCIONES.map((s) => {
               const clase = "flex h-10 w-10 items-center justify-center gap-3 rounded-lg text-[15px] xl:w-full xl:justify-start xl:px-3";
-              if (!s.href)
-                return (
-                  <span key={s.texto} title={`${s.texto}: llega en la fase ${s.fase}`} aria-disabled className={cx(clase, "cursor-default text-tenue opacity-60")}>
-                    <Icono nombre={s.icono} tamano={20} acento={false} />
-                    <span className="sr-only xl:not-sr-only xl:flex-1">{s.texto}</span>
-                    <span className="hidden text-[11px] font-semibold xl:inline">{s.fase}</span>
-                  </span>
-                );
               const esta = activa(ruta, s.href);
               return (
                 <Link
@@ -94,15 +86,15 @@ export function BarraConsola({ lugar, ruta }: { lugar: Lugar; ruta: string | nul
 }
 
 function Fila({ ruta }: { ruta: string | null }) {
-  const disponibles = SECCIONES.filter((s) => s.href);
+
   return (
       <nav aria-label="Navegación de la consola" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:hidden">
-        {disponibles.map((s) => {
-          const esta = activa(ruta, s.href!);
+        {SECCIONES.map((s) => {
+          const esta = activa(ruta, s.href);
           return (
             <Link
               key={s.texto}
-              href={s.href!}
+              href={s.href}
               aria-current={esta ? "page" : undefined}
               className={cx("inline-flex h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-sm", esta ? "border-monte bg-seleccion font-semibold" : "border-borde bg-elevada text-cuerpo")}
             >
