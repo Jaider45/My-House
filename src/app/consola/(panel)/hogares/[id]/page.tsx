@@ -13,6 +13,7 @@ import { textoLimite, type Limites } from "@/lib/planes";
 import { TarjetaTabla } from "../../tarjeta-tabla";
 import { ChipPlan, etiquetaPlan, type FilaHogar } from "../comun";
 import { agregarNota, cambiarPlanHogar, registrarReembolso, suspenderHogar } from "../acciones";
+import { AccesoFinanzas } from "./acceso";
 
 export const metadata: Metadata = { title: "Hogar" };
 
@@ -268,12 +269,7 @@ export default async function HogarConsola({ params }: PageProps<"/consola/hogar
             </Tarjeta>
           )}
 
-          <Tarjeta titulo="Datos del hogar">
-            <div className="rounded-xl bg-alerta-fondo p-4 text-sm text-alerta-tinta">
-              <b className="block text-[15px]">Acceso de soporte no autorizado</b>
-              Para ver los datos financieros del hogar hace falta el permiso de su administrador. Llega en la fase S7.
-            </div>
-          </Tarjeta>
+          <AccesoFinanzas hogar={h.id} puede={staff.puede("ver_finanzas")} />
 
           <Tarjeta titulo="Historial y notas">
             <ul className="flex flex-col">

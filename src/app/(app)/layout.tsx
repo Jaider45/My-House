@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Cargando } from "@/components/ui";
 import { ColaSinConexion } from "@/components/cola-sin-conexion";
 import { AvisoSuspendido } from "@/components/aviso-suspendido";
+import { AvisoAccesoSoporte } from "@/components/aviso-acceso-soporte";
 import { BarraNavegacion, Navegacion } from "./navegacion";
 import { SelectorHogar } from "./hogar-activo";
 import { misHogares } from "./mis-hogares";
@@ -16,6 +17,7 @@ export default function LayoutApp({ children }: { children: React.ReactNode }) {
         <ColaSinConexion />
         <Suspense>
           <AvisoSuspendido />
+          <AvisoAccesoSoporte />
           <SelectorHogar />
         </Suspense>
         {/* Único límite de carga de las pantallas: al navegar, React mantiene la pantalla anterior hasta que

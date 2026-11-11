@@ -346,6 +346,30 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     costo en la base. Precisión = comprobantes registrados cuya categoría sigue siendo la que leyó la IA.
     Ojo: un jsonb `null` no se escribe con supabase-js (llega NULL de SQL): las funciones hacen `coalesce(p, 'null')`.
 
+42. Soporte y privacidad (SaaS S7; migración `soporte_privacidad`). **Tickets**: el hogar escribe desde `/ayuda`
+    (`crear_ticket`: prioridad alta si es de cobros o cuenta; máx. 5 abiertos y 10 por día); solo quien lo escribió lo
+    ve (RLS). SLA de primera respuesta por prioridad (4/8/24/72 h, `private.sla_de`). Consola → Soporte (permiso
+    `tickets`): respuestas guardadas (`{nombre}`), notas internas que el hogar no ve, asignar, escalar; responder avisa
+    por correo. **Registro técnico** (`registrar_error`, `src/lib/registro-tecnico.ts`): errores de IA e importación
+    sin montos, solo lo lee la consola en el ticket; se purga a los 90 días. **Acceso de soporte** (`accesos_soporte`):
+    Soporte/superadmin pide con motivo y horas (1–72) → aviso en la app (`AvisoAccesoSoporte`, solo admin) + correo →
+    el admin aprueba, rechaza o revoca → `consola_ver_finanzas` (cuentas con saldo, 100 movimientos, importaciones)
+    solo con acceso vigente propio y audita cada lectura. No toca `mis_hogares()`: el equipo sigue fuera de RLS.
+    **Ley 1581** (`solicitudes_privacidad`, permiso `auditoria`): plazo en días hábiles con festivos de Colombia en SQL
+    (`private.festivos_co`, Emiliani y Pascua; consulta 10, reclamo 15), desde la app o registradas por correo con su
+    fecha de recibo; exportación JSON (con enlaces firmados de 7 días a los soportes) o CSV; supresión: archivos de
+    Storage primero (service_role), luego `consola_supresion` (hogares donde es la única persona con cuenta en cascada;
+    en los compartidos se retira y el admin pasa a la persona más antigua) y la cuenta de Auth. Para retirar a alguien,
+    `proteger_miembro` permite `user_id → null` solo dentro de una función de la base (`current_user = 'postgres'`).
+    Retención: `purgar_retencion` (cron `/api/cobros`) borra `correos_enviados` y `registro_tecnico` de más de 90 días.
+43. Sistema (SaaS S8; migración `sistema`). `funciones` (feature flags, sin políticas): encendida + planes (vacío =
+    todos) + porcentaje con cubeta estable `hashtextextended(clave:hogar) % 100` (subir el % no saca a nadie) + solo
+    equipo; el equipo ve encendido todo lo activo en su propio hogar. En código: `funcionActiva(clave)`
+    (`src/lib/funciones.ts`, `mis_funciones` una vez por request). Mantenimiento: `MANTENIMIENTO=1` → el proxy reescribe
+    a `/mantenimiento` con 503, salvo `/consola`, `/api/*` y estáticos (sin consultar la base). Consola → Sistema:
+    versión (`VERCEL_GIT_COMMIT_SHA`), última migración, colas, integraciones y enlaces (`SENTRY_URL`, `ESTADO_URL`,
+    `SUPABASE_PANEL_URL`).
+
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
   (pasó con `storage-api`: migraciones vacías y Storage arrancaba sin tablas). Síntoma: `relation "storage.buckets"
@@ -387,8 +411,8 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [x] S4. Métricas (panel, analítica) y comunicaciones (campañas por correo) — CAC y canal WhatsApp pendientes
 - [x] S5. Contadores: selector de hogares, panel con semáforo por cliente, referidos y comisiones — descarga masiva y recordatorios masivos pendientes
 - [x] S6. Parámetros DIAN (borrador/publicar, calendario por cédula), catálogos (categorías base, reglas globales, formatos de extracto) e IA (umbral, tope de gasto, costo y precisión)
-- [ ] S7. Soporte y privacidad (acceso con permiso, Ley 1581)
-- [ ] S8. Sistema (feature flags, mantenimiento) — Integraciones ya está hecha (decisión 36)
+- [x] S7. Soporte (tickets, registro técnico), acceso a finanzas con permiso del hogar y Ley 1581 (plazos hábiles, exportación, supresión)
+- [x] S8. Sistema: feature flags por plan/porcentaje/equipo, mantenimiento, versión y colas — Integraciones ya está hecha (decisión 36)
 
 ### Criterios de terminado de la Fase 1 (verificados el 2026-11-04 en local)
 - Dos usuarios del mismo hogar ven los mismos movimientos y otro hogar no ve nada: `tests/rls` + prueba en

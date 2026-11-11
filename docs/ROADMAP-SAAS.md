@@ -215,7 +215,7 @@ baja a Gratis el día 14; cada cobro tiene su factura.
 
 **Criterio:** la UVT, una regla de comercio o el umbral de la IA se cambian desde la consola sin desplegar.
 
-### S7 · Soporte y privacidad (2 semanas) — pantallas 10, 16 y el permiso de la 5
+### S7 · Soporte y privacidad (2 semanas) — pantallas 10, 16 y el permiso de la 5 · ✅ hecha (pendiente: tickets por correo entrante)
 
 - Tickets: el hogar escribe desde la app («Ayuda») o por correo; prioridad, SLA, asignación, respuestas guardadas,
   notas internas, escalar. Registro técnico: los errores de importación y de IA del hogar.
@@ -226,7 +226,7 @@ baja a Gratis el día 14; cada cobro tiene su factura.
 
 **Criterio:** una solicitud de supresión se atiende de punta a punta desde la consola y deja rastro en la auditoría.
 
-### S8 · Sistema (1 semana) — pantalla 17
+### S8 · Sistema (1 semana) — pantalla 17 · ✅ hecha (Sentry y página de estado: enlaces por variable de entorno)
 
 - Feature flags por plan, porcentaje (hash estable del hogar) o solo equipo.
 - Modo mantenimiento, versión en producción, colas (comprobantes, correos), enlace a Sentry y a la página de estado.

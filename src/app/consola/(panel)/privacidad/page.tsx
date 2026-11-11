@@ -6,6 +6,7 @@ import { describirAccion } from "@/lib/consola/auditoria";
 import { formatearMomento } from "@/lib/consola/formato";
 import { hoy, sumarDias } from "@/lib/fechas";
 import { TarjetaTabla } from "../tarjeta-tabla";
+import { SolicitudesPrivacidad } from "./solicitudes";
 
 export const metadata: Metadata = { title: "Privacidad y auditoría" };
 
@@ -37,6 +38,7 @@ export default async function PrivacidadConsola({ searchParams }: PageProps<"/co
         Privacidad y auditoría
       </Titulo>
       {error && <Aviso>{mensajeError(error)}</Aviso>}
+      <SolicitudesPrivacidad />
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
         <TarjetaTabla
@@ -106,12 +108,6 @@ export default async function PrivacidadConsola({ searchParams }: PageProps<"/co
                 Descargar CSV
               </button>
             </form>
-          </Tarjeta>
-          <Tarjeta titulo="Solicitudes de titulares · Ley 1581">
-            <p className="text-sm text-cuerpo">
-              Consultas, reclamos y supresiones con sus plazos llegan en la fase S7 del roadmap. Mientras tanto se atienden por el
-              canal de la política de datos.
-            </p>
           </Tarjeta>
         </div>
       </div>

@@ -7,7 +7,7 @@ import { obtenerStaff } from "@/lib/consola/sesion";
 import { preciosATexto, type Precios } from "@/lib/consola/precios-ia";
 import { CONFIANZA_MINIMA } from "@/lib/comprobantes";
 import { TarjetaTabla } from "../tarjeta-tabla";
-import { FormularioConsola } from "../formulario";
+import { FormularioEstado } from "@/components/ui/formulario-estado";
 import { Barras } from "../graficas";
 import { guardarConfigIa } from "./acciones";
 
@@ -115,7 +115,7 @@ export default async function IaConsola() {
         </div>
 
         <Tarjeta titulo="Configuración" subtitulo="Rige en todos los hogares desde la siguiente lectura">
-          <FormularioConsola accion={guardarConfigIa} className="flex flex-col gap-3">
+          <FormularioEstado accion={guardarConfigIa} className="flex flex-col gap-3">
             <Campo
               etiqueta="Umbral de confianza (50–100)"
               name="umbral"
@@ -150,7 +150,7 @@ export default async function IaConsola() {
                 Guardar
               </BotonEnviar>
             )}
-          </FormularioConsola>
+          </FormularioEstado>
         </Tarjeta>
       </div>
     </>

@@ -6,7 +6,7 @@ import { mensajeError } from "@/lib/acciones";
 import { obtenerStaff } from "@/lib/consola/sesion";
 import type { Mapeo } from "@/lib/importacion";
 import { TarjetaTabla } from "../tarjeta-tabla";
-import { FormularioConsola } from "../formulario";
+import { FormularioEstado } from "@/components/ui/formulario-estado";
 import { guardarCategoriaBase, guardarFormato, guardarReglaGlobal, importarReglas } from "./acciones";
 
 export const metadata: Metadata = { title: "Catálogos" };
@@ -172,7 +172,7 @@ export default async function Catalogos() {
           <div className="flex min-w-0 flex-col gap-5">
             {puede && (
               <Tarjeta titulo="Nueva regla">
-                <FormularioConsola accion={guardarReglaGlobal} className="flex flex-col gap-3">
+                <FormularioEstado accion={guardarReglaGlobal} className="flex flex-col gap-3">
                   <Campo etiqueta="Patrón del comercio" name="patron" placeholder="rappi" required maxLength={80} ayuda="Palabras que aparecen en el comercio o la descripción del banco." />
                   <Selector etiqueta="Categoría" name="categoria" required defaultValue="">
                     <option value="" disabled>
@@ -190,17 +190,17 @@ export default async function Catalogos() {
                   <BotonEnviar variante="secundario" pendiente="Guardando…" className="self-start">
                     Agregar regla
                   </BotonEnviar>
-                </FormularioConsola>
+                </FormularioEstado>
               </Tarjeta>
             )}
             {puede && (
               <Tarjeta titulo="Importar reglas" subtitulo="Una por línea: «patrón; categoría» (también sirve copiar dos columnas de una hoja de cálculo)">
-                <FormularioConsola accion={importarReglas} className="flex flex-col gap-3">
+                <FormularioEstado accion={importarReglas} className="flex flex-col gap-3">
                   <AreaTexto etiqueta="Reglas" name="reglas" rows={5} placeholder={"terpel; Transporte\nexito; Mercado"} />
                   <BotonEnviar variante="secundario" pendiente="Importando…" className="self-start">
                     Importar
                   </BotonEnviar>
-                </FormularioConsola>
+                </FormularioEstado>
               </Tarjeta>
             )}
           </div>
@@ -304,7 +304,7 @@ export default async function Catalogos() {
 
           {puede && (
             <Tarjeta titulo="Nuevo formato" subtitulo="Copia la fila de encabezados del CSV del banco y di qué columna es cada cosa">
-              <FormularioConsola accion={guardarFormato} className="flex flex-col gap-3">
+              <FormularioEstado accion={guardarFormato} className="flex flex-col gap-3">
                 <Campo etiqueta="Banco o formato" name="banco" placeholder="Bancolombia · cuenta de ahorros" required maxLength={60} />
                 <Campo etiqueta="Encabezados" name="encabezados" placeholder="FECHA;DESCRIPCIÓN;SUCURSAL;REFERENCIA;VALOR" required />
                 <div className="grid grid-cols-2 gap-3">
@@ -327,7 +327,7 @@ export default async function Catalogos() {
                 <BotonEnviar variante="secundario" pendiente="Guardando…" className="self-start">
                   Guardar formato
                 </BotonEnviar>
-              </FormularioConsola>
+              </FormularioEstado>
             </Tarjeta>
           )}
         </div>

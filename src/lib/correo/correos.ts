@@ -329,7 +329,7 @@ export function correoPlazoDian(d: { persona: string; hogar: string; anio: numbe
     asunto: `${d.persona}: la declaración de renta vence ${cuando}`,
     vistaPrevia: `Fecha límite: ${d.fecha} (cédula terminada en ${d.digitos}).`,
     etiqueta: "Renta DIAN",
-    icono: { nombre: "declaracion-renta", tono: d.dias === 7 ? "error" : "alerta" },
+    icono: d.dias === 7 ? { nombre: "declaracion-renta", tono: "error" } : { nombre: "calendario", tono: "claro" },
     titulo: `La declaración de ${d.persona} vence ${cuando}`,
     intro: `Según el calendario de la DIAN, ${d.persona} declara la renta del año ${d.anio} a más tardar el ${d.fecha}.`,
     tarjeta: { filas: [{ k: "Fecha límite", v: d.fecha, grande: true, ...(d.dias === 7 && { tono: "error" as const }) }, { k: "Cédula terminada en", v: d.digitos }, { k: "Año gravable", v: String(d.anio) }] },
@@ -463,5 +463,54 @@ export function correoCampana(d: { nombre: string; asunto: string; titulo: strin
     ...(url && d.botonTexto ? { botones: [{ texto: d.botonTexto, url }] as [Boton] } : {}),
     porque: "Recibes este correo porque tu hogar activó «Novedades y promociones» en My House.",
     enlacesPie: [{ texto: "Dejar de recibir novedades", url: `${d.sitio}/recordatorios` }],
+  };
+}
+
+// ── Soporte y privacidad (S7) ────────────────────────────────────────────────
+
+/** El equipo respondió una solicitud de ayuda. */
+export function correoRespuestaSoporte(d: { numero: number; asunto: string; quien: string; respuesta: string; resuelto: boolean; url: string }): Contenido {
+  return {
+    asunto: `Re: ${d.asunto} (#${d.numero})`,
+    vistaPrevia: d.respuesta.slice(0, 120),
+    etiqueta: "Ayuda",
+    icono: { nombre: "documentos", tono: "claro" },
+    titulo: d.resuelto ? "Damos por resuelta tu solicitud" : "Te respondimos",
+    intro: `${d.quien}, del equipo de My House, respondió tu solicitud #${d.numero} «${d.asunto}»:`,
+    nota: { texto: d.respuesta },
+    botones: [{ texto: d.resuelto ? "Ver la conversación" : "Responder", url: d.url }],
+    meta: d.resuelto ? "Si algo sigue sin funcionar, responde en la app y la reabrimos." : "Responde desde la app: así la conversación queda junta.",
+    porque: "Recibes este correo porque escribiste a soporte desde My House.",
+  };
+}
+
+/** Alguien del equipo pide ver los datos financieros del hogar: solo con aprobación del administrador. */
+export function correoPedidoAcceso(d: { hogar: string; quien: string; motivo: string; horas: number; url: string; sitio: string }): Contenido {
+  return {
+    asunto: `${d.quien}, de soporte, pide ver los datos de ${d.hogar}`,
+    vistaPrevia: `Por ${d.horas} horas. Tú decides si lo apruebas.`,
+    etiqueta: "Privacidad",
+    icono: { nombre: "alertas", tono: "alerta" },
+    titulo: "Soporte pide permiso para ver tus datos",
+    intro: `${d.quien}, del equipo de My House, necesita ver los movimientos y cuentas de ${d.hogar} para ayudarte. Nadie del equipo los ve sin tu aprobación.`,
+    tarjeta: { filas: [{ k: "Motivo", v: d.motivo }, { k: "Duración", v: `${d.horas} ${d.horas === 1 ? "hora" : "horas"} desde que apruebes` }] },
+    botones: [{ texto: "Aprobar o rechazar", url: d.url }],
+    nota: { texto: "Puedes revocar el acceso en cualquier momento. Cada vista queda registrada." },
+    ...avisoDe(d.hogar, d.sitio),
+  };
+}
+
+/** Respuesta a una solicitud de la Ley 1581 (consulta, corrección, supresión…). */
+export function correoSolicitudDatos(d: { numero: number; tipo: string; estado: "resuelta" | "rechazada"; respuesta: string; url: string }): Contenido {
+  return {
+    asunto: `Tu solicitud de ${d.tipo} (#${d.numero}) fue ${d.estado}`,
+    vistaPrevia: d.respuesta.slice(0, 120),
+    etiqueta: "Tus datos",
+    icono: { nombre: "documentos", tono: "claro" },
+    titulo: d.estado === "resuelta" ? "Atendimos tu solicitud" : "Revisamos tu solicitud",
+    intro: `Respuesta a tu solicitud de ${d.tipo} sobre tus datos personales (Ley 1581 de 2012):`,
+    nota: { texto: d.respuesta },
+    botones: [{ texto: "Ver en My House", url: d.url }],
+    porque: "Recibes este correo porque hiciste una solicitud sobre tus datos personales en My House.",
   };
 }

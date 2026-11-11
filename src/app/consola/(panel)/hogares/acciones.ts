@@ -5,6 +5,8 @@ import { z } from "zod";
 import { mensajeError, type Estado } from "@/lib/acciones";
 import { obtenerStaff } from "@/lib/consola/sesion";
 import type { Permiso } from "@/lib/consola/permisos";
+import { correoPedidoAcceso } from "@/lib/correo/correos";
+import { enviarCorreo, sitio } from "@/lib/correo/enviar";
 
 /* Acciones del detalle de hogar. Permiso primero (sin tocar la base); la función consola_* lo vuelve a exigir y audita. */
 
@@ -65,4 +67,25 @@ export async function registrarReembolso(_: Estado, datos: FormData): Promise<Es
   refrescar(r.data.hogar);
   revalidatePath("/consola/cobros");
   return { ok: "Reembolso registrado. Devuelve el dinero desde el panel de Wompi." };
+}
+
+/** Pide al administrador del hogar permiso para ver sus datos financieros (le llega un correo y un aviso en la app). */
+export async function pedirAccesoFinanzas(_: Estado, datos: FormData): Promise<Estado> {
+  const staff = await obtenerStaff();
+  if (!staff.puede("ver_finanzas")) return { error: "Tu rol no puede ver datos financieros de un hogar." };
+  const r = z
+    .object({ hogar: z.uuid(), motivo: z.string().trim().min(10, "Explica el motivo: es lo que verá el administrador.").max(300), horas: z.coerce.number().int().min(1).max(72) })
+    .safeParse(Object.fromEntries(datos));
+  if (!r.success) return { error: r.error.issues[0].message };
+  const { data: correos, error } = await staff.supabase.rpc("consola_pedir_acceso", { p_hogar: r.data.hogar, p_motivo: r.data.motivo, p_horas: r.data.horas });
+  if (error) return { error: mensajeError(error) };
+  const { data: h } = await staff.supabase.rpc("consola_hogar", { p_id: r.data.hogar });
+  const nombre = (h as { hogar?: { nombre: string } } | null)?.hogar?.nombre ?? "tu hogar";
+  await Promise.all(
+    (correos ?? []).map((para) =>
+      enviarCorreo({ para, etiqueta: "acceso_soporte", contenido: correoPedidoAcceso({ hogar: nombre, quien: staff.nombre.split(" ")[0], motivo: r.data.motivo, horas: r.data.horas, url: `${sitio()}/`, sitio: sitio() }) }),
+    ),
+  );
+  revalidatePath(`/consola/hogares/${r.data.hogar}`);
+  return { ok: "Solicitud enviada: el administrador la ve al abrir la app y por correo." };
 }

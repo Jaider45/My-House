@@ -9,6 +9,14 @@ import { COOKIE_ACTIVIDAD, MINUTOS_INACTIVIDAD, opcionesCookieActividad, type Cl
  * La autorización real la hace RLS en la base de datos.
  */
 export async function proxy(request: NextRequest) {
+  // Modo mantenimiento (variable de entorno, sin consultar la base): la app muestra /mantenimiento con 503. Siguen
+  // la consola (para el equipo), las API (webhooks de pago y crons) y los archivos estáticos.
+  if (process.env.MANTENIMIENTO === "1") {
+    const p = request.nextUrl.pathname;
+    if (!(p === "/mantenimiento" || p === "/consola" || p.startsWith("/consola/") || p.startsWith("/api/"))) {
+      return NextResponse.rewrite(new URL("/mantenimiento", request.url), { status: 503, headers: { "retry-after": "600" } });
+    }
+  }
   let respuesta = NextResponse.next({ request });
 
   const supabase = createServerClient(

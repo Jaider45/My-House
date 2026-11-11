@@ -8,6 +8,7 @@ import { formatearCOP } from "@/lib/dinero";
 import { hoy, sumarDias } from "@/lib/fechas";
 import { entornoIa, IaNoConfigurada, leerComprobante, type Archivo, type UsoIa } from "@/lib/ia";
 import { registrarUsos } from "@/lib/ia/uso";
+import { registrarError } from "@/lib/registro-tecnico";
 import { resolverIa } from "@/lib/ia/proveedores";
 import { describirHogar, leerConfigHogar, type PersonaHogar } from "@/lib/hogar";
 import type { Database } from "@/lib/supabase/database.types";
@@ -151,7 +152,10 @@ async function procesar(ctx: Ctx, cat: Awaited<ReturnType<typeof catalogos>>, en
     return { id: recibo.id, resumen: `${d.comercio || "Un comprobante"}: ${d.pregunta}` };
   } catch (e) {
     const texto = e instanceof Error ? e.message : "No pude leer el comprobante.";
-    await actualizar({ estado: "error", pregunta: texto });
+    await Promise.all([
+      actualizar({ estado: "error", pregunta: texto }),
+      registrarError(ctx, "ia", texto, { recibo: recibo.id, mime: entrada.archivo?.type ?? "text/plain", proveedor: cat.ia?.proveedor ?? null, modelo: cat.ia?.modelo ?? null }),
+    ]);
     if (e instanceof IaNoConfigurada) throw e;
     return { id: recibo.id, resumen: texto };
   }

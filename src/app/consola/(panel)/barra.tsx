@@ -14,7 +14,7 @@ const SECCIONES: { texto: string; icono: NombreIcono; href?: string; fase?: stri
   { texto: "Suscripciones y cobros", icono: "cuentas", href: "/consola/cobros" },
   { texto: "Planes y cupones", icono: "ahorro", href: "/consola/planes" },
   { texto: "Contadores", icono: "declaracion-renta", href: "/consola/contadores" },
-  { texto: "Soporte", icono: "alertas", fase: "S7" },
+  { texto: "Soporte", icono: "alertas", href: "/consola/soporte" },
   { texto: "Parámetros DIAN", icono: "deducciones", href: "/consola/parametros" },
   { texto: "Catálogos", icono: "documentos", href: "/consola/catalogos" },
   { texto: "IA y automatizaciones", icono: "conectividad", href: "/consola/ia" },
@@ -22,7 +22,7 @@ const SECCIONES: { texto: string; icono: NombreIcono; href?: string; fase?: stri
   { texto: "Equipo y permisos", icono: "certificados", href: "/consola/equipo" },
   { texto: "Privacidad y auditoría", icono: "documentos", href: "/consola/privacidad" },
   { texto: "Integraciones", icono: "conectividad", href: "/consola/integraciones" },
-  { texto: "Sistema", icono: "configuracion", fase: "S8" },
+  { texto: "Sistema", icono: "configuracion", href: "/consola/sistema" },
 ];
 
 const activa = (ruta: string | null, href: string) => ruta !== null && (href === "/consola" ? ruta === href : ruta === href || ruta.startsWith(`${href}/`));

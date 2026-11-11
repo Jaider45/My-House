@@ -103,6 +103,18 @@ export function muestras(sitio: string): Record<string, { nombre: string; conten
         sitio,
       }),
     },
+    soporte: {
+      nombre: "Ayuda: respuesta del equipo",
+      contenido: c.correoRespuestaSoporte({ numero: 128, asunto: "No puedo pagar con tarjeta", quien: "Laura", respuesta: "Hola Andrés, Wompi rechazó la tarjeta por el banco. Mientras lo revisamos, puedes pagar con PSE desde Configuración → Plan.", resuelto: false, url: `${sitio}/ayuda` }),
+    },
+    acceso: {
+      nombre: "Privacidad: soporte pide acceso",
+      contenido: c.correoPedidoAcceso({ hogar: "Hogar Martínez Rojas", quien: "Laura", motivo: "Revisar un movimiento duplicado que reportaste en el ticket #128", horas: 24, url: `${sitio}/`, sitio }),
+    },
+    datos: {
+      nombre: "Tus datos: respuesta Ley 1581",
+      contenido: c.correoSolicitudDatos({ numero: 7, tipo: "consulta", estado: "resuelta", respuesta: "Te enviamos en un archivo todos los datos que guardamos de ti y de tu hogar.", url: `${sitio}/ayuda` }),
+    },
     reporte: {
       nombre: "Reporte para el contador (diseño, sin función aún)",
       contenido: c.correoReporte({

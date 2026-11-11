@@ -9,6 +9,7 @@ import { validarMovimiento } from "@/lib/ingesta";
 import { hoy, sumarDias } from "@/lib/fechas";
 import { IaNoConfigurada, iaDelHogar, leerExtracto, type UsoIa } from "@/lib/ia";
 import { registrarUsos } from "@/lib/ia/uso";
+import { registrarError } from "@/lib/registro-tecnico";
 
 const MAX_FILAS = 5000;
 
@@ -188,6 +189,8 @@ export async function leerExtractoPdf(datos: FormData): Promise<{ filas?: { fech
     if (filas.length > MAX_FILAS) return { error: `El extracto tiene más de ${MAX_FILAS} movimientos: divídelo.` };
     return { banco, filas };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "No pude leer el PDF." };
+    const mensaje = e instanceof Error ? e.message : "No pude leer el PDF.";
+    await registrarError(ctx, "importacion", mensaje, { archivo: archivo.name.slice(0, 120), bytes: archivo.size, proveedor: ia.proveedor, modelo: ia.modelo });
+    return { error: mensaje };
   }
 }

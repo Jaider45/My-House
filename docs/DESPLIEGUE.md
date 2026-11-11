@@ -184,7 +184,13 @@ Al resto del equipo lo invitas desde **Equipo y permisos**.
 
 - **Nuevas migraciones:** `npx supabase db push` (nunca edites una migración ya aplicada; crea otra con
   `npx supabase migration new <nombre>`).
-- **UVT de un año nuevo:** crea una migración que inserte la fila en `tax_params` (país, año, valor). Los topes
-  se guardan en UVT y los pesos se calculan solos.
+- **UVT de un año nuevo:** consola → **Parámetros DIAN** → «Cargar o editar un año» y luego «Publicar» (los hogares
+  solo ven lo publicado). El calendario de vencimientos se pega ahí mismo cuando la DIAN lo publique.
+- **Precios de la IA:** consola → **IA y automatizaciones**: carga el precio por millón de tokens de cada modelo para
+  ver el costo del mes y, si quieres, un tope de gasto que pause las lecturas al alcanzarlo.
+- **Mantenimiento:** `MANTENIMIENTO=1` en Vercel y volver a desplegar; quitarla para salir. Feature flags: consola →
+  **Sistema**.
+- **Solicitudes de datos (Ley 1581):** llegan desde Ayuda o al correo de datos; se atienden en consola → **Privacidad y
+  auditoría**. La supresión borra archivos y la cuenta de Auth: requiere `SUPABASE_SERVICE_ROLE_KEY` en el servidor.
 - **Respaldo:** el plan gratuito de Supabase no tiene copias diarias descargables. Para datos de una familia,
   un `npx supabase db dump --data-only > respaldo.sql` mensual guardado fuera de la nube es suficiente.

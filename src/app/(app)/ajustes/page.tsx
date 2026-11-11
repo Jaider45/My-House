@@ -20,6 +20,7 @@ const SECCIONES: { href: string; titulo: string; texto: string; icono: NombreIco
   { href: "/ajustes/plan", titulo: "Plan", texto: "Lo que incluye, cuánto usas y tus pagos", icono: "ahorro" },
   { href: "/categorias", titulo: "Categorías", texto: "Árbol de gastos e ingresos", icono: "resumen" },
   { href: "/ajustes/seguridad", titulo: "Seguridad", texto: "Verificación en dos pasos", icono: "certificados" },
+  { href: "/ayuda", titulo: "Ayuda y tus datos", texto: "Escríbenos, y descarga o borra tus datos", icono: "alertas" },
 ];
 
 const ROLES = { admin: "Administrador", editor: "Editor", contador: "Contador · solo lectura" } as const;

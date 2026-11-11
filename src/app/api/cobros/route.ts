@@ -123,6 +123,8 @@ export async function GET(request: NextRequest) {
     if (!termino) break; // se acabó el tiempo: lo que falta sale en la siguiente corrida
   }
 
-  console.info("[cobros]", hoy, JSON.stringify({ ...resumen, campanas }));
-  return NextResponse.json({ hoy, ...resumen, campanas });
+  // Retención (Ley 1581): el detalle de correos y el registro técnico se borran a los 90 días.
+  const { data: purgados } = await db.rpc("purgar_retencion");
+  console.info("[cobros]", hoy, JSON.stringify({ ...resumen, campanas, purgados }));
+  return NextResponse.json({ hoy, ...resumen, campanas, purgados });
 }

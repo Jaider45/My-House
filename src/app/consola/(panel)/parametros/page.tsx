@@ -9,7 +9,7 @@ import { agruparCalendario, calendarioATexto, type FechaCalendario } from "@/lib
 import { formatearCOP } from "@/lib/dinero";
 import { formatearFechaLarga, hoy } from "@/lib/fechas";
 import { TarjetaTabla } from "../tarjeta-tabla";
-import { FormularioConsola } from "../formulario";
+import { FormularioEstado } from "@/components/ui/formulario-estado";
 import { EditorCalendario } from "./calendario";
 import { guardarEtiqueta, guardarParametros, publicarParametros } from "./acciones";
 
@@ -195,7 +195,7 @@ export default async function Parametros() {
         <div className="flex min-w-0 flex-col gap-5">
           {puede && base && (
             <Tarjeta titulo="Cargar o editar un año" subtitulo="La DIAN publica la UVT del año siguiente en noviembre o diciembre">
-              <FormularioConsola accion={guardarParametros} className="flex flex-col gap-3">
+              <FormularioEstado accion={guardarParametros} className="flex flex-col gap-3">
                 <div className="grid grid-cols-2 gap-3">
                   <Campo etiqueta="Año" name="anio" type="number" min={2020} max={2100} defaultValue={siguiente} required />
                   <Campo etiqueta="UVT ($)" name="uvt" inputMode="numeric" placeholder={String(base.uvt_valor)} required />
@@ -222,7 +222,7 @@ export default async function Parametros() {
                 <BotonEnviar pendiente="Guardando…" className="self-start">
                   Guardar borrador
                 </BotonEnviar>
-              </FormularioConsola>
+              </FormularioEstado>
             </Tarjeta>
           )}
 

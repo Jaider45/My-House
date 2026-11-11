@@ -4,8 +4,8 @@ import { useActionState, type ComponentProps } from "react";
 import { MensajeEstado } from "@/components/ui/estado";
 import type { Estado } from "@/lib/acciones";
 
-/** Formulario de la consola que muestra el resultado (listo o error) bajo los campos. */
-export function FormularioConsola({
+/** Formulario que muestra el resultado (listo o error) bajo los campos. */
+export function FormularioEstado({
   accion,
   children,
   ...props
