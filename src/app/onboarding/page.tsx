@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Cargando, cx } from "@/components/ui";
 import { MarcoMarca } from "@/components/marco-marca";
 import { obtenerUsuario } from "@/lib/sesion";
+import { aceptoVersionVigente } from "@/lib/legal/servidor";
 import { FormularioHogar, FormularioInvitarPareja, FormularioPagosFijos } from "./formulario";
 
 export const metadata = { title: "Bienvenida" };
@@ -41,6 +42,8 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
   const paso = !count ? 1 : pedido === 1 ? redirect("/") : Math.min(3, pedido);
   const actual = PASOS[paso - 1];
   const nombre = nombreDe(user.user_metadata);
+  // Cuentas creadas con Google (o con una versión anterior de la política): las casillas van en el paso 1.
+  const pedirConsentimiento = paso === 1 && !(await aceptoVersionVigente(supabase, user.id));
 
   return (
     <>
@@ -67,7 +70,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
         <h1 className="text-[28px] leading-[34px] font-bold md:text-[32px] md:leading-[38px]">{actual.titulo}</h1>
         <p className="mt-2 text-base text-cuerpo">{actual.ayuda}</p>
       </div>
-      {paso === 1 ? <FormularioHogar nombre={nombre} /> : paso === 2 ? <FormularioPagosFijos /> : <FormularioInvitarPareja />}
+      {paso === 1 ? <FormularioHogar nombre={nombre} pedirConsentimiento={pedirConsentimiento} /> : paso === 2 ? <FormularioPagosFijos /> : <FormularioInvitarPareja />}
     </>
   );
 }

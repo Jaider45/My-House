@@ -7,6 +7,7 @@ import { Aviso, Campo, cx } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { CampoContrasena } from "@/components/ui/campo-contrasena";
 import { Captcha } from "@/components/ui/captcha";
+import { CasillasLegales } from "@/components/casillas-legales";
 import { MensajeEstado } from "@/components/ui/estado";
 import { cambiarContrasena, ingresar, ingresarConGoogle, pedirCodigo, pedirRecuperacion, registrarse, verificarCodigo } from "./acciones";
 
@@ -264,6 +265,7 @@ export function FormularioRegistro() {
         <Campo etiqueta="Tu nombre" name="nombre" autoComplete="given-name" autoFocus required maxLength={80} value={nombre} onChange={(e) => setNombre(e.target.value)} />
         <CampoCorreo email={email} setEmail={setEmail} autoComplete="email" />
         <CampoContrasena etiqueta="Contraseña" name="password" autoComplete="new-password" required medidor />
+        <CasillasLegales />
         <Captcha reinicio={estado} />
         <MensajeEstado estado={estado} />
         <BotonEnviar className="h-11 w-full" pendiente="Creando…">

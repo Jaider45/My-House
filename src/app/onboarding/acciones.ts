@@ -12,6 +12,7 @@ import { correoBienvenida } from "@/lib/correo/correos";
 import { fusionarConfigHogar, leerConfigHogar } from "@/lib/hogar";
 import type { Json } from "@/lib/supabase/database.types";
 import { hoy } from "@/lib/fechas";
+import { aceptaComunicaciones, exigirConsentimiento } from "@/lib/legal/servidor";
 import { primeraDesde } from "@/lib/recurrentes";
 import { CATEGORIAS_PAGO, MAX_OTROS, PAGOS_SUGERIDOS } from "./pagos";
 
@@ -28,6 +29,10 @@ export async function crearHogar(_: Estado, datos: FormData): Promise<Estado> {
   const r = esquema.safeParse(Object.fromEntries(datos));
   if (!r.success) return { error: r.error.issues[0].message };
   const supabase = await crearClienteServidor();
+  const { data: sesion } = await supabase.auth.getUser();
+  if (!sesion.user) return { error: "Tu sesión terminó. Vuelve a ingresar." };
+  const falta = await exigirConsentimiento(supabase, sesion.user.id, datos);
+  if (falta) return { error: falta };
   // Canal de llegada (proxy): utm_source o el enlace de referido de un contador.
   const almacen = await cookies();
   const { data: hogar, error } = await supabase.rpc("crear_hogar", {
@@ -39,7 +44,19 @@ export async function crearHogar(_: Estado, datos: FormData): Promise<Estado> {
   if (error) return { error: mensajeError(error) };
   almacen.delete("mh_canal");
   almacen.delete("mh_ref");
-  if (r.data.ciudad) await supabase.from("households").update({ ciudad: r.data.ciudad }).eq("id", hogar);
+  // Ciudad y, si la persona aceptó recibirlas al registrarse, las novedades (campañas) del hogar.
+  const novedades = await aceptaComunicaciones(supabase, sesion.user.id);
+  if (r.data.ciudad || novedades) {
+    const { data: actual } = await supabase.from("households").select("config").eq("id", hogar).single();
+    const correo = { ...leerConfigHogar(actual?.config).correo, novedades };
+    await supabase
+      .from("households")
+      .update({
+        ...(r.data.ciudad && { ciudad: r.data.ciudad }),
+        ...(novedades && { config: fusionarConfigHogar(actual?.config, { correo }) as { [k: string]: Json } }),
+      })
+      .eq("id", hogar);
+  }
   // Personas a cargo con nombre genérico: se completan (nombre, edad, quién las tiene a cargo) en Miembros.
   const aCargo = [
     ...Array.from({ length: r.data.ninos }, (_, i) => ({ nombre: r.data.ninos === 1 ? "Hijo" : `Hijo ${i + 1}`, parentesco: "hijo" as const })),

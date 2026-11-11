@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Aviso, Cargando, EnlaceBoton, Tarjeta } from "@/components/ui";
 import { MarcoMarca } from "@/components/marco-marca";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { aceptoVersionVigente } from "@/lib/legal/servidor";
 import { FormularioAceptar } from "./formulario";
 
 export const metadata = { title: "Invitación" };
@@ -68,10 +69,11 @@ async function Contenido({ params }: { params: Promise<{ token: string }> }) {
     );
   }
 
+  const pedirConsentimiento = !(await aceptoVersionVigente(supabase, user.id));
   return (
     <div>
       {encabezado}
-      <FormularioAceptar token={token} nombre={nombreDe(user.user_metadata)} />
+      <FormularioAceptar token={token} nombre={nombreDe(user.user_metadata)} pedirConsentimiento={pedirConsentimiento} />
     </div>
   );
 }

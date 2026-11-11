@@ -5,6 +5,8 @@ describe("rutas", () => {
   it("reconoce rutas públicas", () => {
     expect(esRutaPublica("/ingresar")).toBe(true);
     expect(esRutaPublica("/invitacion/abc")).toBe(true);
+    expect(esRutaPublica("/terminos")).toBe(true);
+    expect(esRutaPublica("/privacidad")).toBe(true);
     expect(esRutaPublica("/ingresarx")).toBe(false);
     expect(esRutaPublica("/")).toBe(false);
   });

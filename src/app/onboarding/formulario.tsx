@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { Campo, Casilla, CuadroIcono, Selector, cx } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { MensajeEstado } from "@/components/ui/estado";
+import { CasillasLegales } from "@/components/casillas-legales";
 import { digitosAMonto, formatearCOP, formatearMiles } from "@/lib/dinero";
 import { iconoCategoria } from "@/lib/categorias/iconos";
 import { invitarMiembro } from "@/app/(app)/ajustes/acciones";
@@ -30,7 +31,7 @@ function Contador({ etiqueta, nombre, inicial }: { etiqueta: string; nombre: str
   );
 }
 
-export function FormularioHogar({ nombre }: { nombre: string }) {
+export function FormularioHogar({ nombre, pedirConsentimiento }: { nombre: string; pedirConsentimiento: boolean }) {
   const [estado, accion] = useActionState(crearHogar, null);
   return (
     <form action={accion} className="flex flex-col gap-6">
@@ -52,6 +53,7 @@ export function FormularioHogar({ nombre }: { nombre: string }) {
           </span>
         </div>
       </div>
+      {pedirConsentimiento && <CasillasLegales />}
       <MensajeEstado estado={estado} />
       <div className={pie}>
         <BotonEnviar className="ml-auto h-12 min-w-[180px] flex-1 md:flex-none" pendiente="Creando…">

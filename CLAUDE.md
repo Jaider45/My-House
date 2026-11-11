@@ -370,6 +370,15 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     versión (`VERCEL_GIT_COMMIT_SHA`), última migración, colas, integraciones y enlaces (`SENTRY_URL`, `ESTADO_URL`,
     `SUPABASE_PANEL_URL`).
 
+44. Bases legales (SaaS S0; migración `consentimientos`). `/terminos` y `/privacidad` (grupo `(legal)`, públicas, sin
+    base). Datos del responsable y `VERSION_LEGAL` en `src/lib/legal/responsable.ts` (con marcadores `[…]` las páginas
+    muestran «Borrador»). `consentimientos` (historial, solo inserciones; trigger bloquea update): el registro con correo
+    manda `consentimiento` en los metadatos de `signUp` y el trigger sobre `auth.users` lo guarda; quien entra con
+    Google o sin la versión vigente marca las casillas al crear hogar o aceptar invitación (`exigirConsentimiento`,
+    RPC `aceptar_consentimientos`, IP por `x-mh-ip`). Comunicaciones aceptadas → `config.correo.novedades` del hogar
+    nuevo. La exportación Ley 1581 incluye los consentimientos. Falta: volver a pedir una versión nueva a quien ya
+    está dentro de la app.
+
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
   (pasó con `storage-api`: migraciones vacías y Storage arrancaba sin tablas). Síntoma: `relation "storage.buckets"
@@ -404,7 +413,7 @@ Ganchos: enum `mov_origen`, `src/lib/ingesta`, registro de jurisdicciones, `hous
 - [ ] Publicar en Supabase Cloud + Vercel (requiere las cuentas del usuario) — es la fase S0 del roadmap SaaS
 
 ### Fase SaaS (`docs/ROADMAP-SAAS.md`)
-- [ ] S0. Despliegue y bases legales (términos, política Ley 1581, consentimientos)
+- [ ] S0. Despliegue y bases legales — desplegado; términos, política y consentimientos hechos (faltan los datos del responsable)
 - [x] S1. Consola: acceso con 2FA, equipo y permisos, auditoría (verificado en local el 2026-11-09)
 - [x] S2. Planes y límites, Hogares, Usuarios, Planes (verificado en local el 2026-11-10)
 - [x] S3. Cobro con Wompi, cupones, recuperación de pagos fallidos (factura electrónica: falta el proveedor)

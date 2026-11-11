@@ -277,6 +277,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"consentimientos": {
+                  Row: {
+                    "aceptado": boolean,"agente": string | null,"created_at": string,"id": number,"ip": string | null,"origen": string,"tipo": string,"user_id": string,"version": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "aceptado": boolean,"agente"?: string | null,"created_at"?: string,"id"?: never,"ip"?: string | null,"origen": string,"tipo": string,"user_id": string,"version": string
+                  }
+                  Update: {
+                    "aceptado"?: boolean,"agente"?: string | null,"created_at"?: string,"id"?: never,"ip"?: string | null,"origen"?: string,"tipo"?: string,"user_id"?: string,"version"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"correos_enviados": {
                   Row: {
                     "actualizado": string,"asunto": string,"creado": string,"estado": string,"etiqueta": string,"id": number,"para": string,"resend_id": string | null
@@ -1037,7 +1051,10 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "aceptar_invitacion":
+            "aceptar_consentimientos":
+{ Args: { "p_comunicaciones": boolean,"p_version": string }; Returns: undefined
+                           },
+"aceptar_invitacion":
 { Args: { "p_nombre": string,"p_token": string }; Returns: string
                            },
 "acumulados_tributarios":

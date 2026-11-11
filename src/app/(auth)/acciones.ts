@@ -8,6 +8,7 @@ import { mensajeError, type Estado } from "@/lib/acciones";
 import { verificoCorreoHacePoco } from "@/lib/contrasena";
 import { destinoSeguro } from "@/lib/rutas";
 import { avisarSiDispositivoNuevo } from "@/lib/correo/acceso";
+import { consentimientoDeRegistro, FALTA_ACEPTAR } from "@/lib/legal/servidor";
 
 const correo = z
   .string("Escribe tu correo.")
@@ -60,6 +61,9 @@ export async function registrarse(_: Estado, datos: FormData): Promise<Estado> {
     .extend({ nombre: z.string().trim().min(1, "Escribe tu nombre.").max(80) })
     .safeParse({ email: datos.get("email"), password: datos.get("password"), nombre: datos.get("nombre") });
   if (!r.success) return { error: r.error.issues[0].message };
+  // Ley 1581: sin autorización no se crea la cuenta. El trigger `consentimiento_al_registrarse` la guarda.
+  if (datos.get("acepto") !== "1") return { error: FALTA_ACEPTAR };
+  const consentimiento = await consentimientoDeRegistro(datos.get("comunicaciones") === "1");
 
   const siguiente = destinoSeguro(datos.get("siguiente")?.toString(), "/onboarding");
   const supabase = await crearClienteServidor();
@@ -67,7 +71,7 @@ export async function registrarse(_: Estado, datos: FormData): Promise<Estado> {
     email: r.data.email,
     password: r.data.password,
     options: {
-      data: { nombre: r.data.nombre },
+      data: { nombre: r.data.nombre, consentimiento },
       emailRedirectTo: confirmar(siguiente),
       captchaToken: captcha(datos),
     },
