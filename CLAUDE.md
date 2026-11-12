@@ -388,6 +388,12 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     (`NEXT_PUBLIC_VERCEL_ENV`). La CSP agrega el origen del DSN a `connect-src`. Source maps solo con
     `SENTRY_AUTH_TOKEN` en el build. Crons de `vercel.json` vigilados (`_experimental.vercelCronsMonitoring`).
 
+46. Página de estado: externa (Better Stack, ROADMAP §4.12); la consola la enlaza con `ESTADO_URL`. La app expone
+    `/api/salud/<componente>` (`app`, `base`, `auth`, `archivos`, `correo`, `pagos`, `ia`; `src/lib/salud`): 200
+    operativo, 503 falla, sin detalles (el motivo va al log). Resultado cacheado 60 s por instancia, 8 s de límite por
+    chequeo. Correo sin enviar nada: una llave Resend de solo envío responde `restricted_api_key` (401) = operativa.
+    IA operativa si al menos un proveedor conectado responde. `/api/salud` resume todo (503 si algo falla).
+
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
   (pasó con `storage-api`: migraciones vacías y Storage arrancaba sin tablas). Síntoma: `relation "storage.buckets"
