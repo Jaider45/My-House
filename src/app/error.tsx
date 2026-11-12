@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 import { Boton, EnlaceBoton } from "@/components/ui";
 import { PaginaEstado } from "@/components/pagina-estado";
@@ -7,6 +8,7 @@ import { PaginaEstado } from "@/components/pagina-estado";
 export default function ErrorDelServidor({ error, retry }: { error: unknown; retry: () => void }) {
   useEffect(() => {
     console.error(error);
+    Sentry.captureException(error);
   }, [error]);
   const ref = error && typeof error === "object" && "digest" in error ? String(error.digest) : null;
   return (

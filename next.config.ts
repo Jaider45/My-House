@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 /**
  * Content Security Policy fija (sin nonce: con nonce cada página se generaría entera por request y se perdería el
@@ -10,6 +11,8 @@ function politicaSeguridad(): string {
   const dev = process.env.NODE_ENV !== "production";
   const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin : "";
   const turnstile = "https://challenges.cloudflare.com";
+  // Errores y trazas del navegador van directo a la ingesta de Sentry (origen del DSN).
+  const sentry = process.env.NEXT_PUBLIC_SENTRY_DSN ? new URL(process.env.NEXT_PUBLIC_SENTRY_DSN).origin : "";
   const google = process.env.NEXT_PUBLIC_GOOGLE_ACTIVO === "1" ? "https://accounts.google.com" : "";
   const directivas: Record<string, string[]> = {
     "default-src": ["'self'"],
@@ -19,7 +22,7 @@ function politicaSeguridad(): string {
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:"],
     "font-src": ["'self'"],
-    "connect-src": ["'self'", supabase, turnstile, ...(dev ? ["ws:"] : [])],
+    "connect-src": ["'self'", supabase, turnstile, sentry, ...(dev ? ["ws:"] : [])],
     "frame-src": [turnstile],
     "worker-src": ["'self'"],
     "manifest-src": ["'self'"],
@@ -87,4 +90,13 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "my-house-kr",
+  project: "my-house",
+  // Sube los source maps (pilas legibles en producción) solo si hay SENTRY_AUTH_TOKEN; luego los borra del build.
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  widenClientFileUpload: true,
+  silent: !process.env.CI,
+  // Check-ins de los crons de vercel.json (/api/avisos, /api/cobros): avisa si no corren o fallan.
+  _experimental: { vercelCronsMonitoring: true },
+});

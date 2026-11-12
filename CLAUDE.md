@@ -380,6 +380,14 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     nuevo. La exportación Ley 1581 incluye los consentimientos. Falta: volver a pedir una versión nueva a quien ya
     está dentro de la app.
 
+45. Monitoreo con Sentry (`@sentry/nextjs`, org `my-house-kr`, proyecto `my-house`). Opciones comunes en
+    `src/lib/monitoreo.ts` (navegador `src/instrumentation-client.ts`, servidor/edge `src/sentry.*.config.ts`,
+    `src/instrumentation.ts` con `onRequestError`); `error.tsx` y `global-error.tsx` llaman `captureException`. Sin
+    `NEXT_PUBLIC_SENTRY_DSN` no envía nada. Datos financieros: sin cuerpos, cabeceras, cookies, variables locales, datos
+    de consultas ni entradas/salidas de IA (`dataCollection`). Trazas 10 % en producción, 100 % en local/preview
+    (`NEXT_PUBLIC_VERCEL_ENV`). La CSP agrega el origen del DSN a `connect-src`. Source maps solo con
+    `SENTRY_AUTH_TOKEN` en el build. Crons de `vercel.json` vigilados (`_experimental.vercelCronsMonitoring`).
+
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
   (pasó con `storage-api`: migraciones vacías y Storage arrancaba sin tablas). Síntoma: `relation "storage.buckets"
