@@ -15,22 +15,22 @@ export async function origenSolicitud(): Promise<{ ip: string; agente: string }>
   return { ip, agente };
 }
 
-/** Lo que va en los metadatos de `signUp`: el trigger `consentimiento_al_registrarse` lo guarda. */
+/**
+ * Lo que va en los metadatos de `signUp`: el trigger `consentimiento_al_registrarse` lo guarda con la versión
+ * vigente de cada documento en la base (`version` solo sirve si la base aún no tiene documentos).
+ */
 export async function consentimientoDeRegistro(comunicaciones: boolean) {
   return { version: VERSION_LEGAL, comunicaciones, ...(await origenSolicitud()) };
 }
 
-/** ¿La persona aceptó la política en la versión vigente? */
-export async function aceptoVersionVigente(supabase: Cliente, userId: string): Promise<boolean> {
-  const { data } = await supabase
-    .from("consentimientos")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("tipo", "politica_datos")
-    .eq("version", VERSION_LEGAL)
-    .eq("aceptado", true)
-    .limit(1);
-  return !!data?.length;
+/**
+ * ¿La persona ya aceptó los documentos obligatorios en la versión que se exige? (Consola → Legal: una versión
+ * publicada con «Pedir aceptación de nuevo» vuelve a pedirlos.)
+ */
+export async function aceptoVersionVigente(supabase: Cliente): Promise<boolean> {
+  const { data, error } = await supabase.rpc("mis_pendientes_legales");
+  if (error) return false;
+  return ((data ?? []) as unknown[]).length === 0;
 }
 
 /** Última respuesta de la persona sobre comunicaciones comerciales (false si nunca respondió). */
@@ -45,19 +45,24 @@ export async function aceptaComunicaciones(supabase: Cliente, userId: string): P
   return data?.[0]?.aceptado ?? false;
 }
 
+/** Acepta los documentos vigentes desde la ventana que aparece al publicarse una versión nueva. */
+export async function aceptarVigentes(): Promise<string | null> {
+  const { ip, agente } = await origenSolicitud();
+  const cliente = await crearClienteServidor({ ...(ip && { "x-mh-ip": ip }), ...(agente && { "x-mh-agente": agente }) });
+  const { error } = await cliente.rpc("aceptar_vigentes", {});
+  return error ? "No pudimos guardar tu aceptación. Intenta de nuevo." : null;
+}
+
 /**
  * Para las acciones que dejan entrar a la app (crear hogar, aceptar invitación): si la persona no ha aceptado la
  * versión vigente (cuenta creada con Google, o versión nueva), exige las casillas del formulario y las registra.
  * Devuelve un mensaje de error o null.
  */
-export async function exigirConsentimiento(supabase: Cliente, userId: string, datos: FormData): Promise<string | null> {
-  if (await aceptoVersionVigente(supabase, userId)) return null;
+export async function exigirConsentimiento(supabase: Cliente, datos: FormData): Promise<string | null> {
+  if (await aceptoVersionVigente(supabase)) return null;
   if (datos.get("acepto") !== "1") return FALTA_ACEPTAR;
   const { ip, agente } = await origenSolicitud();
   const cliente = await crearClienteServidor({ ...(ip && { "x-mh-ip": ip }), ...(agente && { "x-mh-agente": agente }) });
-  const { error } = await cliente.rpc("aceptar_consentimientos", {
-    p_version: VERSION_LEGAL,
-    p_comunicaciones: datos.get("comunicaciones") === "1",
-  });
+  const { error } = await cliente.rpc("aceptar_vigentes", { p_comunicaciones: datos.get("comunicaciones") === "1" });
   return error ? "No pudimos guardar tu aceptación. Intenta de nuevo." : null;
 }

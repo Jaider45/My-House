@@ -7,6 +7,7 @@ import { hoy } from "@/lib/fechas";
 import { cargarSemaforo } from "@/lib/impuestos/servidor";
 import { guiasPara, leerVistas } from "@/lib/guias";
 import { CURSOS, GLOSARIO, TEMAS, avanceCurso, buscar, continuar, cursoPorSlug, leerVistasAcademia, type Curso, type Tema } from "@/lib/academia";
+import { OfertaEnLugar } from "@/components/ofertas-app";
 
 export const metadata = { title: "Academia" };
 
@@ -72,6 +73,7 @@ export default async function Academia({ searchParams }: PageProps<"/academia">)
   return (
     <>
       <Titulo subtitulo="Aprende a usar My House y a manejar mejor la plata de la casa">Academia</Titulo>
+      <OfertaEnLugar lugar="academia" />
       <div className="flex flex-col gap-5">
         {terminado && <Aviso tipo="ok">¡Terminaste «{terminado.titulo}»! Sigue con otra ruta cuando quieras.</Aviso>}
 

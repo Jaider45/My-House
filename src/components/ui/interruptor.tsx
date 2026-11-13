@@ -67,3 +67,24 @@ export function Interruptor({
     </div>
   );
 }
+
+/** Interruptor suelto (fila de una tabla o de un panel): envía `name=1` o `name=0`. */
+export function Conmutador({ name, defaultChecked = false, etiqueta, alCambiar }: { name: string; defaultChecked?: boolean; etiqueta: string; alCambiar?: (activo: boolean) => void }) {
+  const [activo, setActivo] = useState(defaultChecked);
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={activo}
+      aria-label={etiqueta}
+      onClick={() => {
+        setActivo(!activo);
+        alCambiar?.(!activo);
+      }}
+      className="inline-flex shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-monte/40 focus-visible:outline-none"
+    >
+      <Palanca activo={activo} />
+      <input type="hidden" name={name} value={activo ? "1" : "0"} />
+    </button>
+  );
+}

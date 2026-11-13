@@ -8,6 +8,7 @@ import { formatearMomento } from "@/lib/consola/formato";
 import { formatearFechaLarga } from "@/lib/fechas";
 import { crearTicket, solicitarDatos } from "./acciones";
 import { ESTADO_TICKET } from "./estados";
+import { EnlacesUtiles } from "@/components/ofertas-app";
 
 export const metadata: Metadata = { title: "Ayuda" };
 
@@ -135,6 +136,9 @@ export default function Ayuda() {
         Ayuda
       </Titulo>
       <Contenido />
+      <div className="mt-5">
+        <EnlacesUtiles lugar="ayuda" />
+      </div>
     </>
   );
 }

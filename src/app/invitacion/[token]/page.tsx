@@ -69,7 +69,7 @@ async function Contenido({ params }: { params: Promise<{ token: string }> }) {
     );
   }
 
-  const pedirConsentimiento = !(await aceptoVersionVigente(supabase, user.id));
+  const pedirConsentimiento = !(await aceptoVersionVigente(supabase));
   return (
     <div>
       {encabezado}

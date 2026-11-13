@@ -15,6 +15,7 @@ import { FormularioAgregarPresupuesto, FormularioPresupuesto } from "./formulari
 import { Ventana } from "@/components/ui/ventana";
 import { PestanasPlanea } from "../pestanas-secciones";
 import { BotonGuia } from "@/components/guia/boton-guia";
+import { OfertaEnLugar } from "@/components/ofertas-app";
 
 export const metadata = { title: "Presupuesto" };
 
@@ -124,6 +125,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
         {`Presupuesto de ${nombreMes}`}
       </Titulo>
       <PestanasPlanea activa="/presupuesto" />
+      <OfertaEnLugar lugar="presupuesto" />
 
       {editar ? (
         <FormularioPresupuesto

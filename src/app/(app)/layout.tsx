@@ -4,6 +4,7 @@ import { Cargando } from "@/components/ui";
 import { ColaSinConexion } from "@/components/cola-sin-conexion";
 import { AvisoSuspendido } from "@/components/aviso-suspendido";
 import { AvisoAccesoSoporte } from "@/components/aviso-acceso-soporte";
+import { AvisoLegal } from "@/components/aviso-legal";
 import { Guia } from "@/components/guia/guia";
 import { BarraNavegacion, Navegacion } from "./navegacion";
 import { SelectorHogar } from "./hogar-activo";
@@ -22,6 +23,7 @@ export default function LayoutApp({ children, modal }: { children: React.ReactNo
         <Suspense>
           <AvisoSuspendido />
           <AvisoAccesoSoporte />
+          <AvisoLegal />
           <SelectorHogar />
         </Suspense>
         {/* Único límite de carga de las pantallas: al navegar, React mantiene la pantalla anterior hasta que

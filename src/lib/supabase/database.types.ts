@@ -51,6 +51,20 @@ isOneToOne: false
       referencedColumns: ["id","household_id"]
     }
                   ]
+                },"aliados": {
+                  Row: {
+                    "beneficio": string,"created_at": string,"cupon": string | null,"estado": string,"id": string,"nombre": string,"notas": string | null,"tipo": string,"url": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "beneficio"?: string,"created_at"?: string,"cupon"?: string | null,"estado"?: string,"id"?: string,"nombre": string,"notas"?: string | null,"tipo"?: string,"url"?: string | null
+                  }
+                  Update: {
+                    "beneficio"?: string,"created_at"?: string,"cupon"?: string | null,"estado"?: string,"id"?: string,"nombre"?: string,"notas"?: string | null,"tipo"?: string,"url"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"assistant_messages": {
                   Row: {
                     "autor": string,"created_at": string,"created_by": string | null,"household_id": string,"id": string,"receipt_ids": (string)[],"texto": string
@@ -130,6 +144,20 @@ isOneToOne: false
       referencedRelation: "households"
       referencedColumns: ["id"]
     }
+                  ]
+                },"avisos_equipo_enviados": {
+                  Row: {
+                    "clave": string,"creado": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "clave": string,"creado"?: string
+                  }
+                  Update: {
+                    "clave"?: string,"creado"?: string
+                  }
+                  Relationships: [
+                    
                   ]
                 },"budgets_goals": {
                   Row: {
@@ -383,6 +411,94 @@ isOneToOne: false
       referencedColumns: ["id","household_id"]
     }
                   ]
+                },"documento_revisiones": {
+                  Row: {
+                    "correo": string,"enviado_en": string,"token_hash": string,"vence": string,"version_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "correo": string,"enviado_en"?: string,"token_hash": string,"vence": string,"version_id": string
+                  }
+                  Update: {
+                    "correo"?: string,"enviado_en"?: string,"token_hash"?: string,"vence"?: string,"version_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "documento_revisiones_version_id_fkey"
+      columns: ["version_id"]
+isOneToOne: true
+      referencedRelation: "documento_versiones"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"documento_versiones": {
+                  Row: {
+                    "avisar_correo": boolean,"aviso_enviado_en": string | null,"contenido": string,"documento": string,"editado_nombre": string | null,"estado": string,"id": string,"pedir_aceptacion": boolean,"publicada_en": string | null,"publicada_por": string | null,"resumen": string,"revisado_en": string | null,"revisado_por": string | null,"revision_nota": string | null,"updated_at": string,"version": string,"vigente_desde": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "avisar_correo"?: boolean,"aviso_enviado_en"?: string | null,"contenido"?: string,"documento": string,"editado_nombre"?: string | null,"estado"?: string,"id"?: string,"pedir_aceptacion"?: boolean,"publicada_en"?: string | null,"publicada_por"?: string | null,"resumen"?: string,"revisado_en"?: string | null,"revisado_por"?: string | null,"revision_nota"?: string | null,"updated_at"?: string,"version": string,"vigente_desde"?: string | null
+                  }
+                  Update: {
+                    "avisar_correo"?: boolean,"aviso_enviado_en"?: string | null,"contenido"?: string,"documento"?: string,"editado_nombre"?: string | null,"estado"?: string,"id"?: string,"pedir_aceptacion"?: boolean,"publicada_en"?: string | null,"publicada_por"?: string | null,"resumen"?: string,"revisado_en"?: string | null,"revisado_por"?: string | null,"revision_nota"?: string | null,"updated_at"?: string,"version"?: string,"vigente_desde"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "documento_versiones_documento_fkey"
+      columns: ["documento"]
+isOneToOne: false
+      referencedRelation: "documentos_legales"
+      referencedColumns: ["clave"]
+    }
+                  ]
+                },"documentos_legales": {
+                  Row: {
+                    "clave": string,"consentimiento": string | null,"created_at": string,"nombre": string,"obligatorio": boolean,"orden": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "clave": string,"consentimiento"?: string | null,"created_at"?: string,"nombre": string,"obligatorio"?: boolean,"orden"?: number
+                  }
+                  Update: {
+                    "clave"?: string,"consentimiento"?: string | null,"created_at"?: string,"nombre"?: string,"obligatorio"?: boolean,"orden"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"enlaces": {
+                  Row: {
+                    "activo": boolean,"categoria": string,"created_at": string,"fuente": string,"id": string,"lugar": string,"orden": number,"titulo": string,"url": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activo"?: boolean,"categoria"?: string,"created_at"?: string,"fuente"?: string,"id"?: string,"lugar": string,"orden"?: number,"titulo": string,"url": string
+                  }
+                  Update: {
+                    "activo"?: boolean,"categoria"?: string,"created_at"?: string,"fuente"?: string,"id"?: string,"lugar"?: string,"orden"?: number,"titulo"?: string,"url"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"enlaces_clics": {
+                  Row: {
+                    "creado": string,"enlace_id": string,"id": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "creado"?: string,"enlace_id": string,"id"?: never
+                  }
+                  Update: {
+                    "creado"?: string,"enlace_id"?: string,"id"?: never
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "enlaces_clics_enlace_id_fkey"
+      columns: ["enlace_id"]
+isOneToOne: false
+      referencedRelation: "enlaces"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"eventos": {
                   Row: {
                     "creado": string,"household_id": string,"id": number,"tipo": string
@@ -577,6 +693,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"intentos_ingreso": {
+                  Row: {
+                    "created_at": string,"huella": string,"id": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"huella": string,"id"?: never
+                  }
+                  Update: {
+                    "created_at"?: string,"huella"?: string,"id"?: never
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"invitations": {
                   Row: {
                     "aceptada_en": string | null,"creada_por": string | null,"created_at": string,"email": string | null,"expira_en": string,"household_id": string,"id": string,"rol": Database["public"]['Enums']["rol_miembro"],"telefono": string | null,"token": string
@@ -669,6 +799,40 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"ofertas": {
+                  Row: {
+                    "audiencia": string,"boton_texto": string | null,"boton_url": string | null,"clics": number,"creada_por": string | null,"created_at": string,"desde": string,"etiqueta": string,"hasta": string | null,"id": string,"lugar": string,"publicada": boolean,"texto": string,"titulo": string,"updated_at": string,"vistas": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "audiencia"?: string,"boton_texto"?: string | null,"boton_url"?: string | null,"clics"?: number,"creada_por"?: string | null,"created_at"?: string,"desde"?: string,"etiqueta"?: string,"hasta"?: string | null,"id"?: string,"lugar": string,"publicada"?: boolean,"texto"?: string,"titulo": string,"updated_at"?: string,"vistas"?: number
+                  }
+                  Update: {
+                    "audiencia"?: string,"boton_texto"?: string | null,"boton_url"?: string | null,"clics"?: number,"creada_por"?: string | null,"created_at"?: string,"desde"?: string,"etiqueta"?: string,"hasta"?: string | null,"id"?: string,"lugar"?: string,"publicada"?: boolean,"texto"?: string,"titulo"?: string,"updated_at"?: string,"vistas"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"ofertas_cerradas": {
+                  Row: {
+                    "creado": string,"oferta_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "creado"?: string,"oferta_id": string,"user_id": string
+                  }
+                  Update: {
+                    "creado"?: string,"oferta_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ofertas_cerradas_oferta_id_fkey"
+      columns: ["oferta_id"]
+isOneToOne: false
+      referencedRelation: "ofertas"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"planes": {
                   Row: {
                     "codigo": string,"descripcion": string,"limites": NonNullable<Json>,"nombre": string,"orden": number,"para": string,"precio_anual": number,"precio_mensual": number,"publicado": boolean,"updated_at": string
@@ -679,6 +843,20 @@ isOneToOne: false
                   }
                   Update: {
                     "codigo"?: string,"descripcion"?: string,"limites"?: NonNullable<Json>,"nombre"?: string,"orden"?: number,"para"?: string,"precio_anual"?: number,"precio_mensual"?: number,"publicado"?: boolean,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"plantillas_whatsapp": {
+                  Row: {
+                    "botones": NonNullable<Json>,"categoria": string,"created_at": string,"cuerpo": string,"editada_por": string | null,"ejemplos": (string)[],"encabezado": string,"enviada_en": string | null,"estado": string,"id": string,"idioma": string,"meta_id": string | null,"motivo_rechazo": string | null,"nombre": string,"pie": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "botones"?: NonNullable<Json>,"categoria"?: string,"created_at"?: string,"cuerpo"?: string,"editada_por"?: string | null,"ejemplos"?: (string)[],"encabezado"?: string,"enviada_en"?: string | null,"estado"?: string,"id"?: string,"idioma"?: string,"meta_id"?: string | null,"motivo_rechazo"?: string | null,"nombre": string,"pie"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "botones"?: NonNullable<Json>,"categoria"?: string,"created_at"?: string,"cuerpo"?: string,"editada_por"?: string | null,"ejemplos"?: (string)[],"encabezado"?: string,"enviada_en"?: string | null,"estado"?: string,"id"?: string,"idioma"?: string,"meta_id"?: string | null,"motivo_rechazo"?: string | null,"nombre"?: string,"pie"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -1133,6 +1311,9 @@ isOneToOne: false
 "aceptar_invitacion":
 { Args: { "p_nombre": string,"p_token": string }; Returns: string
                            },
+"aceptar_vigentes":
+{ Args: { "p_comunicaciones"?: boolean }; Returns: undefined
+                           },
 "acumulados_tributarios":
 { Args: { "p_anio": number,"p_household": string }; Returns: {
               "compras_consumos": number,"consignaciones": number,"consumos_tarjeta": number,"ingresos_brutos": number,"member_id": string,"nombre": string,"patrimonio_bruto": number
@@ -1174,6 +1355,15 @@ isOneToOne: false
 "cancelar_al_vencer":
 { Args: { "p_cancelar": boolean,"p_hogar": string }; Returns: undefined
                            },
+"cerrar_oferta":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"clic_enlace":
+{ Args: { "p_id": string }; Returns: string
+                           },
+"clic_oferta":
+{ Args: { "p_id": string }; Returns: string
+                           },
 "cobro_pendiente":
 { Args: { "p_hogar": string }; Returns: Json
                            },
@@ -1204,6 +1394,9 @@ isOneToOne: false
 { Args: { "p_antes"?: number,"p_limite"?: number }; Returns: {
               "accion": string,"creada": string,"detalle": Json,"id": number,"ip": string,"objeto_nombre": string,"objeto_tipo": string,"quien_nombre": string
             }[]
+                           },
+"consola_buscar_cobros":
+{ Args: { "p_q": string }; Returns: Json
                            },
 "consola_cambiar_plan":
 { Args: { "p_id": string,"p_motivo": string,"p_plan": string }; Returns: undefined
@@ -1325,6 +1518,12 @@ isOneToOne: false
 "consola_funciones":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"consola_guardar_ajuste":
+{ Args: { "p_clave": string,"p_valor": Json }; Returns: undefined
+                           },
+"consola_guardar_aliado":
+{ Args: { "p": Json }; Returns: string
+                           },
 "consola_guardar_calendario":
 { Args: { "p_anio": number,"p_fechas": Json,"p_pais": string }; Returns: undefined
                            },
@@ -1343,6 +1542,9 @@ isOneToOne: false
 "consola_guardar_cupon":
 { Args: { "p_activo": boolean,"p_codigo": string,"p_descripcion": string,"p_desde": string,"p_hasta": string,"p_periodo": string,"p_periodos": number,"p_planes": (string)[],"p_tipo": string,"p_usos_max": number,"p_valor": number }; Returns: undefined
                            },
+"consola_guardar_enlace":
+{ Args: { "p": Json }; Returns: string
+                           },
 "consola_guardar_etiqueta":
 { Args: { "p_codigo": string,"p_nombre": string,"p_pais": string,"p_renglon": string }; Returns: undefined
                            },
@@ -1355,17 +1557,26 @@ isOneToOne: false
 "consola_guardar_integracion":
 { Args: { "p_activa": boolean,"p_config": Json,"p_proveedor": string,"p_secretos": Json }; Returns: undefined
                            },
+"consola_guardar_oferta":
+{ Args: { "p": Json }; Returns: string
+                           },
 "consola_guardar_parametros":
 { Args: { "p_anio": number,"p_deducciones": Json,"p_fuente": string,"p_pais": string,"p_topes": Json,"p_uvt": number }; Returns: undefined
                            },
 "consola_guardar_plan":
 { Args: { "p_anual": number,"p_codigo": string,"p_limites": Json,"p_mensual": number,"p_nombre": string,"p_publicado": boolean }; Returns: undefined
                            },
+"consola_guardar_plantilla":
+{ Args: { "p": Json }; Returns: string
+                           },
 "consola_guardar_regla_global":
 { Args: { "p_activa": boolean,"p_ambito": Database["public"]['Enums']["ambito"],"p_categoria": string,"p_id": string,"p_origen": string,"p_patron": string }; Returns: string
                            },
 "consola_guardar_respuesta":
 { Args: { "p_borrar"?: boolean,"p_cuerpo": string,"p_id": string,"p_titulo": string }; Returns: undefined
+                           },
+"consola_guardar_version":
+{ Args: { "p_avisar": boolean,"p_contenido": string,"p_id": string,"p_pedir": boolean,"p_resumen": string,"p_vigente": string }; Returns: undefined
                            },
 "consola_hogar":
 { Args: { "p_id": string }; Returns: Json
@@ -1387,6 +1598,9 @@ isOneToOne: false
 "consola_importar_reglas":
 { Args: { "p_filas": Json }; Returns: number
                            },
+"consola_insignias":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "consola_integraciones":
 { Args: Record<PropertyKey, never>; Returns: {
               "activa": boolean,"actualizada_en": string,"actualizada_por": string,"config": Json,"proveedor": string,"secretos": Json,"ultimo_evento": string,"verificacion": Json,"verificada_en": string
@@ -1399,6 +1613,9 @@ isOneToOne: false
                            },
 "consola_invitar":
 { Args: { "p_email": string,"p_nombre": string,"p_rol": Database["public"]['Enums']["rol_staff"] }; Returns: string
+                           },
+"consola_legal":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "consola_liquidar_comisiones":
 { Args: { "p_mes": string }; Returns: Json
@@ -1420,11 +1637,23 @@ isOneToOne: false
 "consola_nota_hogar":
 { Args: { "p_id": string,"p_texto": string }; Returns: undefined
                            },
+"consola_nueva_version":
+{ Args: { "p_doc": string,"p_mayor": boolean }; Returns: string
+                           },
+"consola_nuevo_documento":
+{ Args: { "p_clave": string,"p_nombre": string }; Returns: undefined
+                           },
+"consola_ofertas":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "consola_parametros":
 { Args: { "p_pais": string }; Returns: Json
                            },
 "consola_pedir_acceso":
 { Args: { "p_hogar": string,"p_horas": number,"p_motivo": string }; Returns: (string)[]
+                           },
+"consola_pedir_revision":
+{ Args: { "p_correo": string,"p_id": string,"p_token": string }; Returns: undefined
                            },
 "consola_planes":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -1445,8 +1674,20 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"consola_plantilla_enviada":
+{ Args: { "p_estado": string,"p_id": string,"p_meta_id": string }; Returns: undefined
+                           },
+"consola_plantilla_estado_meta":
+{ Args: { "p_estado": string,"p_idioma": string,"p_meta_id": string,"p_motivo": string,"p_nombre": string }; Returns: boolean
+                           },
+"consola_plantillas_whatsapp":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "consola_publicar_parametros":
 { Args: { "p_anio": number,"p_pais": string }; Returns: undefined
+                           },
+"consola_publicar_version":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "consola_registrar_ingreso":
 { Args: Record<PropertyKey, never>; Returns: undefined
@@ -1514,6 +1755,16 @@ isOneToOne: false
               "email": string,"id": string
             }[]
                            },
+"correos_del_equipo":
+{ Args: { "p_roles": (string)[] }; Returns: {
+              "email": string,"nombre": string
+            }[]
+                           },
+"correos_titulares":
+{ Args: { "p_despues": string,"p_limite": number }; Returns: {
+              "email": string,"id": string
+            }[]
+                           },
 "cotizar_plan":
 { Args: { "p_cupon"?: string,"p_hogar": string,"p_periodo": string,"p_plan": string }; Returns: Json
                            },
@@ -1547,6 +1798,9 @@ isOneToOne: false
 "guardar_presupuesto":
 { Args: { "p_hogar": string,"p_items": Json }; Returns: undefined
                            },
+"ingreso_bloqueado":
+{ Args: { "p_email": string }; Returns: number
+                           },
 "iniciar_prueba":
 { Args: { "p_hogar": string }; Returns: string
                            },
@@ -1556,8 +1810,14 @@ isOneToOne: false
 "integracion_leer":
 { Args: { "p_proveedor": string }; Returns: Json
                            },
+"legal_avisos_pendientes":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "mi_firma":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"mi_oferta":
+{ Args: { "p_lugar": string }; Returns: Json
                            },
 "mi_plan":
 { Args: { "p_hogar": string }; Returns: Json
@@ -1575,8 +1835,14 @@ isOneToOne: false
               "activo": boolean,"id": string,"nombre": string,"plan": string,"rol": Database["public"]['Enums']["rol_miembro"]
             }[]
                            },
+"mis_pendientes_legales":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "obtener_ref":
 { Args: { "p_hogar": string }; Returns: string
+                           },
+"plantilla_estado_meta":
+{ Args: { "p_estado": string,"p_idioma": string,"p_meta_id": string,"p_motivo": string,"p_nombre": string }; Returns: boolean
                            },
 "procesar_vencimientos":
 { Args: { "p_hoy": string }; Returns: Json
@@ -1593,6 +1859,9 @@ isOneToOne: false
 "registrar_error":
 { Args: { "p_detalle"?: Json,"p_hogar": string,"p_mensaje": string,"p_tipo": string }; Returns: undefined
                            },
+"registrar_ingreso":
+{ Args: { "p_email": string,"p_ok": boolean }; Returns: undefined
+                           },
 "registrar_pago_wompi":
 { Args: { "p_detalle": string,"p_estado": string,"p_evento": string,"p_metodo": string,"p_monto_centavos": number,"p_payload": Json,"p_referencia": string,"p_transaccion": string }; Returns: Json
                            },
@@ -1605,6 +1874,12 @@ isOneToOne: false
 "responder_ticket":
 { Args: { "p_cerrar"?: boolean,"p_cuerpo": string,"p_ticket": string }; Returns: undefined
                            },
+"revision_legal_responder":
+{ Args: { "p_aprobada": boolean,"p_nombre": string,"p_nota": string,"p_token": string }; Returns: undefined
+                           },
+"revision_legal_ver":
+{ Args: { "p_token": string }; Returns: Json
+                           },
 "revision_seguridad":
 { Args: Record<PropertyKey, never>; Returns: {
               "objeto": string,"tipo": string
@@ -1612,6 +1887,11 @@ isOneToOne: false
                            },
 "solicitar_privacidad":
 { Args: { "p_detalle": string,"p_tipo": string }; Returns: string
+                           },
+"tickets_sin_respuesta":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "asunto": string,"creado": string,"id": string,"numero": number
+            }[]
                            },
 "totales_por_categoria":
 { Args: { "p_desde": string,"p_hasta": string,"p_household": string }; Returns: {
@@ -1628,7 +1908,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "adjunto_tipo": "factura"|"certificado"|"extracto","ambito": "personal"|"negocio","categoria_clase": "gasto"|"ingreso","categoria_tipo": "fijo"|"variable","comprobante_estado": "procesando"|"registrado"|"soporte"|"por_revisar"|"descartado"|"error","cuenta_tipo": "banco"|"efectivo"|"tarjeta"|"billetera","frecuencia": "semanal"|"quincenal"|"mensual"|"bimestral"|"trimestral"|"semestral"|"anual","meta_tipo": "presupuesto"|"meta","mov_estado": "confirmado"|"programado","mov_origen": "manual"|"importacion"|"recurrente"|"ocr"|"whatsapp"|"banco","mov_tipo": "ingreso"|"gasto"|"transferencia","periodo": "mensual"|"anual"|"unico","permiso_staff": "ver_hogares"|"ver_finanzas"|"usuarios"|"tickets"|"cobros"|"planes"|"parametros"|"campanas"|"equipo"|"exportar"|"sistema"|"auditoria","repeticion": "una_vez"|"mensual"|"anual","rol_miembro": "admin"|"editor"|"contador"|"familiar","rol_staff": "superadmin"|"soporte"|"finanzas"|"contenido"
+            "adjunto_tipo": "factura"|"certificado"|"extracto","ambito": "personal"|"negocio","categoria_clase": "gasto"|"ingreso","categoria_tipo": "fijo"|"variable","comprobante_estado": "procesando"|"registrado"|"soporte"|"por_revisar"|"descartado"|"error","cuenta_tipo": "banco"|"efectivo"|"tarjeta"|"billetera","frecuencia": "semanal"|"quincenal"|"mensual"|"bimestral"|"trimestral"|"semestral"|"anual","meta_tipo": "presupuesto"|"meta","mov_estado": "confirmado"|"programado","mov_origen": "manual"|"importacion"|"recurrente"|"ocr"|"whatsapp"|"banco","mov_tipo": "ingreso"|"gasto"|"transferencia","periodo": "mensual"|"anual"|"unico","permiso_staff": "ver_hogares"|"ver_finanzas"|"usuarios"|"tickets"|"cobros"|"planes"|"parametros"|"campanas"|"contenido_app"|"equipo"|"exportar"|"sistema"|"auditoria","repeticion": "una_vez"|"mensual"|"anual","rol_miembro": "admin"|"editor"|"contador"|"familiar","rol_staff": "superadmin"|"soporte"|"finanzas"|"contenido"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1744,7 +2024,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "adjunto_tipo": ["factura", "certificado", "extracto"],"ambito": ["personal", "negocio"],"categoria_clase": ["gasto", "ingreso"],"categoria_tipo": ["fijo", "variable"],"comprobante_estado": ["procesando", "registrado", "soporte", "por_revisar", "descartado", "error"],"cuenta_tipo": ["banco", "efectivo", "tarjeta", "billetera"],"frecuencia": ["semanal", "quincenal", "mensual", "bimestral", "trimestral", "semestral", "anual"],"meta_tipo": ["presupuesto", "meta"],"mov_estado": ["confirmado", "programado"],"mov_origen": ["manual", "importacion", "recurrente", "ocr", "whatsapp", "banco"],"mov_tipo": ["ingreso", "gasto", "transferencia"],"periodo": ["mensual", "anual", "unico"],"permiso_staff": ["ver_hogares", "ver_finanzas", "usuarios", "tickets", "cobros", "planes", "parametros", "campanas", "equipo", "exportar", "sistema", "auditoria"],"repeticion": ["una_vez", "mensual", "anual"],"rol_miembro": ["admin", "editor", "contador", "familiar"],"rol_staff": ["superadmin", "soporte", "finanzas", "contenido"]
+            "adjunto_tipo": ["factura", "certificado", "extracto"],"ambito": ["personal", "negocio"],"categoria_clase": ["gasto", "ingreso"],"categoria_tipo": ["fijo", "variable"],"comprobante_estado": ["procesando", "registrado", "soporte", "por_revisar", "descartado", "error"],"cuenta_tipo": ["banco", "efectivo", "tarjeta", "billetera"],"frecuencia": ["semanal", "quincenal", "mensual", "bimestral", "trimestral", "semestral", "anual"],"meta_tipo": ["presupuesto", "meta"],"mov_estado": ["confirmado", "programado"],"mov_origen": ["manual", "importacion", "recurrente", "ocr", "whatsapp", "banco"],"mov_tipo": ["ingreso", "gasto", "transferencia"],"periodo": ["mensual", "anual", "unico"],"permiso_staff": ["ver_hogares", "ver_finanzas", "usuarios", "tickets", "cobros", "planes", "parametros", "campanas", "contenido_app", "equipo", "exportar", "sistema", "auditoria"],"repeticion": ["una_vez", "mensual", "anual"],"rol_miembro": ["admin", "editor", "contador", "familiar"],"rol_staff": ["superadmin", "soporte", "finanzas", "contenido"]
           }
         }
 } as const

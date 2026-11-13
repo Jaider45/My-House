@@ -529,3 +529,52 @@ export function correoSolicitudDatos(d: { numero: number; tipo: string; estado: 
     porque: "Recibes este correo porque hiciste una solicitud sobre tus datos personales en My House.",
   };
 }
+
+// ── Legal y avisos del equipo (diseño Admin SaaS) ────────────────────────────
+
+/** Consola → Legal → «Enviar al abogado»: enlace de revisión sin cuenta (vence en 14 días). */
+export function correoRevisionLegal(d: { quien: string; documento: string; version: string; url: string; vence: string }): Contenido {
+  return {
+    asunto: `Revisión: ${d.documento} v${d.version}`,
+    vistaPrevia: `${d.quien} te pide revisar la versión ${d.version} antes de publicarla.`,
+    etiqueta: "Legal",
+    icono: { nombre: "documentos", tono: "claro" },
+    titulo: `Revisa ${d.documento.toLowerCase()} v${d.version}`,
+    intro: `Hola. ${d.quien}, del equipo de My House, te pide revisar esta versión antes de publicarla. En el enlace ves el texto completo, los cambios frente a la versión vigente y puedes aprobarla o pedir cambios.`,
+    nota: { texto: `El enlace es personal y vence el ${d.vence}. No necesitas cuenta en My House.` },
+    botones: [{ texto: "Revisar la versión", url: d.url }],
+    enlaceAlterno: d.url,
+    porque: "Recibes este correo porque el equipo de My House te pidió una revisión legal.",
+  };
+}
+
+/** Aviso a las personas: una versión nueva de un documento legal entra en vigencia pronto. */
+export function correoCambioLegal(d: { documento: string; version: string; vigente: string; resumen: string; url: string }): Contenido {
+  return {
+    asunto: `Actualizamos ${d.documento.toLowerCase()}`,
+    vistaPrevia: d.resumen.slice(0, 120) || `La versión ${d.version} rige desde el ${d.vigente}.`,
+    etiqueta: "Legal",
+    icono: { nombre: "documentos", tono: "claro" },
+    titulo: `Actualizamos ${d.documento.toLowerCase()}`,
+    intro: `${d.resumen ? `${d.resumen} ` : ""}La versión ${d.version} rige desde el ${d.vigente}.`,
+    nota: { texto: "Si la versión pide tu aceptación, te la mostraremos al entrar a la app. Si no estás de acuerdo, puedes pedir que eliminemos tu cuenta." },
+    botones: [{ texto: "Leer el documento", url: d.url }],
+    enlaceAlterno: d.url,
+    porque: "Recibes este correo porque tienes una cuenta en My House. Es un aviso obligatorio, no publicidad.",
+  };
+}
+
+/** Ajustes de la plataforma → Avisos para el equipo. */
+export function correoAvisoEquipo(d: { titulo: string; texto: string; url: string }): Contenido {
+  return {
+    asunto: `[Consola] ${d.titulo}`,
+    vistaPrevia: d.texto.slice(0, 120),
+    etiqueta: "Consola",
+    icono: { nombre: "alertas", tono: "alerta" },
+    titulo: d.titulo,
+    intro: d.texto,
+    botones: [{ texto: "Abrir la consola", url: d.url }],
+    enlaceAlterno: d.url,
+    porque: "Recibes este correo porque eres del equipo de My House y tu rol recibe este aviso (Consola → Ajustes de la plataforma).",
+  };
+}

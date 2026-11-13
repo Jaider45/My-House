@@ -8,6 +8,7 @@ import { Importador } from "./importador";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { PestanasMovimientos } from "../pestanas-secciones";
 import { BotonGuia } from "@/components/guia/boton-guia";
+import { EnlacesUtiles } from "@/components/ofertas-app";
 
 export const metadata = { title: "Importar extracto" };
 
@@ -83,6 +84,7 @@ async function Contenido() {
           <Vacio>Aún no has importado extractos.</Vacio>
         )}
       </Tarjeta>
+      <EnlacesUtiles lugar="importar" titulo="Cómo descargar el extracto de tu banco" />
     </div>
   );
 }

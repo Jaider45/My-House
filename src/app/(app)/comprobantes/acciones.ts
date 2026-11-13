@@ -12,13 +12,13 @@ import { registrarError } from "@/lib/registro-tecnico";
 import { resolverIa } from "@/lib/ia/proveedores";
 import { describirHogar, leerConfigHogar, type PersonaHogar } from "@/lib/hogar";
 import type { Database } from "@/lib/supabase/database.types";
+import { limitesApp } from "@/lib/plataforma/config";
 import { CONFIANZA_MINIMA, decidir, patronDe, reglasGlobalesDelHogar, type Decision, type ReglaComercio } from "@/lib/comprobantes";
 
 type Ctx = Awaited<ReturnType<typeof obtenerContexto>>;
 
 const MIMES = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
 const MAX_ARCHIVOS = 5;
-const MAX_BYTES = 10 * 1024 * 1024;
 
 function refrescar() {
   revalidatePath("/comprobantes");
@@ -170,8 +170,10 @@ export async function enviarAlAsistente(_: Estado, datos: FormData): Promise<Est
   const archivos = datos.getAll("archivos").filter((a): a is File => a instanceof File && a.size > 0);
   if (!texto && !archivos.length) return { error: "Escribe un mensaje o adjunta un comprobante." };
   if (archivos.length > MAX_ARCHIVOS) return { error: `Máximo ${MAX_ARCHIVOS} archivos por mensaje.` };
-  const malo = archivos.find((a) => !MIMES.includes(a.type) || a.size > MAX_BYTES);
-  if (malo) return { error: `${malo.name}: solo fotos (JPG, PNG, WebP) o PDF de hasta 10 MB.` };
+  // Ajustes de la plataforma → «Tamaño máximo de un comprobante».
+  const { comprobante_mb } = await limitesApp();
+  const malo = archivos.find((a) => !MIMES.includes(a.type) || a.size > comprobante_mb * 1024 * 1024);
+  if (malo) return { error: `${malo.name}: solo fotos (JPG, PNG, WebP) o PDF de hasta ${comprobante_mb} MB.` };
   // El cupo de IA se reserva en paralelo con los catálogos: sus ~10 ms quedan escondidos.
   const [cat, cupo] = await Promise.all([
     catalogos(ctx),

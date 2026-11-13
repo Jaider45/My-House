@@ -1,4 +1,5 @@
 import "server-only";
+import { avisarEquipo } from "@/lib/consola/avisos-equipo";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { crearClienteServicio, type Servicio } from "@/lib/supabase/servicio";
 import { enviarCorreo } from "@/lib/correo/enviar";
@@ -203,6 +204,18 @@ export async function procesarTransaccion(db: Servicio, t: TransaccionWompi, pay
           sitio: sitio(),
         }),
       );
+    });
+  }
+  // Ajustes de la plataforma → Avisos para el equipo: un pago rechazado de un hogar.
+  if ((t.status === "DECLINED" || t.status === "ERROR") && r.hogar) {
+    const hogar = r.hogar;
+    after(async () => {
+      const { data: h } = await db.from("households").select("nombre").eq("id", hogar).single();
+      await avisarEquipo(db, "pago_fallido", t.id, {
+        titulo: `Pago fallido · ${h?.nombre ?? "un hogar"}`,
+        texto: `Wompi rechazó el cobro ${t.reference} por ${formatearCOP(Math.round(t.amount_in_cents / 100))} (${[metodo, detalle].filter(Boolean).join(" ") || "sin método"}).`,
+        ruta: `/consola/hogares/${hogar}`,
+      });
     });
   }
   return r;

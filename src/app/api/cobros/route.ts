@@ -1,3 +1,4 @@
+import { revisarAvisosEquipo } from "@/lib/consola/avisos-equipo";
 import { NextResponse, type NextRequest } from "next/server";
 import {
   aceptacionWompi,
@@ -163,6 +164,8 @@ export async function GET(request: NextRequest) {
 
   // Retención (Ley 1581): el detalle de correos y el registro técnico se borran a los 90 días.
   const { data: purgados } = await db.rpc("purgar_retencion");
-  console.info("[cobros]", hoy, JSON.stringify({ ...resumen, debitos, campanas, purgados }));
-  return NextResponse.json({ hoy, ...resumen, debitos, campanas, purgados });
+  // Ajustes de la plataforma → Avisos para el equipo: tickets urgentes sin respuesta y servicios caídos.
+  const avisosEquipo = await revisarAvisosEquipo(db, hoy);
+  console.info("[cobros]", hoy, JSON.stringify({ ...resumen, debitos, campanas, purgados, avisosEquipo }));
+  return NextResponse.json({ hoy, ...resumen, debitos, campanas, purgados, avisosEquipo });
 }

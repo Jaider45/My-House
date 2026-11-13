@@ -12,6 +12,7 @@ import { formatearCOP } from "@/lib/dinero";
 import { formatearMes, hoy } from "@/lib/fechas";
 import { avanceMeta, type AvanceMeta } from "@/lib/metas";
 import { FormularioAporte, FormularioMeta } from "./formularios";
+import { EnlacesUtiles, OfertaEnLugar } from "@/components/ofertas-app";
 
 export const metadata = { title: "Metas de ahorro" };
 
@@ -66,6 +67,7 @@ async function Contenido() {
         Metas de ahorro
       </Titulo>
       <PestanasPlanea activa="/metas" />
+      <OfertaEnLugar lugar="metas" />
     </>
   );
   const puedeAportar = ctx.puedeEditar && !!cuentas?.length;
@@ -231,6 +233,7 @@ async function Contenido() {
         etiqueta="Academia · Ahorro y fondo de emergencia"
         titulo="¿Cuánto debe tener tu fondo de emergencia?"
       />
+      <EnlacesUtiles lugar="metas" />
       {ventanas}
     </div>
     </>

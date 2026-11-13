@@ -43,7 +43,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
   const actual = PASOS[paso - 1];
   const nombre = nombreDe(user.user_metadata);
   // Cuentas creadas con Google (o con una versión anterior de la política): las casillas van en el paso 1.
-  const pedirConsentimiento = paso === 1 && !(await aceptoVersionVigente(supabase, user.id));
+  const pedirConsentimiento = paso === 1 && !(await aceptoVersionVigente(supabase));
 
   return (
     <>

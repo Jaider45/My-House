@@ -31,7 +31,7 @@ export async function crearHogar(_: Estado, datos: FormData): Promise<Estado> {
   const supabase = await crearClienteServidor();
   const { data: sesion } = await supabase.auth.getUser();
   if (!sesion.user) return { error: "Tu sesión terminó. Vuelve a ingresar." };
-  const falta = await exigirConsentimiento(supabase, sesion.user.id, datos);
+  const falta = await exigirConsentimiento(supabase, datos);
   if (falta) return { error: falta };
   // Canal de llegada (proxy): utm_source o el enlace de referido de un contador.
   const almacen = await cookies();

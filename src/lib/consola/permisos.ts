@@ -28,6 +28,7 @@ export const PERMISOS: { valor: Permiso; texto: string }[] = [
   { valor: "planes", texto: "Editar planes, precios y cupones" },
   { valor: "parametros", texto: "Editar parámetros DIAN y catálogos" },
   { valor: "campanas", texto: "Enviar campañas" },
+  { valor: "contenido_app", texto: "Editar Academia, ofertas, plantillas de WhatsApp y documentos legales" },
   { valor: "equipo", texto: "Gestionar equipo y roles" },
   { valor: "exportar", texto: "Exportar datos" },
   { valor: "sistema", texto: "Feature flags y mantenimiento" },
@@ -38,7 +39,7 @@ export const MATRIZ: Record<RolStaff, Permiso[]> = {
   superadmin: PERMISOS.map((p) => p.valor),
   soporte: ["ver_hogares", "ver_finanzas", "usuarios", "tickets"],
   finanzas: ["ver_hogares", "cobros", "planes", "exportar"],
-  contenido: ["ver_hogares", "tickets", "parametros", "campanas"],
+  contenido: ["ver_hogares", "tickets", "parametros", "campanas", "contenido_app"],
 };
 
 export const puede = (rol: RolStaff, permiso: Permiso) => MATRIZ[rol].includes(permiso);

@@ -21,6 +21,7 @@ import { cerrarOtrasSesiones } from "./acciones";
 import { FormularioDatosHogar, FormularioPrivacidad, FormularioTrm } from "./configuracion";
 import { CopiarEnlace } from "./miembros/formularios";
 import { Contrasena, EstadoDosPasos } from "./seguridad/componentes";
+import { OfertaEnLugar } from "@/components/ofertas-app";
 
 export const metadata = { title: "Configuración" };
 
@@ -113,6 +114,7 @@ export default async function Configuracion() {
       >
         Configuración
       </Titulo>
+      <OfertaEnLugar lugar="ajustes" />
 
       <nav aria-label="Secciones" className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:mb-5 md:flex-wrap md:px-0">
         {SECCIONES.map((s, i) => (

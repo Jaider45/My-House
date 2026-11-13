@@ -75,6 +75,18 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Ajustes de la plataforma → «Pedir 2FA a todos los administradores de hogar» (claim del hook): sin verificación
+  // activa, el administrador solo puede entrar a Seguridad para activarla.
+  const { exigir_2fa, mfa_activa } = data.claims as { exigir_2fa?: boolean; mfa_activa?: boolean };
+  if (exigir_2fa && mfa_activa === false && !ruta.startsWith("/ajustes/seguridad") && ruta !== "/mfa" && ruta !== "/salir" && !ruta.startsWith("/api/") && !esRutaPublica(ruta)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/ajustes/seguridad";
+    url.search = "?exigida=1";
+    const r = NextResponse.redirect(url);
+    respuesta.cookies.getAll().forEach((c) => r.cookies.set(c));
+    return r;
+  }
+
   if (ruta === "/ingresar" || ruta === "/registro" || ruta === "/recuperar") {
     return redirigir("/");
   }

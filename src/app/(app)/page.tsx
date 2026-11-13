@@ -13,6 +13,7 @@ import { entradasPorCategoria, filasPresupuesto } from "@/lib/presupuesto";
 import type { NombreIcono } from "@/components/marca";
 import { fechasEnRango } from "@/lib/recurrentes";
 import { BotonGuia } from "@/components/guia/boton-guia";
+import { OfertaEnLugar } from "@/components/ofertas-app";
 
 export default function Inicio({ searchParams }: PageProps<"/">) {
   return (
@@ -88,18 +89,21 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
     .slice(0, 6);
   const titulo = `Resumen de ${formatearMes(mes).replace(/ de \d{4}$/, "")}`;
   const encabezado = (
-    <Titulo
-      subtitulo="Cuánto cuesta sostener la casa este mes"
-      registrar={ctx.puedeEditar}
-      accion={
-        <>
-          <SelectorMes etiqueta={formatearMes(mes).replace(" de ", " ")} anterior={`/?mes=${sumarMeses(mes, -1)}`} siguiente={mes < mesActual ? `/?mes=${sumarMeses(mes, 1)}` : undefined} />
-          <BotonGuia id="bienvenida" />
-        </>
-      }
-    >
-      {titulo}
-    </Titulo>
+    <>
+      <Titulo
+        subtitulo="Cuánto cuesta sostener la casa este mes"
+        registrar={ctx.puedeEditar}
+        accion={
+          <>
+            <SelectorMes etiqueta={formatearMes(mes).replace(" de ", " ")} anterior={`/?mes=${sumarMeses(mes, -1)}`} siguiente={mes < mesActual ? `/?mes=${sumarMeses(mes, 1)}` : undefined} />
+            <BotonGuia id="bienvenida" />
+          </>
+        }
+      >
+        {titulo}
+      </Titulo>
+      <OfertaEnLugar lugar="inicio" />
+    </>
   );
 
   if (r.ingresos + r.gastos + r.porPagar + r.costoVida === 0) {

@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import Link from "next/link";
+import { Cargando } from "@/components/ui";
 import { Logo } from "@/components/marca";
 import { RESPONSABLE } from "@/lib/legal/responsable";
 
-/** Documentos legales públicos (términos, política de datos): lectura cómoda, sin sesión ni datos de la base. */
+/** Documentos legales públicos (términos, política de datos): lectura cómoda, sin sesión. El texto sale de la base. */
 export default function LayoutLegal({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-pagina">
@@ -22,7 +24,9 @@ export default function LayoutLegal({ children }: { children: React.ReactNode })
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-8 md:px-6 md:py-12">
-        <article className="space-y-4 text-[15px] leading-6 text-tinta">{children}</article>
+        <article className="space-y-4 text-[15px] leading-6 text-tinta">
+          <Suspense fallback={<Cargando />}>{children}</Suspense>
+        </article>
         <p className="mt-12 border-t border-borde pt-6 text-sm text-tenue">
           ¿Preguntas? Escríbenos a{" "}
           <a className="font-semibold text-monte underline underline-offset-2" href={`mailto:${RESPONSABLE.correoDatos}`}>

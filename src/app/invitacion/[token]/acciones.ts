@@ -17,7 +17,7 @@ export async function aceptarInvitacion(_: Estado, datos: FormData): Promise<Est
   const supabase = await crearClienteServidor();
   const { data: sesion } = await supabase.auth.getUser();
   if (!sesion.user) return { error: "Tu sesión terminó. Vuelve a ingresar." };
-  const falta = await exigirConsentimiento(supabase, sesion.user.id, datos);
+  const falta = await exigirConsentimiento(supabase, datos);
   if (falta) return { error: falta };
   const { error } = await supabase.rpc("aceptar_invitacion", { p_token: r.data.token, p_nombre: r.data.nombre });
   if (error) return { error: mensajeError(error) };

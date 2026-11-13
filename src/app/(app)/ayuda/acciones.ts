@@ -1,5 +1,8 @@
 "use server";
 
+import { after } from "next/server";
+import { avisarEquipo } from "@/lib/consola/avisos-equipo";
+import { crearClienteServicio, hayServicio } from "@/lib/supabase/servicio";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -44,8 +47,18 @@ export async function solicitarDatos(_: Estado, datos: FormData): Promise<Estado
   if (!r.success) return { error: "Elige qué quieres hacer con tus datos." };
   if (r.data.tipo === "supresion" && datos.get("confirmo") !== "on") return { error: "Marca la casilla para confirmar que entiendes lo que se borra." };
   const ctx = await obtenerContexto();
-  const { error } = await ctx.supabase.rpc("solicitar_privacidad", { p_tipo: r.data.tipo, p_detalle: r.data.detalle });
+  const { data: numero, error } = await ctx.supabase.rpc("solicitar_privacidad", { p_tipo: r.data.tipo, p_detalle: r.data.detalle });
   if (error) return { error: mensajeError(error) };
+  if (hayServicio()) {
+    const tipo = r.data.tipo;
+    after(() =>
+      avisarEquipo(crearClienteServicio(), "solicitud_1581", `${ctx.userId}:${tipo}:${String(numero ?? Date.now())}`, {
+        titulo: `Solicitud de datos personales (${tipo})`,
+        texto: `Llegó una solicitud de ${tipo} de un titular. El plazo legal corre en días hábiles desde hoy.`,
+        ruta: "/consola/privacidad",
+      }),
+    );
+  }
   revalidatePath("/ayuda");
   return { ok: "Recibimos tu solicitud. Te respondemos por correo dentro del plazo de ley." };
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { crearClienteServicio, hayServicio } from "@/lib/supabase/servicio";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { mensajeError, type Estado } from "@/lib/acciones";
 import { verificoCorreoHacePoco } from "@/lib/contrasena";
@@ -49,9 +50,17 @@ async function destinoTrasIngreso(supabase: Cliente, siguiente: string) {
 export async function ingresar(_: Estado, datos: FormData): Promise<Estado> {
   const r = credenciales.safeParse({ email: datos.get("email"), password: datos.get("password") });
   if (!r.success) return { error: r.error.issues[0].message };
+  // Ajustes de la plataforma → «Bloquear tras intentos fallidos»: 15 minutos sin poder entrar con ese correo.
+  const db = hayServicio() ? crearClienteServicio() : null;
+  const { data: bloqueo } = db ? await db.rpc("ingreso_bloqueado", { p_email: r.data.email }) : { data: 0 };
+  if (bloqueo) return { error: `Por seguridad bloqueamos el ingreso con este correo por ${bloqueo} ${bloqueo === 1 ? "minuto" : "minutos"}. Si olvidaste tu contraseña, recupérala.` };
   const supabase = await crearClienteServidor();
   const { error } = await supabase.auth.signInWithPassword({ ...r.data, options: { captchaToken: captcha(datos) } });
-  if (error) return { error: mensajeError(error) };
+  if (error) {
+    if (db && error.message.includes("Invalid login credentials")) await db.rpc("registrar_ingreso", { p_email: r.data.email, p_ok: false });
+    return { error: mensajeError(error) };
+  }
+  if (db) await db.rpc("registrar_ingreso", { p_email: r.data.email, p_ok: true });
   await avisarSiDispositivoNuevo(supabase);
   redirect(await destinoTrasIngreso(supabase, destinoSeguro(datos.get("siguiente")?.toString())));
 }

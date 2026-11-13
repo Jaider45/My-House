@@ -14,6 +14,7 @@ import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { FormularioRegla } from "./formulario";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { BotonGuia } from "@/components/guia/boton-guia";
+import { OfertaEnLugar } from "@/components/ofertas-app";
 
 export const metadata = { title: "Pagos fijos" };
 
@@ -125,6 +126,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
         {`Pagos fijos de ${nombreMes}`}
       </Titulo>
       <PestanasPagos activa="/recurrentes" />
+      <OfertaEnLugar lugar="pagos" />
 
       <div className="space-y-4 md:space-y-5">
         <Tarjeta>
