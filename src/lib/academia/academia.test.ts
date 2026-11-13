@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { CURSOS, avanceCurso, buscar, claveLeccion, continuar, leccionDe, leerVistasAcademia } from ".";
+import { avanceCurso, buscar as buscarEn, claveLeccion, continuar as continuarEn, leccionDe as leccionEn, leerVistasAcademia as leerEn } from ".";
+import { CURSOS_INICIALES as CURSOS } from "./semilla";
+import { bloquesATexto, textoABloques } from "./texto";
+
+const leccionDe = (c: string, l: string) => leccionEn(CURSOS, c, l);
+const buscar = (q: string) => buscarEn(CURSOS, q);
+const continuar = (v: Set<string>) => continuarEn(CURSOS, v);
+const leerVistasAcademia = (m: unknown) => leerEn(m, CURSOS);
 import { guiaPorId } from "@/lib/guias";
 
 describe("catálogo de la Academia", () => {
@@ -68,5 +75,17 @@ describe("avance", () => {
   it("busca sin tildes ni mayúsculas", () => {
     expect(buscar("EMERGENCIA").some((r) => r.leccion.slug === "cuanto-fondo")).toBe(true);
     expect(buscar("x")).toEqual([]);
+  });
+});
+
+describe("editor de lecciones", () => {
+  it("el texto del editor y los bloques van y vuelven sin perder nada", () => {
+    for (const c of CURSOS)
+      for (const l of c.lecciones) {
+        const { contenido, extras } = bloquesATexto(l.bloques);
+        const vuelta = textoABloques(contenido, extras);
+        const orden = (bs: typeof l.bloques) => bs.map((b) => JSON.stringify(b)).sort();
+        expect(orden(vuelta), `${c.slug}/${l.slug}`).toEqual(orden(l.bloques));
+      }
   });
 });

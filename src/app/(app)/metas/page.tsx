@@ -12,7 +12,7 @@ import { formatearCOP } from "@/lib/dinero";
 import { formatearMes, hoy } from "@/lib/fechas";
 import { avanceMeta, type AvanceMeta } from "@/lib/metas";
 import { FormularioAporte, FormularioMeta } from "./formularios";
-import { EnlacesUtiles, OfertaEnLugar } from "@/components/ofertas-app";
+import { EnlacesUtiles, OfertaEnLugar, RecomendacionAcademia } from "@/components/ofertas-app";
 
 export const metadata = { title: "Metas de ahorro" };
 
@@ -227,6 +227,7 @@ async function Contenido() {
         {ctx.puedeEditar && nueva}
       </div>
 
+      <RecomendacionAcademia lugar="metas" />
       <TarjetaAcademia
         href="/academia/ahorro/cuanto-fondo"
         icono="ahorro"

@@ -3,10 +3,10 @@ import { Aviso, Barra, Chip, Titulo, clasesBoton, cx } from "@/components/ui";
 import { Icono, type NombreIcono } from "@/components/marca";
 import { BotonGuia } from "@/components/guia/boton-guia";
 import { obtenerContexto, obtenerUsuario } from "@/lib/sesion";
-import { hoy } from "@/lib/fechas";
-import { cargarSemaforo } from "@/lib/impuestos/servidor";
 import { guiasPara, leerVistas } from "@/lib/guias";
-import { CURSOS, GLOSARIO, TEMAS, avanceCurso, buscar, continuar, cursoPorSlug, leerVistasAcademia, type Curso, type Tema } from "@/lib/academia";
+import { GLOSARIO, TEMAS, avanceCurso, buscar, continuar, cursoPorSlug, leerVistasAcademia, type Curso, type Tema } from "@/lib/academia";
+import { PORQUE, cargarCursos, recomendaciones as cargarRecomendaciones } from "@/lib/academia/servidor";
+import { Talleres, type Taller } from "./talleres";
 import { OfertaEnLugar } from "@/components/ofertas-app";
 
 export const metadata = { title: "Academia" };
@@ -22,6 +22,7 @@ const FILTROS: { id: string; texto: string }[] = [
   { id: "", texto: "Todo" },
   { id: "guias", texto: "Guías paso a paso" },
   ...(Object.keys(TEMAS) as Tema[]).map((t) => ({ id: t, texto: TEMAS[t] })),
+  { id: "talleres", texto: "Talleres en vivo" },
   { id: "glosario", texto: "Glosario" },
 ];
 
@@ -30,42 +31,30 @@ type Recomendacion = { porque: string; titulo: string; detalle: string; href: st
 /** Academia (diseño «Academia»): rutas de lecciones escritas, guías interactivas, recomendaciones y glosario. */
 export default async function Academia({ searchParams }: PageProps<"/academia">) {
   const [ctx, { user }, sp] = await Promise.all([obtenerContexto(), obtenerUsuario(), searchParams]);
-  const fecha = hoy();
+  const [CURSOS, recs, { data: talleres }] = await Promise.all([
+    cargarCursos(ctx.supabase),
+    cargarRecomendaciones(ctx.supabase, "academia"),
+    ctx.supabase.rpc("talleres_academia"),
+  ]);
   const tema = typeof sp.tema === "string" ? sp.tema : "";
   const q = typeof sp.q === "string" ? sp.q.slice(0, 80) : "";
-  const terminado = typeof sp.terminado === "string" ? cursoPorSlug(sp.terminado) : undefined;
-  const vistas = new Set(leerVistasAcademia(user.user_metadata));
+  const terminado = typeof sp.terminado === "string" ? cursoPorSlug(CURSOS, sp.terminado) : undefined;
+  const vistas = new Set(leerVistasAcademia(user.user_metadata, CURSOS));
   const guiasVistas = new Set(leerVistas(user.user_metadata));
 
-  // Recomendaciones según cómo va el hogar (consultas pequeñas, en paralelo).
-  const [semaforo, { count: deudas }, { data: emergencia }] = await Promise.all([
-    cargarSemaforo(ctx, Number(fecha.slice(0, 4))),
-    ctx.supabase.from("debts").select("id", { count: "exact", head: true }).eq("archivada", false),
-    ctx.supabase.from("budgets_goals").select("id").eq("tipo", "meta").eq("es_emergencia", true).limit(1),
-  ]);
-  const recomendaciones: Recomendacion[] = [];
-  if (semaforo.ok) {
-    const obligada = semaforo.personas.find((p) => p.estado === "rojo") ?? semaforo.personas.find((p) => p.estado === "amarillo");
-    if (obligada)
-      recomendaciones.push({
-        porque: obligada.estado === "rojo" ? `Porque ${obligada.nombre.split(" ")[0]} debe declarar en ${semaforo.anio + 1}` : `Porque ${obligada.nombre.split(" ")[0]} está cerca de un tope`,
-        titulo: "Los soportes que debes guardar desde enero",
-        detalle: "Lección · 4 min",
-        href: "/academia/renta/soportes",
-        icono: "declaracion-renta",
-      });
-  }
-  if (!emergencia?.length)
-    recomendaciones.push({ porque: "Porque aún no tienes fondo de emergencia", titulo: "¿Cuánto debe tener tu fondo de emergencia?", detalle: "Lección · 4 min", href: "/academia/ahorro/cuanto-fondo", icono: "ahorro" });
-  if ((deudas ?? 0) > 1)
-    recomendaciones.push({ porque: `Porque tienes ${deudas} deudas`, titulo: "Bola de nieve o avalancha: cuál pagar primero", detalle: "Lección · 4 min", href: "/academia/deudas/bola-de-nieve-o-avalancha", icono: "deducciones" });
-  if (recomendaciones.length < 3)
-    recomendaciones.push({ porque: "Para empezar", titulo: "¿Qué es el número mínimo del hogar?", detalle: "Lección · 3 min", href: "/academia/finanzas/numero-minimo", icono: "casa" });
+  // Recomendaciones según cómo va el hogar: reglas de Consola → Academia (las lecciones vistas no se repiten).
+  const recomendaciones: Recomendacion[] = recs.map((r) => ({
+    porque: PORQUE[r.condicion] ?? "Para ti",
+    titulo: r.leccion_titulo ?? r.ruta_titulo,
+    detalle: `${r.leccion ? "Lección" : "Ruta"}${r.minutos ? ` · ${r.minutos} min` : ""}`,
+    href: `/a/${r.id}`,
+    icono: r.icono as NombreIcono,
+  }));
 
-  const seguir = continuar(vistas);
+  const seguir = continuar(CURSOS, vistas);
   const cursos = tema && tema in TEMAS ? CURSOS.filter((c) => c.tema === tema) : CURSOS;
-  const resultados = q ? buscar(q) : [];
-  const verCursos = !q && tema !== "glosario" && tema !== "guias";
+  const resultados = q ? buscar(CURSOS, q) : [];
+  const verCursos = !q && tema !== "glosario" && tema !== "guias" && tema !== "talleres";
   const verGuias = !q && (tema === "" || tema === "guias" || tema === "app");
   const verGlosario = !q && (tema === "" || tema === "glosario");
   const guias = guiasPara(ctx.miembro.rol);
@@ -180,6 +169,8 @@ export default async function Academia({ searchParams }: PageProps<"/academia">)
             ))}
           </section>
         )}
+
+        {!q && (tema === "" || tema === "talleres") && <Talleres talleres={(talleres ?? []) as Taller[]} />}
 
         {verCursos && cursos.length > 0 && (
           <section className="flex flex-col gap-3">

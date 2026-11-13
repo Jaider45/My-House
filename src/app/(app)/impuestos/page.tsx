@@ -11,7 +11,7 @@ import { enviarReporte, guardarDigitos, recordarCertificado } from "./acciones";
 import { estadoSoportes } from "@/lib/impuestos/reporte";
 import { cargarSemaforo, COLOR_SEMAFORO, type SemaforoPersona } from "@/lib/impuestos/servidor";
 import type { ResultadoTope } from "@/lib/impuestos/tipos";
-import { EnlacesUtiles, OfertaEnLugar } from "@/components/ofertas-app";
+import { EnlacesUtiles, OfertaEnLugar, RecomendacionAcademia } from "@/components/ofertas-app";
 
 export const metadata = { title: "Renta DIAN" };
 
@@ -424,6 +424,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
           )}
         </div>
 
+        <RecomendacionAcademia lugar="renta" />
         <TarjetaAcademia href="/academia/renta" icono="declaracion-renta" etiqueta="Academia · 3 lecciones" titulo="Renta para personas naturales, sin enredos" />
         <EnlacesUtiles lugar="renta" titulo="Enlaces de la DIAN" />
         <p className="text-[13px] text-tenue">

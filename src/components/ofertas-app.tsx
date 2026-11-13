@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Icono } from "@/components/marca";
+import { Icono, type NombreIcono } from "@/components/marca";
+import { PORQUE, recomendaciones } from "@/lib/academia/servidor";
 import { BannerOferta } from "@/components/oferta";
 import { obtenerContexto } from "@/lib/sesion";
 import { cerrarOferta } from "./ofertas-accion";
@@ -67,5 +68,25 @@ export async function EnlacesUtiles({ lugar, titulo = "Enlaces útiles" }: { lug
         ))}
       </ul>
     </section>
+  );
+}
+
+/** Recomendación de la Academia para este lugar (reglas de Consola → Academia según cómo va el hogar). */
+export async function RecomendacionAcademia({ lugar }: { lugar: string }) {
+  const ctx = await obtenerContexto();
+  const [r] = await recomendaciones(ctx.supabase, lugar);
+  if (!r) return null;
+  return (
+    <Link href={`/a/${r.id}`} prefetch={false} className="flex items-center gap-3.5 rounded-2xl border border-borde bg-elevada p-4 hover:bg-arena">
+      <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-mosaico">
+        <Icono nombre={r.icono as NombreIcono} tamano={22} />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-xs font-bold tracking-[0.04em] text-cuerpo uppercase">Academia · {PORQUE[r.condicion] ?? "para ti"}</span>
+        <b className="text-[15px] leading-5">{r.leccion_titulo ?? r.ruta_titulo}</b>
+        {r.minutos ? <span className="text-[13px] text-tenue">{r.minutos} min de lectura</span> : null}
+      </span>
+      <span className="text-sm font-semibold">Leer</span>
+    </Link>
   );
 }

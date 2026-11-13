@@ -5,7 +5,123 @@ export type Database = {
   
   "public": {
           Tables: {
-            "accesos_soporte": {
+            "academia_calificaciones": {
+                  Row: {
+                    "clave": string,"creada": string,"estrellas": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "clave": string,"creada"?: string,"estrellas": number,"user_id": string
+                  }
+                  Update: {
+                    "clave"?: string,"creada"?: string,"estrellas"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"academia_inscripciones": {
+                  Row: {
+                    "creada": string,"taller_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "creada"?: string,"taller_id": string,"user_id": string
+                  }
+                  Update: {
+                    "creada"?: string,"taller_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "academia_inscripciones_taller_id_fkey"
+      columns: ["taller_id"]
+isOneToOne: false
+      referencedRelation: "academia_talleres"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"academia_lecciones": {
+                  Row: {
+                    "bloques": NonNullable<Json>,"borrador": Json | null,"editada_por": string | null,"id": string,"minutos": number,"orden": number,"publicada": boolean,"ruta": string,"slug": string,"titulo": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "bloques"?: NonNullable<Json>,"borrador"?: Json | null,"editada_por"?: string | null,"id"?: string,"minutos"?: number,"orden"?: number,"publicada"?: boolean,"ruta": string,"slug": string,"titulo": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "bloques"?: NonNullable<Json>,"borrador"?: Json | null,"editada_por"?: string | null,"id"?: string,"minutos"?: number,"orden"?: number,"publicada"?: boolean,"ruta"?: string,"slug"?: string,"titulo"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "academia_lecciones_ruta_fkey"
+      columns: ["ruta"]
+isOneToOne: false
+      referencedRelation: "academia_rutas"
+      referencedColumns: ["slug"]
+    }
+                  ]
+                },"academia_recomendaciones": {
+                  Row: {
+                    "activa": boolean,"clics": number,"condicion": string,"created_at": string,"id": string,"leccion": string | null,"lugares": (string)[],"orden": number,"ruta": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activa"?: boolean,"clics"?: number,"condicion": string,"created_at"?: string,"id"?: string,"leccion"?: string | null,"lugares"?: (string)[],"orden"?: number,"ruta": string
+                  }
+                  Update: {
+                    "activa"?: boolean,"clics"?: number,"condicion"?: string,"created_at"?: string,"id"?: string,"leccion"?: string | null,"lugares"?: (string)[],"orden"?: number,"ruta"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "academia_recomendaciones_ruta_fkey"
+      columns: ["ruta"]
+isOneToOne: false
+      referencedRelation: "academia_rutas"
+      referencedColumns: ["slug"]
+    }
+                  ]
+                },"academia_rutas": {
+                  Row: {
+                    "color": string,"descripcion": string,"icono": string,"orden": number,"portada": string,"publicada": boolean,"slug": string,"tema": string,"titulo": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "color"?: string,"descripcion"?: string,"icono"?: string,"orden"?: number,"portada"?: string,"publicada"?: boolean,"slug": string,"tema"?: string,"titulo": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "color"?: string,"descripcion"?: string,"icono"?: string,"orden"?: number,"portada"?: string,"publicada"?: boolean,"slug"?: string,"tema"?: string,"titulo"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"academia_talleres": {
+                  Row: {
+                    "created_at": string,"cupos": number,"descripcion": string,"enlace": string | null,"fecha": string,"id": string,"publicado": boolean,"titulo": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"cupos"?: number,"descripcion"?: string,"enlace"?: string | null,"fecha": string,"id"?: string,"publicado"?: boolean,"titulo": string
+                  }
+                  Update: {
+                    "created_at"?: string,"cupos"?: number,"descripcion"?: string,"enlace"?: string | null,"fecha"?: string,"id"?: string,"publicado"?: boolean,"titulo"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"academia_vistas": {
+                  Row: {
+                    "clave": string,"creada": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "clave": string,"creada"?: string,"user_id": string
+                  }
+                  Update: {
+                    "clave"?: string,"creada"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"accesos_soporte": {
                   Row: {
                     "estado": string,"horas": number,"household_id": string,"id": string,"motivo": string,"pedido_en": string,"respondido_en": string | null,"respondido_por": string | null,"staff_id": string,"staff_nombre": string,"vence": string | null
                   }
@@ -1305,7 +1421,13 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "aceptar_consentimientos":
+            "academia_calificar":
+{ Args: { "p_clave": string,"p_estrellas": number }; Returns: undefined
+                           },
+"academia_vista":
+{ Args: { "p_clave": string }; Returns: undefined
+                           },
+"aceptar_consentimientos":
 { Args: { "p_comunicaciones": boolean,"p_version": string }; Returns: undefined
                            },
 "aceptar_invitacion":
@@ -1364,6 +1486,9 @@ isOneToOne: false
 "clic_oferta":
 { Args: { "p_id": string }; Returns: string
                            },
+"clic_recomendacion":
+{ Args: { "p_id": string }; Returns: string
+                           },
 "cobro_pendiente":
 { Args: { "p_hogar": string }; Returns: Json
                            },
@@ -1374,6 +1499,9 @@ isOneToOne: false
 { Args: { "p_hoy": string }; Returns: {
               "email": string,"fuente_id": number,"household_id": string,"intentos": number,"metodo_pago_id": string,"monto": number,"referencia": string
             }[]
+                           },
+"consola_academia":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "consola_accesos":
 { Args: { "p_hogar": string }; Returns: Json
@@ -1557,6 +1685,9 @@ isOneToOne: false
 "consola_guardar_integracion":
 { Args: { "p_activa": boolean,"p_config": Json,"p_proveedor": string,"p_secretos": Json }; Returns: undefined
                            },
+"consola_guardar_leccion":
+{ Args: { "p": Json }; Returns: string
+                           },
 "consola_guardar_oferta":
 { Args: { "p": Json }; Returns: string
                            },
@@ -1569,11 +1700,20 @@ isOneToOne: false
 "consola_guardar_plantilla":
 { Args: { "p": Json }; Returns: string
                            },
+"consola_guardar_recomendacion":
+{ Args: { "p": Json }; Returns: undefined
+                           },
 "consola_guardar_regla_global":
 { Args: { "p_activa": boolean,"p_ambito": Database["public"]['Enums']["ambito"],"p_categoria": string,"p_id": string,"p_origen": string,"p_patron": string }; Returns: string
                            },
 "consola_guardar_respuesta":
 { Args: { "p_borrar"?: boolean,"p_cuerpo": string,"p_id": string,"p_titulo": string }; Returns: undefined
+                           },
+"consola_guardar_ruta":
+{ Args: { "p": Json }; Returns: undefined
+                           },
+"consola_guardar_taller":
+{ Args: { "p": Json }; Returns: undefined
                            },
 "consola_guardar_version":
 { Args: { "p_avisar": boolean,"p_contenido": string,"p_id": string,"p_pedir": boolean,"p_resumen": string,"p_vigente": string }; Returns: undefined
@@ -1646,6 +1786,9 @@ isOneToOne: false
 "consola_ofertas":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"consola_ordenar_lecciones":
+{ Args: { "p_ids": (string)[],"p_ruta": string }; Returns: undefined
+                           },
 "consola_parametros":
 { Args: { "p_pais": string }; Returns: Json
                            },
@@ -1682,6 +1825,9 @@ isOneToOne: false
                            },
 "consola_plantillas_whatsapp":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"consola_publicar_leccion":
+{ Args: { "p_id": string,"p_publicar": boolean }; Returns: undefined
                            },
 "consola_publicar_parametros":
 { Args: { "p_anio": number,"p_pais": string }; Returns: undefined
@@ -1804,6 +1950,9 @@ isOneToOne: false
 "iniciar_prueba":
 { Args: { "p_hogar": string }; Returns: string
                            },
+"inscribir_taller":
+{ Args: { "p_id": string,"p_inscribir": boolean }; Returns: Json
+                           },
 "integracion_evento":
 { Args: { "p_proveedor": string }; Returns: undefined
                            },
@@ -1837,6 +1986,9 @@ isOneToOne: false
                            },
 "mis_pendientes_legales":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"mis_recomendaciones":
+{ Args: { "p_lugar": string }; Returns: Json
                            },
 "obtener_ref":
 { Args: { "p_hogar": string }; Returns: string
@@ -1887,6 +2039,9 @@ isOneToOne: false
                            },
 "solicitar_privacidad":
 { Args: { "p_detalle": string,"p_tipo": string }; Returns: string
+                           },
+"talleres_academia":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "tickets_sin_respuesta":
 { Args: Record<PropertyKey, never>; Returns: {

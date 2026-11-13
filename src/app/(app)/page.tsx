@@ -13,7 +13,7 @@ import { entradasPorCategoria, filasPresupuesto } from "@/lib/presupuesto";
 import type { NombreIcono } from "@/components/marca";
 import { fechasEnRango } from "@/lib/recurrentes";
 import { BotonGuia } from "@/components/guia/boton-guia";
-import { OfertaEnLugar } from "@/components/ofertas-app";
+import { OfertaEnLugar, RecomendacionAcademia } from "@/components/ofertas-app";
 
 export default function Inicio({ searchParams }: PageProps<"/">) {
   return (
@@ -103,6 +103,9 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
         {titulo}
       </Titulo>
       <OfertaEnLugar lugar="inicio" />
+      <div className="mb-4 empty:hidden">
+        <RecomendacionAcademia lugar="inicio" />
+      </div>
     </>
   );
 

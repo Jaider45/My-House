@@ -7,22 +7,26 @@ import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { FormularioEstado } from "@/components/ui/formulario-estado";
 import { obtenerContexto, obtenerUsuario } from "@/lib/sesion";
 import { avanceCurso, claveLeccion, leccionDe, leerVistasAcademia, type Bloque } from "@/lib/academia";
+import { cargarCursos } from "@/lib/academia/servidor";
+import { Calificar } from "./calificar";
 import { guiaPorId } from "@/lib/guias";
-import { marcarLeccion } from "../../acciones";
+import { calificarLeccion, marcarLeccion } from "../../acciones";
 import { Repaso } from "./repaso";
 
 export async function generateMetadata({ params }: PageProps<"/academia/[curso]/[leccion]">) {
   const { curso, leccion } = await params;
-  return { title: leccionDe(curso, leccion)?.leccion.titulo ?? "Academia" };
+  const { supabase } = await obtenerUsuario();
+  return { title: leccionDe(await cargarCursos(supabase), curso, leccion)?.leccion.titulo ?? "Academia" };
 }
 
 /** Lección (diseño «Lección»): temario con avance a la izquierda y la lectura con su repaso a la derecha. */
 export default async function Leccion({ params }: PageProps<"/academia/[curso]/[leccion]">) {
   const p = await params;
-  const l = leccionDe(p.curso, p.leccion);
+  const [ctx, { user, supabase }] = await Promise.all([obtenerContexto(), obtenerUsuario()]);
+  const cursos = await cargarCursos(supabase);
+  const l = leccionDe(cursos, p.curso, p.leccion);
   if (!l) notFound();
-  const [ctx, { user }] = await Promise.all([obtenerContexto(), obtenerUsuario()]);
-  const vistas = new Set(leerVistasAcademia(user.user_metadata));
+  const vistas = new Set(leerVistasAcademia(user.user_metadata, cursos));
   const a = avanceCurso(l.curso, vistas);
   const vista = vistas.has(claveLeccion(l.curso.slug, l.leccion.slug));
 
@@ -77,6 +81,7 @@ export default async function Leccion({ params }: PageProps<"/academia/[curso]/[
           {l.leccion.bloques.map((b, i) => (
             <Bloque key={i} b={b} contador={ctx.miembro.rol === "contador"} />
           ))}
+          <Calificar clave={claveLeccion(l.curso.slug, l.leccion.slug)} accion={calificarLeccion} />
           <div className="flex flex-wrap justify-between gap-2.5 pt-2">
             {l.anterior ? (
               <Link href={`/academia/${l.curso.slug}/${l.anterior.slug}`} className={clasesBoton("fantasma")}>
@@ -103,6 +108,31 @@ export default async function Leccion({ params }: PageProps<"/academia/[curso]/[
 function Bloque({ b, contador }: { b: Bloque; contador: boolean }) {
   if ("p" in b) return <p className="text-[17px] leading-7 text-[#2d3a36]">{b.p}</p>;
   if ("h2" in b) return <h2 className="mt-2 text-[22px] leading-7 font-bold">{b.h2}</h2>;
+  if ("video" in b)
+    return (
+      <a href={b.video.url} target="_blank" rel="noreferrer" className="flex items-center gap-4 rounded-2xl bg-monte px-5 py-[18px] text-arena hover:bg-monte/90">
+        <span aria-hidden className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-arena text-lg text-monte">
+          ▶
+        </span>
+        <span className="flex-1">
+          <b className="text-[17px]">Ver el video</b>
+          {b.video.duracion && <span className="text-sm text-sobre-monte"> · {b.video.duracion}</span>}
+        </span>
+      </a>
+    );
+  if ("plantilla" in b)
+    return (
+      <a href={b.plantilla.url} target="_blank" rel="noreferrer" className="flex items-center gap-4 rounded-2xl border border-borde bg-elevada px-5 py-[18px] hover:bg-mosaico">
+        <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg bg-mosaico">
+          <Icono nombre="documentos" tamano={22} />
+        </span>
+        <span className="flex-1">
+          <b className="text-[17px]">Descarga la plantilla</b>
+          <br />
+          <span className="text-sm text-cuerpo">{b.plantilla.titulo}</span>
+        </span>
+      </a>
+    );
   if ("opciones" in b)
     return (
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
