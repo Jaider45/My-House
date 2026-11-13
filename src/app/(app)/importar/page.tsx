@@ -6,13 +6,18 @@ import type { Mapeo } from "@/lib/importacion";
 import { deshacerLote } from "./acciones";
 import { Importador } from "./importador";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
+import { PestanasMovimientos } from "../pestanas-secciones";
+import { BotonGuia } from "@/components/guia/boton-guia";
 
 export const metadata = { title: "Importar extracto" };
 
 export default function Importar() {
   return (
     <>
-      <Titulo subtitulo="Trae el mes completo desde el PDF o CSV de tu banco, sin duplicados">Importar extracto</Titulo>
+      <Titulo subtitulo="Trae el mes completo desde el PDF o CSV de tu banco, sin duplicados" accion={<BotonGuia id="importar" />}>
+        Importar extracto
+      </Titulo>
+      <PestanasMovimientos activa="/importar" />
       <Contenido />
     </>
   );
@@ -54,7 +59,7 @@ async function Contenido() {
         categorias={catalogos.categorias}
         formatos={(formatos ?? []).map((f) => ({ ...f, mapeo: f.mapeo as Mapeo }))}
       />
-      <Tarjeta titulo="Importaciones recientes">
+      <Tarjeta titulo="Importaciones recientes" guia="importaciones">
         {lotes?.length ? (
           <ul className="divide-y divide-divisor">
             {lotes.map((l) => (

@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { Campo, cx } from "@/components/ui";
-import { BotonEnviar } from "@/components/ui/boton-enviar";
+import { PieVentana, useCerrarAlGuardar } from "@/components/ui/ventana";
 import { CampoMonto } from "@/components/ui/campo-monto";
 import { MensajeEstado } from "@/components/ui/estado";
 import { textoAviso } from "@/lib/recordatorios";
@@ -22,8 +22,9 @@ function Opcion({ name, value, texto, tipo = "checkbox", marcada }: { name: stri
 
 export function FormularioRecordatorio() {
   const [estado, accion] = useActionState(guardarRecordatorio, null);
+  useCerrarAlGuardar(estado);
   return (
-    <form action={accion} className="flex flex-col gap-3.5">
+    <form action={accion} className="flex flex-col gap-4">
       <Campo etiqueta="¿Qué hay que pagar?" name="nombre" placeholder="Seguro del hogar" required maxLength={80} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Campo etiqueta="Fecha" name="fecha" type="date" required />
@@ -54,7 +55,7 @@ export function FormularioRecordatorio() {
         </div>
       </fieldset>
       <MensajeEstado estado={estado} />
-      <BotonEnviar>Guardar recordatorio</BotonEnviar>
+      <PieVentana>Guardar recordatorio</PieVentana>
     </form>
   );
 }

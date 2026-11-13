@@ -1,4 +1,6 @@
-import { Boton, Chip, Tarjeta, Titulo, Vacio } from "@/components/ui";
+import Link from "next/link";
+import { AccionPrincipal, Boton, Chip, Tarjeta, Titulo, Vacio } from "@/components/ui";
+import { Ventana } from "@/components/ui/ventana";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearFecha, hoy } from "@/lib/fechas";
 import { edad, PARENTESCOS, type Parentesco } from "@/lib/hogar";
@@ -14,15 +16,7 @@ export const metadata = { title: "Miembros" };
 const ROLES = { admin: "Administrador", editor: "Editor", contador: "Contador" } as const;
 
 export default function Miembros() {
-  return (
-    <>
-      <Titulo subtitulo="El hogar, quién entra, con qué cuentas y con qué valores" accion={<BotonGuia id="invitar">Cómo invitar</BotonGuia>}>
-        Configuración
-      </Titulo>
-      <PestanasConfiguracion actual="/ajustes/miembros" />
-      <Contenido />
-    </>
-  );
+  return <Contenido />;
 }
 
 async function Contenido() {
@@ -44,18 +38,44 @@ async function Contenido() {
   const dependientes = jurisdiccion(ctx.hogar.pais)?.dependientes;
 
   return (
+    <>
+    <Titulo
+      subtitulo="El hogar, quién entra, con qué cuentas y con qué valores"
+      accion={
+        <>
+          <BotonGuia id="invitar">Cómo invitar</BotonGuia>
+          {ctx.esAdmin && (
+            <AccionPrincipal href="/ajustes/miembros?nuevo=1" guia="invitar-miembro">
+              Invitar miembro
+            </AccionPrincipal>
+          )}
+        </>
+      }
+    >
+      Configuración
+    </Titulo>
+    <PestanasConfiguracion actual="/ajustes/miembros" />
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="space-y-4">
         <Tarjeta titulo="Adultos del hogar" subtitulo="Entran a la app con su propia cuenta">
           <ul className="divide-y divide-divisor">
             {adultos.map((m) => (
-              <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span>
-                  <span className="block font-medium">
-                    {m.nombre}
-                    {m.user_id === ctx.userId && <span className="text-tenue"> (tú)</span>}
+              <li key={m.id} className="flex min-h-[68px] flex-wrap items-center justify-between gap-3 py-2.5">
+                <span className="flex min-w-0 flex-[1_1_200px] items-center gap-3.5">
+                  <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-monte text-sm font-bold text-arena">
+                    {m.nombre
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .map((p) => p[0]?.toUpperCase())
+                      .join("")}
                   </span>
-                  <span className="text-sm text-tenue">{m.rol ? ROLES[m.rol] : "Sin acceso"}</span>
+                  <span className="min-w-0">
+                    <b className="block text-[15px]">
+                      {m.nombre}
+                      {m.user_id === ctx.userId && <span className="font-normal text-tenue"> (tú)</span>}
+                    </b>
+                    <Chip tono={m.rol === "admin" ? "info" : m.rol === "contador" ? "alerta" : m.rol ? "ok" : "neutro"}>{m.rol ? ROLES[m.rol] : "Sin acceso"}</Chip>
+                  </span>
                 </span>
                 {ctx.esAdmin && m.user_id !== ctx.userId && (
                   <span className="flex gap-2">
@@ -89,10 +109,18 @@ async function Contenido() {
 
         {ctx.esAdmin && (
           <>
-            <Tarjeta guia="invitar" titulo="Invitar a alguien">
+            <Ventana titulo="Invitar a alguien al hogar" subtitulo="Todos ven el mismo hogar; el rol decide qué puede cambiar." guia="invitar">
               <FormularioInvitar />
-            </Tarjeta>
-            <Tarjeta guia="invitaciones" titulo="Invitaciones pendientes">
+            </Ventana>
+            <Tarjeta
+              guia="invitaciones"
+              titulo="Invitaciones pendientes"
+              accion={
+                <Link href="/ajustes/miembros?nuevo=1" scroll={false} data-guia="invitar-miembro" className="inline-flex h-9 items-center rounded-lg border border-cuerpo px-3 text-sm font-semibold hover:bg-mosaico md:hidden">
+                  Invitar
+                </Link>
+              }
+            >
               {invitaciones?.length ? (
                 <ul className="space-y-3">
                   {invitaciones.map((i) => (
@@ -177,5 +205,6 @@ async function Contenido() {
         )}
       </div>
     </div>
+    </>
   );
 }

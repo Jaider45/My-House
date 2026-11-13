@@ -7,6 +7,7 @@ import { Icono, type NombreIcono } from "@/components/marca";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { CampoMonto } from "@/components/ui/campo-monto";
 import { MensajeEstado } from "@/components/ui/estado";
+import { PieVentana, useCerrarAlGuardar } from "@/components/ui/ventana";
 import { eliminarCuenta, guardarCuenta } from "./acciones";
 
 export type Cuenta = {
@@ -32,13 +33,14 @@ const TIPOS: { valor: Cuenta["tipo"] | "credito"; texto: string; icono: NombreIc
 
 export function FormularioCuenta({ cuenta, titulares }: { cuenta?: Cuenta; titulares: { id: string; nombre: string }[] }) {
   const [estado, accion] = useActionState(guardarCuenta, null);
+  useCerrarAlGuardar(estado);
   const [tipo, setTipo] = useState<Cuenta["tipo"] | "credito">(cuenta?.tipo ?? "banco");
   const tarjeta = tipo === "tarjeta";
   return (
     <form action={accion} className="flex flex-col gap-4">
       <input type="hidden" name="id" value={cuenta?.id ?? ""} />
       <input type="hidden" name="tipo" value={tipo === "credito" ? "banco" : tipo} />
-      <div role="radiogroup" aria-label="Tipo" className="grid grid-cols-2 gap-2">
+      <div role="radiogroup" aria-label="Tipo de cuenta" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {TIPOS.map((t) => (
           <button
             key={t.valor}
@@ -109,15 +111,17 @@ export function FormularioCuenta({ cuenta, titulares }: { cuenta?: Cuenta; titul
           ) : (
             <CampoMonto etiqueta="Saldo de hoy" name="saldo" valorInicial={cuenta?.saldo_inicial} ayuda="Lo que hay hoy, antes de registrar movimientos." />
           )}
+          {!cuenta && (
+            <p className="text-[13px] text-tenue">
+              ¿Tienes el extracto? Después de guardar puedes{" "}
+              <Link href="/importar" className="font-semibold text-tinta underline">
+                importar el PDF o CSV
+              </Link>{" "}
+              de esta cuenta.
+            </p>
+          )}
           <MensajeEstado estado={estado} />
-          <BotonEnviar className="w-full">{cuenta ? "Guardar cambios" : "Guardar"}</BotonEnviar>
-          <p className="text-[13px] text-tenue">
-            Solo nombre y últimos 4 dígitos: nunca te pedimos claves. ¿Tienes el extracto?{" "}
-            <Link href="/importar" className="font-semibold text-tinta underline">
-              Impórtalo en PDF o CSV
-            </Link>
-            .
-          </p>
+          <PieVentana>{cuenta ? "Guardar cambios" : "Guardar cuenta"}</PieVentana>
         </>
       )}
     </form>

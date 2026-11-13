@@ -239,14 +239,15 @@ export function Barra({
 }
 
 /**
- * Encabezado de vista: título, subtítulo (oculto en celular) y acciones. En laptop y escritorio suma el botón
- * Registrar (en celular y tablet lo reemplaza el botón flotante).
+ * Encabezado de vista: título, subtítulo (oculto en celular) y acciones. Con `registrar` suma «Registrar
+ * movimiento» desde tablet (en celular lo reemplaza el botón flotante). Las pantallas con su propia acción
+ * principal (Nuevo pago fijo, Nueva deuda…) la pasan en `accion` con `registrar={false}`.
  */
 export function Titulo({
   children,
   subtitulo,
   accion,
-  registrar = true,
+  registrar = false,
 }: {
   children: ReactNode;
   subtitulo?: ReactNode;
@@ -255,7 +256,7 @@ export function Titulo({
 }) {
   return (
     <header className="mb-4 flex flex-wrap items-center gap-3 md:mb-5 md:gap-4">
-      <div className="min-w-0 flex-[1_1_320px]">
+      <div className="min-w-0 flex-[1_1_200px] md:flex-[1_1_320px]">
         <h1 className="text-[22px] leading-7 font-bold first-letter:uppercase md:text-[28px] md:leading-[34px]">
           {children}
         </h1>
@@ -269,27 +270,113 @@ export function Titulo({
         <div className="flex flex-wrap items-center gap-3">
           {accion}
           {registrar && (
-            <span className="hidden lg:contents">
+            <span className="hidden md:contents">
               <EnlaceBoton href="/rapido">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                  aria-hidden
-                >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                Registrar
+                <IconoMas />
+                Registrar movimiento
               </EnlaceBoton>
             </span>
           )}
         </div>
       )}
     </header>
+  );
+}
+
+/** «+» de los botones de crear. */
+export function IconoMas({ tamano = 20 }: { tamano?: number }) {
+  return (
+    <svg width={tamano} height={tamano} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+/** Acción principal de una pantalla (Nueva deuda, Agregar cuenta…): desde tablet; en celular está el botón flotante. */
+export function AccionPrincipal({ href, children, guia }: { href: string; children: ReactNode; guia?: string }) {
+  return (
+    <span className="hidden md:contents">
+      <Link href={href} scroll={false} data-guia={guia} className={clasesBoton("primario")}>
+        <IconoMas />
+        {children}
+      </Link>
+    </span>
+  );
+}
+
+/**
+ * Pestañas de una sección agrupada (Pagos: pagos fijos, deudas y recordatorios; Planea: presupuesto y metas;
+ * Movimientos: todos, por revisar e importar). Van bajo el encabezado, de borde a borde del área de contenido.
+ */
+export function PestanasSeccion({
+  etiqueta,
+  activa,
+  pestanas,
+}: {
+  etiqueta: string;
+  activa: string;
+  pestanas: { href: string; texto: string; cuenta?: number; tonoCuenta?: "error" }[];
+}) {
+  return (
+    <nav
+      aria-label={etiqueta}
+      className="-mx-4 mb-4 flex gap-1 overflow-x-auto border-b border-borde px-3 md:-mx-6 md:mb-5 md:px-6 lg:-mx-8 lg:px-8 xl:-mx-10 xl:px-10"
+    >
+      {pestanas.map((p) => {
+        const on = p.href === activa;
+        return (
+          <Link
+            key={p.href}
+            href={p.href}
+            aria-current={on ? "page" : undefined}
+            className={cx(
+              "inline-flex h-11 shrink-0 items-center gap-2 border-b-[3px] px-2.5 text-sm font-semibold whitespace-nowrap md:h-[46px] md:px-3.5 md:text-[15px]",
+              on ? "border-teja text-tinta" : "border-transparent text-cuerpo hover:text-tinta",
+            )}
+          >
+            {p.texto}
+            {!!p.cuenta && (
+              <span
+                className={cx(
+                  "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs",
+                  p.tonoCuenta === "error" ? "bg-error text-white" : "bg-mosaico text-tinta",
+                )}
+              >
+                {p.cuenta}
+              </span>
+            )}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** Enlace a la Academia al final de una pantalla («Academia · video de 3 min…»). */
+export function TarjetaAcademia({ href, icono, etiqueta, titulo }: { href: string; icono: NombreIcono; etiqueta: string; titulo: string }) {
+  return (
+    <Link href={href} className="flex items-center gap-4 rounded-2xl border border-borde bg-elevada p-[18px] text-tinta hover:bg-arena">
+      <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-lg bg-arena">
+        <Icono nombre={icono} tamano={24} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] leading-[18px] text-tenue">{etiqueta}</span>
+        <b className="block text-base leading-[22px]">{titulo}</b>
+      </span>
+      <span className={clasesBoton("secundario", "hidden h-9 px-3 text-sm md:inline-flex")}>Ver</span>
+    </Link>
+  );
+}
+
+/** Explicación corta sobre fondo verde claro (cómo leer una tabla, qué pasará al guardar…). */
+export function Explicacion({ icono = "meta", children }: { icono?: NombreIcono; children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-xl bg-seleccion px-3.5 py-3 text-sm leading-[21px] text-tinta">
+      <span className="mt-px shrink-0">
+        <Icono nombre={icono} tamano={20} />
+      </span>
+      <span>{children}</span>
+    </div>
   );
 }
 
@@ -301,7 +388,7 @@ export function Kpi({
   detalle,
   clave,
 }: {
-  icono: NombreIcono;
+  icono?: NombreIcono;
   etiqueta: string;
   valor: ReactNode;
   detalle?: ReactNode;
@@ -320,7 +407,7 @@ export function Kpi({
           clave ? "text-sobre-monte" : "text-cuerpo",
         )}
       >
-        <Icono nombre={icono} tamano={20} acento={!clave} />
+        {icono && <Icono nombre={icono} tamano={20} acento={!clave} />}
         {etiqueta}
       </div>
       <div
@@ -408,13 +495,19 @@ export function SelectorMes({
 export function CuadroIcono({
   nombre,
   tamano = 36,
+  tono,
 }: {
   nombre: NombreIcono;
   tamano?: number;
+  /** Fondo del semáforo (presupuesto): verde, amarillo o rojo claro. */
+  tono?: "ok" | "alerta" | "error";
 }) {
   return (
     <span
-      className="inline-flex shrink-0 items-center justify-center rounded-lg bg-mosaico text-tinta"
+      className={cx(
+        "inline-flex shrink-0 items-center justify-center rounded-lg",
+        tono === "ok" ? "bg-ok-fondo text-ok-tinta" : tono === "alerta" ? "bg-alerta-fondo text-alerta-tinta" : tono === "error" ? "bg-error-fondo text-error-tinta" : "bg-mosaico text-tinta",
+      )}
       style={{ width: tamano, height: tamano }}
     >
       <Icono nombre={nombre} tamano={tamano >= 36 ? 20 : 18} />

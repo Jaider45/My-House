@@ -79,5 +79,7 @@ export function movimientoDesdeFormulario(datos: FormData) {
     comercio: v("comercio"),
     nota: v("nota"),
     ambito: (v("ambito") || undefined) as EntradaMovimiento["ambito"],
+    // Registrar → «Lo pago después»: queda pendiente (programado) hasta que se marque como pagado.
+    estado: (v("estado") || undefined) as EntradaMovimiento["estado"],
   });
 }

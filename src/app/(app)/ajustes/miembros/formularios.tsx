@@ -4,24 +4,44 @@ import { useActionState, useState } from "react";
 import { AreaTexto, Boton, Campo, Casilla, Selector } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { MensajeEstado } from "@/components/ui/estado";
+import { PieVentana } from "@/components/ui/ventana";
 import { PARENTESCOS } from "@/lib/hogar/constantes";
 import { guardarPersonaACargo, invitarMiembro } from "../acciones";
 
+const ROLES_INVITACION = [
+  { valor: "editor", titulo: "Pareja o familiar", texto: "Registra, edita y aprueba pagos" },
+  { valor: "admin", titulo: "Administrador", texto: "Además invita y quita personas y cambia la configuración" },
+  { valor: "contador", titulo: "Contador · solo lectura", texto: "Ve movimientos, Renta DIAN y soportes. No edita." },
+] as const;
+
+/**
+ * Invitación (ventana «Invitar a alguien al hogar»). No se cierra al crearla: muestra el enlace para compartirlo
+ * por WhatsApp o copiarlo (el correo sale solo si hay por dónde enviarlo).
+ */
 export function FormularioInvitar() {
   const [estado, accion] = useActionState(invitarMiembro, null);
+  const [rol, setRol] = useState<string>("editor");
   return (
-    <form action={accion} className="space-y-3">
-      <Campo etiqueta="Correo de la persona" name="email" type="email" required />
-      <Selector etiqueta="Rol" name="rol" defaultValue="editor">
-        <option value="editor">Editor: registra y edita movimientos</option>
-        <option value="admin">Administrador: además gestiona miembros</option>
-        <option value="contador">Contador: solo lectura</option>
-      </Selector>
+    <form action={accion} className="flex flex-col gap-4">
+      <Campo etiqueta="Correo de la persona" name="email" type="email" placeholder="nombre@correo.com" required />
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1.5 text-[13px] leading-[18px] font-semibold text-cuerpo">Rol</legend>
+        {ROLES_INVITACION.map((r) => (
+          <label
+            key={r.valor}
+            className={`flex cursor-pointer items-start gap-3 rounded-xl px-3.5 py-3 ${rol === r.valor ? "border-2 border-monte bg-seleccion" : "border border-control"}`}
+          >
+            <input type="radio" name="rol" value={r.valor} checked={rol === r.valor} onChange={() => setRol(r.valor)} className="mt-1 size-[18px] accent-monte" />
+            <span>
+              <b className="block text-[15px]">{r.titulo}</b>
+              <span className="text-sm text-cuerpo">{r.texto}</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
       <MensajeEstado estado={estado} />
       {estado?.enlace && <CopiarEnlace enlace={estado.enlace} />}
-      <BotonEnviar className="w-full" pendiente="Creando…">
-        Crear invitación
-      </BotonEnviar>
+      <PieVentana pendiente="Creando…">{estado?.enlace ? "Crear otra invitación" : "Enviar invitación"}</PieVentana>
     </form>
   );
 }

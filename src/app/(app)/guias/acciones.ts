@@ -19,6 +19,6 @@ export async function marcarGuiaVista(id: string): Promise<Estado> {
   const { error } = await supabase.auth.updateUser({ data: { guias: [...vistas, guia.id] } });
   if (error) return { error: mensajeError(error) };
   await supabase.auth.refreshSession();
-  revalidatePath("/guias");
+  revalidatePath("/academia");
   return { ok: "Listo." };
 }

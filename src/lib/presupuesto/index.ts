@@ -107,3 +107,45 @@ export function filasPresupuesto(categorias: EntradaCategoria[], dia: number, di
     .filter((f) => f.presupuesto > 0 || f.real > 0 || f.programado > 0)
     .sort((a, b) => b.presupuesto - a.presupuesto || b.real - a.real);
 }
+
+/**
+ * Entradas de `filasPresupuesto` por categoría raíz de gasto (sin las de ahorro): pagos fijos (equivalente mensual),
+ * gasto variable presupuestado, lo real y programado de `mes` y el promedio de los 3 meses anteriores. Es el mismo
+ * cálculo de la pantalla Presupuesto; Inicio lo usa para el top de categorías y el gasto pronosticado.
+ */
+export function entradasPorCategoria(opciones: {
+  mes: string;
+  categorias: { id: string; nombre: string; padre_id: string | null; clase: string; archivada: boolean; excluir_de_costo_vida: boolean }[];
+  reglas: { tipo: string; category_id: string | null; monto: number; frecuencia: Frecuencia }[];
+  presupuestos: { category_id: string; monto: number }[];
+  totales: { mes: string; category_id: string | null; tipo: string; estado: string; total: number }[];
+}): EntradaCategoria[] {
+  const { mes, categorias, reglas, presupuestos, totales } = opciones;
+  const porId = new Map(categorias.map((c) => [c.id, c]));
+  const raiz = (id: string | null) => {
+    const c = id ? porId.get(id) : undefined;
+    return c ? (c.padre_id && porId.has(c.padre_id) ? c.padre_id : c.id) : null;
+  };
+  const [a, m] = mes.split("-").map(Number);
+  const hace3 = `${new Date(Date.UTC(a, m - 4, 1)).toISOString().slice(0, 7)}`;
+  const suma = new Map<string, { fijos: number; adicional: number; real: number; programado: number; previos: number }>();
+  const de = (id: string) => suma.get(id) ?? (suma.set(id, { fijos: 0, adicional: 0, real: 0, programado: 0, previos: 0 }), suma.get(id)!);
+  for (const r of reglas) {
+    const id = r.tipo === "gasto" ? raiz(r.category_id) : null;
+    if (id) de(id).fijos += montoMensual(r.monto, r.frecuencia);
+  }
+  for (const p of presupuestos) de(p.category_id).adicional += p.monto;
+  for (const f of totales) {
+    const id = raiz(f.category_id);
+    if (!id || f.tipo !== "gasto") continue;
+    const mf = f.mes.slice(0, 7);
+    if (mf === mes) de(id)[f.estado === "confirmado" ? "real" : "programado"] += f.total;
+    else if (mf >= hace3 && mf < mes) de(id).previos += f.total;
+  }
+  return categorias
+    .filter((c) => c.clase === "gasto" && !c.padre_id && !c.archivada && !c.excluir_de_costo_vida)
+    .map((c) => {
+      const s = de(c.id);
+      return { id: c.id, nombre: c.nombre, fijos: s.fijos, adicional: s.adicional, real: s.real, programado: s.programado, promedio3: Math.round(s.previos / 3) };
+    });
+}

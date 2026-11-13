@@ -16,6 +16,7 @@ import { iconoCategoria } from "@/lib/categorias/iconos";
 import { confirmarMovimiento } from "./acciones";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { BotonGuia } from "@/components/guia/boton-guia";
+import { PestanasMovimientos } from "../pestanas-secciones";
 
 export const metadata = { title: "Movimientos" };
 
@@ -184,6 +185,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
     <>
       <Titulo
         subtitulo="Todo lo que entra y sale de la casa"
+        registrar={ctx.puedeEditar}
         accion={
           <>
             <SelectorMes
@@ -192,29 +194,12 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
               siguiente={enlaceMes(sumarMeses(mes, 1))}
             />
             <BotonGuia id="ver_movimiento" />
-            <span className="hidden md:contents">
-              <EnlaceBoton href="/importar" variante="secundario">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden
-                >
-                  <path d="M12 15V4M7 9l5-5 5 5M5 20h14" />
-                </svg>
-                Importar extracto
-              </EnlaceBoton>
-            </span>
           </>
         }
       >
         {`Movimientos de ${nombreMes}`}
       </Titulo>
+      <PestanasMovimientos activa="/movimientos" />
 
       <div className="space-y-4">
         <form
@@ -370,7 +355,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
               )}
             </p>
 
-            <div className="hidden overflow-x-auto rounded-2xl border border-borde bg-elevada md:block">
+            <div className="relative hidden overflow-x-auto rounded-2xl border border-borde bg-elevada md:block">
               <table className="tabla">
                 <thead>
                   <tr>

@@ -23,6 +23,7 @@ const MAX_BYTES = 10 * 1024 * 1024;
 function refrescar() {
   revalidatePath("/comprobantes");
   revalidatePath("/movimientos");
+  revalidatePath("/movimientos/revisar");
   revalidatePath("/");
 }
 

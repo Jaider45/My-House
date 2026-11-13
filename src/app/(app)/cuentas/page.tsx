@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Barra, Boton, Chip, EnlaceBoton, Kpi, Tarjeta, Titulo, Vacio, cx } from "@/components/ui";
+import { AccionPrincipal, Barra, Boton, Chip, EnlaceBoton, Kpi, Titulo, Vacio, cx } from "@/components/ui";
+import { Ventana } from "@/components/ui/ventana";
 import { Icono, type NombreIcono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP, porcentaje } from "@/lib/dinero";
@@ -19,21 +20,13 @@ const TIPOS: Record<Cuenta["tipo"], { texto: string; filtro: string; icono: Nomb
 };
 
 export default function Cuentas({ searchParams }: PageProps<"/cuentas">) {
-  return (
-    <>
-      <Titulo subtitulo="Dónde está la plata de la casa y cuánto deben las tarjetas" accion={<BotonGuia id="cuenta" />}>
-        Cuentas y tarjetas
-      </Titulo>
-      <Contenido searchParams={searchParams} />
-    </>
-  );
+  return <Contenido searchParams={searchParams} />;
 }
 
 async function Contenido({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const ctx = await obtenerContexto();
   const sp = await searchParams;
   const filtro = typeof sp.tipo === "string" && sp.tipo in TIPOS ? (sp.tipo as Cuenta["tipo"]) : null;
-  const editarId = typeof sp.editar === "string" ? sp.editar : null;
 
   const [{ data: cuentas }, { data: saldos }, { data: miembros }, { data: deudas }, { data: abonos }] = await Promise.all([
     ctx.supabase
@@ -59,21 +52,34 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
   for (const a of abonos ?? []) abonosPor.set(a.debt_id!, (abonosPor.get(a.debt_id!) ?? 0) + a.monto);
   const creditos = (deudas ?? []).map((d) => ({ ...d, ...avanceDeuda({ ...d, abonos: abonosPor.get(d.id) ?? 0 }) })).filter((d) => d.pendiente > 0);
   const visibles = todas.filter((c) => !filtro || c.tipo === filtro);
-  const editando = todas.find((c) => c.id === editarId);
   const conteo = (t: Cuenta["tipo"]) => activas.filter((c) => c.tipo === t).length;
 
   return (
+    <>
+    <Titulo
+      subtitulo="Dónde está la plata de la casa y cuánto deben las tarjetas"
+      accion={
+        <>
+          <BotonGuia id="cuenta" />
+          {ctx.puedeEditar && (
+            <AccionPrincipal href={filtro ? `/cuentas?tipo=${filtro}&nuevo=1` : "/cuentas?nuevo=1"} guia="agregar-cuenta">
+              Agregar cuenta
+            </AccionPrincipal>
+          )}
+        </>
+      }
+    >
+      Cuentas y tarjetas
+    </Titulo>
     <div className="space-y-4 md:space-y-5">
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3 md:gap-5">
-        <Kpi icono="cuentas" etiqueta="Disponible en cuentas" valor={formatearCOP(disponible)} detalle={`${activas.length - tarjetas.length} cuentas y efectivo`} />
+        <Kpi etiqueta="Disponible en cuentas" valor={formatearCOP(disponible)} detalle={`${activas.length - tarjetas.length} cuentas y efectivo`} />
         <Kpi
-          icono="egresos"
           etiqueta="Usado en tarjetas"
           valor={formatearCOP(usado)}
           detalle={cupo ? `${porcentaje(usado, cupo)} % del cupo${pagoProximo ? ` · pago el ${pagoProximo}` : ""}` : `${tarjetas.length} tarjetas`}
         />
         <Kpi
-          icono="deducciones"
           etiqueta="Créditos activos"
           valor={formatearCOP(creditos.reduce((s, d) => s + d.pendiente, 0))}
           detalle={
@@ -87,7 +93,6 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
         />
       </section>
 
-      <div className="grid grid-cols-1 items-start gap-4 md:gap-5 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <section aria-label="Tus cuentas" className="flex min-w-0 flex-col gap-3.5">
           <nav aria-label="Tipo de cuenta" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0">
             <Link href="/cuentas" className={claseFiltro(!filtro)}>
@@ -110,7 +115,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
               Agrega tu cuenta de ahorros, tus tarjetas y el efectivo de la casa.
             </Vacio>
           ) : (
-            <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
               {visibles.map((c) => {
                 const s = saldo.get(c.id) ?? 0;
                 const esTarjeta = c.tipo === "tarjeta";
@@ -151,7 +156,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
                         Movimientos
                       </EnlaceBoton>
                       {ctx.puedeEditar && (
-                        <EnlaceBoton href={`/cuentas?editar=${c.id}`} variante="fantasma" className="h-9 px-3 text-sm">
+                        <EnlaceBoton href={`/cuentas?nuevo=editar-${c.id}`} scroll={false} variante="fantasma" className="h-9 px-3 text-sm">
                           Editar
                         </EnlaceBoton>
                       )}
@@ -163,36 +168,31 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
           )}
         </section>
 
-        {ctx.puedeEditar && (
-          <Tarjeta
-            guia="form-cuenta"
-            titulo={editando ? `Editar ${editando.nombre}` : "Agregar cuenta o tarjeta"}
-            subtitulo={editando ? undefined : "Solo nombre y últimos 4 dígitos. Nunca te pedimos claves."}
-            accion={
-              editando && (
-                <EnlaceBoton href="/cuentas" variante="fantasma" className="h-9 px-3 text-sm">
-                  Cancelar
-                </EnlaceBoton>
-              )
-            }
-          >
-            <FormularioCuenta key={editando?.id ?? "nueva"} cuenta={editando} titulares={miembros ?? []} />
-            {editando && (
-              <div className="mt-4 flex flex-col gap-2 border-t border-divisor pt-4">
+
+      {ctx.puedeEditar && (
+        <>
+          <Ventana titulo="Agregar cuenta o tarjeta" subtitulo="Solo nombre y últimos 4 dígitos. Nunca te pedimos claves." guia="form-cuenta">
+            <FormularioCuenta titulares={miembros ?? []} />
+          </Ventana>
+          {todas.map((c) => (
+            <Ventana key={c.id} valor={`editar-${c.id}`} titulo={`Editar ${c.nombre}`} guia="form-cuenta-editar">
+              <FormularioCuenta cuenta={c} titulares={miembros ?? []} />
+              <div className="flex flex-col gap-2 border-t border-divisor pt-4 pb-5">
                 <FormularioAccion accion={archivarCuenta}>
-                  <input type="hidden" name="id" value={editando.id} />
-                  <input type="hidden" name="archivar" value={editando.archivada ? "0" : "1"} />
+                  <input type="hidden" name="id" value={c.id} />
+                  <input type="hidden" name="archivar" value={c.archivada ? "0" : "1"} />
                   <Boton type="submit" variante="secundario" className="w-full">
-                    {editando.archivada ? "Reactivar" : "Archivar"}
+                    {c.archivada ? "Reactivar" : "Archivar"}
                   </Boton>
                 </FormularioAccion>
-                <BotonEliminarCuenta id={editando.id} />
+                <BotonEliminarCuenta id={c.id} />
               </div>
-            )}
-          </Tarjeta>
-        )}
-      </div>
+            </Ventana>
+          ))}
+        </>
+      )}
     </div>
+    </>
   );
 }
 

@@ -1,4 +1,6 @@
-import { Aviso, Boton, Chip, CuadroIcono, EnlaceBoton, SelectorMes, Tarjeta, Titulo, Vacio, cx, type Tono } from "@/components/ui";
+import { AccionPrincipal, Aviso, Boton, Chip, CuadroIcono, EnlaceBoton, SelectorMes, Tarjeta, TarjetaAcademia, Titulo, Vacio, cx, type Tono } from "@/components/ui";
+import { Ventana } from "@/components/ui/ventana";
+import { PestanasPagos } from "../pestanas-secciones";
 import { obtenerContexto } from "@/lib/sesion";
 import { cargarCatalogos } from "@/lib/catalogos";
 import { formatearCOP, formatearCorto } from "@/lib/dinero";
@@ -103,15 +105,18 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
         accion={
           <>
             <SelectorMes etiqueta={formatearMes(mes).replace(" de ", " ")} anterior={`/recurrentes?mes=${sumarMeses(mes, -1)}`} siguiente={`/recurrentes?mes=${sumarMeses(mes, 1)}`} />
-            <EnlaceBoton href="/recordatorios" variante="secundario">
-              Recordatorios
-            </EnlaceBoton>
             <BotonGuia id="pago_fijo" />
+            {ctx.puedeEditar && (
+              <AccionPrincipal href={`/recurrentes?${mes !== mesDe(fecha) ? `mes=${mes}&` : ""}nuevo=1`} guia="nuevo-pago-fijo">
+                Nuevo pago fijo
+              </AccionPrincipal>
+            )}
           </>
         }
       >
         {`Pagos fijos de ${nombreMes}`}
       </Titulo>
+      <PestanasPagos activa="/recurrentes" />
 
       <div className="space-y-4 md:space-y-5">
         <Tarjeta>
@@ -228,8 +233,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
           </Tarjeta>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
-          <Tarjeta className="lg:col-span-2" titulo="Tus pagos programados" subtitulo="Las reglas que generan los pagos de cada mes">
+        <Tarjeta titulo="Tus pagos programados" subtitulo="Las reglas que generan los pagos de cada mes">
             {reglas?.length ? (
               <ul>
                 {reglas.map((r) => (
@@ -277,20 +281,27 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
             )}
           </Tarjeta>
 
-          {ctx.puedeEditar &&
-            (catalogos.cuentas.length ? (
-              <Tarjeta id="nuevo" titulo="Nuevo pago fijo">
-                <FormularioRegla cuentas={catalogos.cuentas} categorias={catalogos.categorias} hoy={fecha} />
-              </Tarjeta>
+        <TarjetaAcademia
+          href="/academia/empieza/pagos-fijos"
+          icono="calendario"
+          etiqueta="Academia · lección de 3 min"
+          titulo="Cómo organizar los pagos fijos para que nada se venza"
+        />
+
+        {ctx.puedeEditar && (
+          <Ventana titulo="Nuevo pago fijo" subtitulo="Un pago que se repite: arriendo, servicios, colegio, planes." guia="form-pago-fijo">
+            {catalogos.cuentas.length ? (
+              <FormularioRegla cuentas={catalogos.cuentas} categorias={catalogos.categorias} hoy={fecha} />
             ) : (
-              <div className="space-y-3">
-                <Aviso tipo="info">Primero crea una cuenta.</Aviso>
-                <EnlaceBoton href="/cuentas" className="w-full">
+              <div className="space-y-3 pb-5">
+                <Aviso tipo="info">Primero crea una cuenta: el pago fijo necesita saber de dónde sale la plata.</Aviso>
+                <EnlaceBoton href="/cuentas?nuevo=1" className="w-full">
                   Crear cuenta
                 </EnlaceBoton>
               </div>
-            ))}
-        </div>
+            )}
+          </Ventana>
+        )}
       </div>
     </>
   );

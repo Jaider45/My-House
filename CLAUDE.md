@@ -131,8 +131,8 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     Cuidado: dos utilidades de la misma propiedad en un elemento (p. ej. `hidden` + `inline-flex` de `clasesBoton`)
     no se resuelven por orden; envolver en un `<span className="hidden lg:contents">` o usar `!`.
 22. Módulos (migración `modulos`): presupuesto = pagos fijos de la categoría + gasto variable (`budgets_goals` tipo
-    `presupuesto`, en la interfaz «Gasto variable», se repite cada mes). Los pagos fijos se crean también desde
-    Presupuesto (mismo `FormularioRegla` de Pagos fijos); el onboarding admite hasta 10 pagos extra con categoría; pronóstico de cierre = max(real + programado, fijos) + ritmo del gasto variable
+    `presupuesto`, en la interfaz «Gasto variable», se repite cada mes). Los pagos fijos se crean en Pagos → Pagos
+    fijos (`FormularioRegla`); el onboarding admite hasta 10 pagos extra con categoría; pronóstico de cierre = max(real + programado, fijos) + ritmo del gasto variable
     (`src/lib/presupuesto`). Deudas (`debts`): pagado = `pagado_inicial` + movimientos con `debt_id`; un abono es un
     gasto en Deudas. Metas (`budgets_goals` tipo `meta`): ahorrado = `ahorrado_inicial` + movimientos con `goal_id`
     (gasto en «Ahorro e inversión», fuera del costo de vida). Recordatorios guardan fechas y canales; el correo ya se
@@ -395,16 +395,40 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     IA operativa si al menos un proveedor conectado responde. `/api/salud` resume todo (503 si algo falla).
 
 47. Guías interactivas (rama `feat/recorrido`). `src/lib/guias` (puro): catálogo de guías (bienvenida, cuenta, gasto,
-    ver movimiento, deuda, pago fijo, presupuesto, invitar, dos pasos), cada paso con `ruta` (`/x/*` = subrutas;
-    `?editar=1` = parámetro exigido), `objetivo` (selector CSS: primer elemento visible —Next 16 deja la pantalla
-    anterior oculta en el DOM—; un campo se ilumina con su `<label>`), `avance` (`siguiente`, `clic`, `envio` = el
-    `submit` del formulario, que el navegador no dispara si falta un campo) y `omitirSi`. `MotorGuia`
-    (`src/components/guia`, en el layout) oscurece con cuatro paneles que además bloquean los toques fuera del hueco
-    (una sombra gigante salía tenue en celular), sigue la posición por `requestAnimationFrame`, enseña el enlace del
-    menú si está visible o navega solo, y espera 15 s antes de decir «no lo encuentro». Paso en curso en
-    sessionStorage; guías hechas en `user_metadata.guias` (por persona; la bienvenida se ofrece una vez).
-    Se inicia con `BotonGuia` («¿Cómo se usa?» en cada pantalla) o en `/guias`; las de registrar se niegan al rol
-    contador. Marcas en el DOM: `Tarjeta guia="…"` → `data-guia`. Al cambiar un formulario, revisar su guía.
+    ver movimiento, revisar, importar, deuda, pago fijo, recordatorio, presupuesto, meta, renta, asistente, invitar,
+    dos pasos), cada paso con `ruta` (`/x/*` = subrutas; `?nuevo=1` = parámetro exigido), `objetivo` (selector CSS:
+    primer elemento visible —Next 16 deja la pantalla anterior oculta en el DOM—; un campo se ilumina con su
+    `<label>`), `avance` (`siguiente`, `clic`, `envio` = el `submit` del formulario, que el navegador no dispara si
+    falta un campo) y `omitirSi`. Los formularios de crear están en ventanas (decisión 48): el paso «toca Nueva…»
+    ilumina el botón del encabezado o el flotante (`crear()`), avanza con el clic y los siguientes usan la ruta con
+    `?nuevo=1` (si la persona cierra la ventana, el motor la reabre). `MotorGuia` (`src/components/guia`, en el layout)
+    oscurece con cuatro paneles que además bloquean los toques fuera del hueco, sigue la posición por
+    `requestAnimationFrame`, enseña el enlace del menú si está visible o navega solo, y espera 15 s antes de decir
+    «no lo encuentro». Paso en curso en sessionStorage; guías hechas en `user_metadata.guias`. Se inicia con
+    `BotonGuia` («¿Cómo se usa?» en cada encabezado; en celular solo el ícono) o en Academia → Guías paso a paso
+    (`/guias` redirige ahí); las de registrar se niegan al rol contador. Marcas: `data-guia` (`Tarjeta guia="…"`,
+    `Ventana guia="…"`, `AccionPrincipal guia="…"`). Al cambiar un formulario, revisar su guía.
+
+48. Diseño «App» del lienzo (2026-11-13, rama `feat/diseno-app`). Navegación agrupada (`navegacion.tsx`): Inicio,
+    Movimientos (con los comprobantes por revisar), Asistente; Pagos (pagos fijos con los vencidos, deudas,
+    recordatorios); Planea (presupuesto, metas); Impuestos; Aprende (Academia «Nuevo»); abajo Cuentas, Hogar y ajustes,
+    Ayuda y el hogar activo. Barra lateral pegada al borde: 84 px en laptop, 272 px en escritorio. Celular: barra
+    inferior (Inicio, Movimientos, Presupuesto, Pagos fijos, Más → `/mas`) y botón flotante con texto según la sección
+    («Pago fijo», «Deuda»…; abre su ventana). Secciones con pestañas (`PestanasSeccion`, `pestanas-secciones.tsx`):
+    Movimientos (Todos, Por revisar = `/movimientos/revisar`, Importar), Pagos y Planea. Crear = **ventana**
+    (`src/components/ui/ventana.tsx`): `?nuevo=1` en la URL la abre (Atrás la cierra; `?nuevo=abono-<id>`,
+    `aporte-<id>`, `editar-<id>` para las de una fila), hoja desde abajo en celular/tablet; los formularios usan
+    `PieVentana` (Cancelar + guardar) y `useCerrarAlGuardar`. Registrar (`/rapido`) es una ventana con tres modos
+    (Escribirlo, Foto o PDF → asistente, Por WhatsApp = aviso «muy pronto»); abierta desde otra pantalla es una ruta
+    interceptada (`@modal/(.)rapido`, con `@modal/[...resto]` y `@modal/page.tsx` en null para cerrarla al navegar);
+    al escribir el concepto sugiere categoría y cuenta de lo último registrado igual (`src/lib/registro`), y
+    «Lo pago después» la deja `programado`. Inicio: 6 indicadores (gasto pronosticado = Σ pronóstico de
+    `filasPresupuesto` con `entradasPorCategoria`, el mismo cálculo de Presupuesto), accesos rápidos, top 5 categorías
+    con semáforo y Academia. Academia (`src/lib/academia`, puro): 6 rutas de lecciones escritas con repaso y
+    «Aplícalo en My House», avance por persona en `user_metadata.academia`, recomendaciones según el hogar, glosario;
+    sin videos ni taller en vivo (no existen). Renta DIAN: tarjeta por persona, «Qué hacer ahora» y reporte para el
+    contador (la exportación sigue pendiente: la tarjeta lo dice e invita al contador). Tablas con `relative` en su
+    contenedor con scroll: un `sr-only` absoluto se salía y daba scroll horizontal a toda la página.
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas

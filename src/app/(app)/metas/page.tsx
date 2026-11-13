@@ -1,4 +1,8 @@
-import { Barra, Chip, CuadroIcono, Tarjeta, Titulo, Vacio, cx, type Tono } from "@/components/ui";
+import Link from "next/link";
+import { AccionPrincipal, Barra, Chip, CuadroIcono, Tarjeta, TarjetaAcademia, Titulo, Vacio, clasesBoton, cx, type Tono } from "@/components/ui";
+import { Ventana } from "@/components/ui/ventana";
+import { PestanasPlanea } from "../pestanas-secciones";
+import { BotonGuia } from "@/components/guia/boton-guia";
 import { Icono, type NombreIcono } from "@/components/marca";
 import { ICONOS } from "@/components/marca-datos";
 import { obtenerContexto } from "@/lib/sesion";
@@ -19,12 +23,7 @@ const ESTADO: Record<AvanceMeta["estado"], { texto: string; tono: Tono }> = {
 };
 
 export default function Metas() {
-  return (
-    <>
-      <Titulo subtitulo="Para qué ahorra la casa y si van a tiempo">Metas de ahorro</Titulo>
-      <Contenido />
-    </>
-  );
+  return <Contenido />;
 }
 
 const mesLargo = (m: string | null) => (m ? formatearMes(m) : "sin fecha");
@@ -44,15 +43,53 @@ async function Contenido() {
     ctx.supabase.from("accounts").select("id, nombre").eq("archivada", false).neq("tipo", "tarjeta").order("created_at"),
     tieneFuncion("metas"),
   ]);
-  const nueva = conMetas ? (
-    <Tarjeta titulo="Nueva meta">
-      <FormularioMeta />
-    </Tarjeta>
-  ) : (
+  const nueva = conMetas ? null : (
     <MejoraPlan titulo="Metas de ahorro con el plan Familia">
       Fondo de emergencia, estudio, vivienda o vacaciones: cuánto apartar cada mes y si van a tiempo.
     </MejoraPlan>
   );
+  const encabezado = (
+    <>
+      <Titulo
+        subtitulo="Para qué ahorra la casa y si van a tiempo"
+        accion={
+          <>
+            <BotonGuia id="meta" />
+            {ctx.puedeEditar && conMetas && (
+              <AccionPrincipal href="/metas?nuevo=1" guia="nueva-meta">
+                Nueva meta
+              </AccionPrincipal>
+            )}
+          </>
+        }
+      >
+        Metas de ahorro
+      </Titulo>
+      <PestanasPlanea activa="/metas" />
+    </>
+  );
+  const puedeAportar = ctx.puedeEditar && !!cuentas?.length;
+  const ventanas = ctx.puedeEditar && (
+    <>
+      {conMetas && (
+        <Ventana titulo="Nueva meta de ahorro" subtitulo="Algo para lo que la casa quiere ahorrar, con fecha." guia="form-meta">
+          <FormularioMeta />
+        </Ventana>
+      )}
+      {puedeAportar &&
+        (metas ?? []).map((m) => (
+          <Ventana key={m.id} valor={`aporte-${m.id}`} titulo={`Aportar a ${m.nombre ?? "la meta"}`} subtitulo="Queda como gasto en «Ahorro e inversión»: no cuenta en el costo de vida." guia="form-aporte">
+            <FormularioAporte metaId={m.id} sugerido={m.aporte_mensual ?? 0} cuentas={cuentas!} />
+          </Ventana>
+        ))}
+    </>
+  );
+  const aportarEn = (id: string, clase: string) =>
+    puedeAportar ? (
+      <Link href={`/metas?nuevo=aporte-${id}`} scroll={false} data-guia="aportar" className={clase}>
+        Aportar
+      </Link>
+    ) : null;
   const aportado = new Map<string, number>();
   for (const a of aportes ?? []) aportado.set(a.goal_id!, (aportado.get(a.goal_id!) ?? 0) + a.monto);
   const lista = (metas ?? []).map((m) => {
@@ -68,16 +105,22 @@ async function Contenido() {
 
   if (!lista.length) {
     return (
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Vacio icono="ahorro" titulo="Aún no hay metas">
-          Empieza por el fondo de emergencia: tres meses del número mínimo del hogar.
-        </Vacio>
-        {ctx.puedeEditar && nueva}
-      </div>
+      <>
+        {encabezado}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Vacio icono="ahorro" titulo="Aún no hay metas">
+            Empieza por el fondo de emergencia: tres meses del número mínimo del hogar.
+          </Vacio>
+          {ctx.puedeEditar && nueva}
+        </div>
+        {ventanas}
+      </>
     );
   }
 
   return (
+    <>
+    {encabezado}
     <div className="space-y-4 md:space-y-5">
       <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
         {emergencia && (
@@ -119,6 +162,7 @@ async function Contenido() {
                 {formatearCOP(emergencia.aporteSugerido - emergencia.aporte_mensual)} para llegar a tiempo.
               </p>
             )}
+            {emergencia.estado !== "cumplida" && aportarEn(emergencia.id, clasesBoton("secundario", "self-start border-arena bg-arena text-monte hover:bg-arena/90"))}
           </section>
         )}
 
@@ -175,26 +219,20 @@ async function Contenido() {
                 <dd className="font-bold">{formatearCOP(m.aporte_mensual ?? 0)} / mes</dd>
               </div>
             </dl>
-            {ctx.puedeEditar && cuentas?.length && m.estado !== "cumplida" ? (
-              <details className="mt-auto">
-                <summary className="inline-flex h-9 cursor-pointer list-none items-center rounded-lg border border-cuerpo px-3 text-sm font-semibold hover:bg-mosaico">
-                  Aportar
-                </summary>
-                <div className="mt-3">
-                  <FormularioAporte metaId={m.id} sugerido={m.aporte_mensual ?? m.aporteSugerido ?? 0} cuentas={cuentas} />
-                </div>
-              </details>
-            ) : null}
+            {m.estado !== "cumplida" && aportarEn(m.id, clasesBoton("secundario", "mt-auto h-9 px-3 text-sm"))}
           </section>
         ))}
         {ctx.puedeEditar && nueva}
       </div>
 
-      {emergencia && ctx.puedeEditar && cuentas?.length ? (
-        <Tarjeta titulo={`Aportar al ${emergencia.nombre.toLowerCase()}`}>
-          <FormularioAporte metaId={emergencia.id} sugerido={emergencia.aporte_mensual ?? emergencia.aporteSugerido ?? 0} cuentas={cuentas} />
-        </Tarjeta>
-      ) : null}
+      <TarjetaAcademia
+        href="/academia/ahorro/cuanto-fondo"
+        icono="ahorro"
+        etiqueta="Academia · Ahorro y fondo de emergencia"
+        titulo="¿Cuánto debe tener tu fondo de emergencia?"
+      />
+      {ventanas}
     </div>
+    </>
   );
 }

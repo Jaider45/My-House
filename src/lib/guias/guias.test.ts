@@ -42,7 +42,7 @@ describe("estado guardado y guías vistas", () => {
 describe("guiasPara", () => {
   it("el contador solo ve las que no registran; el editor no ve invitar", () => {
     const ids = (r: "admin" | "editor" | "contador") => guiasPara(r).map((g) => g.id);
-    expect(ids("contador")).toEqual(["bienvenida", "ver_movimiento", "dos_pasos"]);
+    expect(ids("contador")).toEqual(["bienvenida", "ver_movimiento", "renta", "dos_pasos"]);
     expect(ids("editor")).not.toContain("invitar");
     expect(ids("admin")).toHaveLength(GUIAS.length);
   });
@@ -61,6 +61,13 @@ describe("catálogo", () => {
         if (p.ruta) expect(p.ruta.startsWith("/"), `${g.id}: ${p.ruta}`).toBe(true);
         if (p.objetivo && !g.pasos.some((x) => x.ruta)) throw new Error(`${g.id}: objetivo sin ruta`);
       }
+  });
+
+  it("tras tocar «Nueva…» los pasos del formulario van en la ventana (`?nuevo=1`)", () => {
+    for (const g of GUIAS)
+      g.pasos.forEach((p, i) => {
+        if (p.avance === "clic" && p.objetivo?.includes("boton-flotante")) expect(g.pasos[i + 1]?.ruta, `${g.id}: ${p.titulo}`).toMatch(/\?nuevo=1$/);
+      });
   });
 
   it("la última guía de cada flujo termina con algo que ver, no con un envío pendiente", () => {

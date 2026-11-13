@@ -170,7 +170,7 @@ export function Importador({ cuentas, categorias, formatos = [] }: { cuentas: Cu
     <div className="space-y-4">
       {mensaje && <Aviso tipo={mensaje.tipo}>{mensaje.texto}</Aviso>}
 
-      <Tarjeta titulo="1. Archivo">
+      <Tarjeta titulo="1. Archivo" guia="importar-archivo">
         <div className="space-y-3">
           <Selector etiqueta="Cuenta del extracto" value={cuentaId} onChange={(e) => { setCuentaId(e.target.value); reiniciarRevision(); }}>
             {cuentas.map((c) => (

@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState, type ReactNode } from "react";
-import { Chip, CuadroIcono } from "@/components/ui";
+import { Chip, CuadroIcono, Explicacion, claseControl, cx } from "@/components/ui";
+import { PieVentana } from "@/components/ui/ventana";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { MensajeEstado } from "@/components/ui/estado";
 import { digitosAMonto, formatearCOP, formatearMiles } from "@/lib/dinero";
@@ -32,8 +33,8 @@ export function FormularioPresupuesto({ filas, mes, cancelar }: { filas: FilaEdi
     <form action={accion} className="space-y-4">
       <input type="hidden" name="mes" value={mes} />
       <p className="text-sm text-cuerpo">
-        Los <b>pagos fijos</b> (arriendo, colegio, servicios…) ya cuentan solos: agrégalos o cámbialos en «Pagos fijos», más
-        abajo. Aquí escribe cuánto planeas gastar <b>además</b> en cada categoría (mercado, transporte, salidas…). Se repite
+        Los <b>pagos fijos</b> (arriendo, colegio, servicios…) ya cuentan solos: agrégalos o cámbialos en Pagos → Pagos
+        fijos. Aquí escribe cuánto planeas gastar <b>además</b> en cada categoría (mercado, transporte, salidas…). Se repite
         cada mes hasta que lo cambies.
       </p>
       <div className="overflow-hidden rounded-2xl border border-borde bg-elevada">
@@ -86,6 +87,97 @@ export function FormularioPresupuesto({ filas, mes, cancelar }: { filas: FilaEdi
           <BotonEnviar pendiente="Guardando…">Guardar presupuesto</BotonEnviar>
         </span>
       </div>
+    </form>
+  );
+}
+
+export type CategoriaPresupuesto = { id: string; nombre: string; variable: number; fijos: number; promedio3: number };
+
+/**
+ * «Agregar presupuesto» (ventana): una categoría y cuánto gastar al mes además de sus pagos fijos, con las
+ * sugerencias del diseño a partir del promedio de los últimos 3 meses. Usa la misma acción que la edición completa.
+ */
+export function FormularioAgregarPresupuesto({ categorias, mes, totalActual }: { categorias: CategoriaPresupuesto[]; mes: string; totalActual: number }) {
+  const [id, setId] = useState(categorias.find((c) => !c.variable)?.id ?? categorias[0]?.id ?? "");
+  const cat = categorias.find((c) => c.id === id);
+  const [monto, setMonto] = useState(cat?.variable ?? 0);
+  const [estado, accion] = useActionState(guardarPresupuesto, null);
+  const redondo = (n: number) => Math.round(n / 1000) * 1000;
+  const base = cat ? Math.max(0, cat.promedio3 - cat.fijos) : 0;
+  const sugerencias = base
+    ? [
+        { texto: "Promedio", valor: redondo(base) },
+        { texto: "Un poco más", valor: redondo(base * 1.1) },
+        { texto: "Ahorrar 10 %", valor: redondo(base * 0.9) },
+      ]
+    : [];
+  const quedaria = totalActual - (cat?.variable ?? 0) + monto;
+
+  return (
+    <form action={accion} className="flex flex-col gap-4">
+      <input type="hidden" name="mes" value={mes} />
+      {id && <input type="hidden" name={`adicional:${id}`} value={monto} />}
+      <label className="flex min-w-0 flex-col gap-1.5">
+        <span className="text-[13px] leading-[18px] font-semibold text-cuerpo">Categoría</span>
+        <select
+          className={claseControl}
+          value={id}
+          onChange={(e) => {
+            setId(e.target.value);
+            setMonto(categorias.find((c) => c.id === e.target.value)?.variable ?? 0);
+          }}
+        >
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nombre}
+              {c.variable ? ` · hoy ${formatearCOP(c.variable)}` : ""}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex min-w-0 flex-col gap-1.5">
+        <span className="text-[13px] leading-[18px] font-semibold text-cuerpo">Monto al mes</span>
+        <span className="flex items-center rounded-lg border border-control bg-elevada px-3 focus-within:ring-2 focus-within:ring-teja focus-within:ring-offset-2">
+          <span className="text-cuerpo">$</span>
+          <input
+            inputMode="numeric"
+            autoComplete="off"
+            className="h-11 w-full bg-transparent px-2 text-[15px] outline-none"
+            value={monto ? formatearMiles(monto) : ""}
+            onChange={(e) => setMonto(digitosAMonto(e.target.value))}
+            placeholder="0"
+          />
+        </span>
+        {!!cat?.fijos && <span className="text-[13px] text-tenue">Además de sus pagos fijos ({formatearCOP(cat.fijos)}), que ya cuentan solos.</span>}
+      </label>
+      {sugerencias.length > 0 && (
+        <div data-guia="sugerencias" className="flex flex-col gap-2">
+          <span className="text-[13px] leading-[18px] font-semibold text-cuerpo">Sugerencias según tus últimos 3 meses</span>
+          <div className="flex flex-wrap gap-2">
+            {sugerencias.map((g) => (
+              <button
+                key={g.texto}
+                type="button"
+                onClick={() => setMonto(g.valor)}
+                aria-pressed={monto === g.valor}
+                className={cx(
+                  "inline-flex h-9 items-center rounded-full border px-3 text-sm",
+                  monto === g.valor ? "border-monte bg-monte text-arena" : "border-control bg-elevada text-tinta hover:bg-mosaico",
+                )}
+              >
+                {g.texto} · {formatearCOP(g.valor)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <div data-guia="quedaria">
+      <Explicacion>
+        Tu presupuesto del mes quedaría en <b>{formatearCOP(quedaria)}</b>. Se repite cada mes; puedes ajustarlo cuando quieras.
+      </Explicacion>
+      </div>
+      <MensajeEstado estado={estado} />
+      <PieVentana>Guardar presupuesto</PieVentana>
     </form>
   );
 }

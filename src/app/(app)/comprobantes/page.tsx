@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Aviso, Chip, CuadroIcono, EnlaceBoton, FilaLista, Tarjeta, Titulo, cx, type Tono } from "@/components/ui";
+import { AccionPrincipal, Aviso, Chip, CuadroIcono, EnlaceBoton, FilaLista, Tarjeta, Titulo, cx, type Tono } from "@/components/ui";
+import { BotonGuia } from "@/components/guia/boton-guia";
 import { Logo } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP } from "@/lib/dinero";
@@ -18,7 +19,17 @@ export const metadata = { title: "Comprobantes" };
 export default function Comprobantes() {
   return (
     <>
-      <Titulo subtitulo="Sube fotos, PDF o capturas: los leo, los registro en Movimientos y los categorizo">Asistente de comprobantes</Titulo>
+      <Titulo
+        subtitulo="Sube fotos, PDF o capturas: los leo, los registro en Movimientos y los categorizo"
+        accion={
+          <>
+            <BotonGuia id="asistente" />
+            <AccionPrincipal href="/comprobantes#subir">Subir comprobante</AccionPrincipal>
+          </>
+        }
+      >
+        Asistente de comprobantes
+      </Titulo>
       <Contenido />
     </>
   );
@@ -249,7 +260,11 @@ async function Contenido() {
             );
           })}
         </div>
-        {ctx.puedeEditar && <Compositor habilitado={iaLista} />}
+        {ctx.puedeEditar && (
+          <div id="subir" data-guia="compositor" className="scroll-mt-4">
+            <Compositor habilitado={iaLista} />
+          </div>
+        )}
       </section>
 
       <aside className="flex min-w-0 flex-col gap-4">
@@ -271,7 +286,7 @@ async function Contenido() {
         </Tarjeta>
 
         {pendientes.length > 0 && (
-          <Tarjeta titulo="Por revisar">
+          <Tarjeta titulo="Por revisar" guia="asistente-revisar">
             {pendientes.slice(0, 5).map((r) => (
               <FilaLista
                 key={r.id}
@@ -284,7 +299,7 @@ async function Contenido() {
           </Tarjeta>
         )}
 
-        <Tarjeta titulo="Reglas que aprendí" subtitulo="Así categorizo sin preguntarte">
+        <Tarjeta titulo="Reglas que aprendí" subtitulo="Así categorizo sin preguntarte" guia="reglas">
           {reglas?.length ? (
             reglas.map((r) => (
               <div key={r.id} className="flex min-h-12 items-center gap-2.5 border-b border-divisor last:border-b-0">

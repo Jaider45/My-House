@@ -11,6 +11,9 @@ import type { NombreIcono } from "@/components/marca";
  *   etiqueta completa). Sin objetivo, el globo sale centrado (presentaciones y cierres).
  * - `avance`: `siguiente` (botón del globo), `clic` (al tocar lo iluminado) o `envio` (al enviar su formulario
  *   válido: el navegador no lo envía si falta un campo obligatorio).
+ * Los formularios de crear viven en ventanas que se abren con `?nuevo=1` (src/components/ui/ventana.tsx): el paso
+ * «toca Nueva deuda» avanza con el clic y los siguientes usan la ruta con `?nuevo=1`; si la persona cierra la
+ * ventana, el motor la vuelve a abrir.
  */
 
 export type Avance = "siguiente" | "clic" | "envio";
@@ -27,7 +30,22 @@ export type PasoGuia = {
   omitirSi?: string;
 };
 
-export type IdGuia = "bienvenida" | "cuenta" | "gasto" | "ver_movimiento" | "deuda" | "pago_fijo" | "presupuesto" | "invitar" | "dos_pasos";
+export type IdGuia =
+  | "bienvenida"
+  | "cuenta"
+  | "gasto"
+  | "ver_movimiento"
+  | "revisar"
+  | "importar"
+  | "deuda"
+  | "pago_fijo"
+  | "recordatorio"
+  | "presupuesto"
+  | "meta"
+  | "renta"
+  | "asistente"
+  | "invitar"
+  | "dos_pasos";
 
 export type Guia = {
   id: IdGuia;
@@ -40,6 +58,8 @@ export type Guia = {
 };
 
 const MENU = '[aria-label="Navegación principal"]';
+/** Botón de crear de la pantalla: el del encabezado (desde tablet) o el flotante (celular). */
+const crear = (guia: string) => `[data-guia="${guia}"], [data-guia="boton-flotante"]`;
 
 export const GUIAS: readonly Guia[] = [
   {
@@ -57,41 +77,47 @@ export const GUIAS: readonly Guia[] = [
         ruta: "/",
         objetivo: "main h1",
         titulo: "Tu resumen del mes",
-        texto: "Inicio muestra cuánto cuesta sostener la casa este mes: ingresos, gastos, pagos pendientes y tu número mínimo. Con las flechas cambias de mes.",
+        texto: "Inicio muestra cómo va la casa: ingresos, gastos, pagos pendientes, tu número mínimo y el gasto pronosticado al cierre. Con las flechas cambias de mes.",
       },
       {
         ruta: "/",
-        objetivo: 'a[href="/rapido"]',
+        objetivo: 'main a[href="/rapido"], [data-guia="boton-flotante"]',
         titulo: "Registrar es lo más importante",
-        texto: "Este botón abre el registro rápido: un gasto o ingreso en menos de 10 segundos. Úsalo cada vez que pagues algo.",
+        texto: "Este botón abre Registrar: escribes el monto y en qué fue, o subes la foto del recibo. Toma 10 segundos; úsalo cada vez que pagues algo.",
       },
       {
         ruta: "/",
         objetivo: `${MENU} a[href="/movimientos"]`,
         titulo: "Movimientos",
-        texto: "La lista de todo lo que entra y sale. Aquí buscas, filtras, corriges y confirmas los pagos programados.",
-      },
-      {
-        ruta: "/",
-        objetivo: `${MENU} a[href="/presupuesto"]`,
-        titulo: "Presupuesto",
-        texto: "Cuánto planeas gastar por categoría y cómo vas contra eso. El semáforo te avisa antes de pasarte.",
+        texto: "Todo lo que entra y sale. Tiene tres pestañas: todos los movimientos, lo que el asistente dejó por revisar e importar el extracto del banco.",
       },
       {
         ruta: "/",
         objetivo: `${MENU} a[href="/recurrentes"]`,
-        titulo: "Pagos fijos",
-        texto: "Arriendo, servicios, colegio, salario: lo que se repite. My House los programa solo y te avisa antes de que venzan.",
+        titulo: "Pagos",
+        texto: "Pagos fijos, deudas y recordatorios: lo que hay que pagar y cuándo. El número rojo te avisa si algo se venció.",
       },
       {
         ruta: "/",
-        objetivo: `${MENU} a[href="/ajustes"]`,
-        titulo: "Configuración y todo lo demás",
-        texto: "Cuentas, deudas, metas, Renta DIAN, miembros del hogar y seguridad. En el celular está en «Más».",
+        objetivo: `${MENU} a[href="/presupuesto"]`,
+        titulo: "Planea",
+        texto: "El presupuesto del mes con su semáforo y tus metas de ahorro, como el fondo de emergencia.",
+      },
+      {
+        ruta: "/",
+        objetivo: `${MENU} a[href="/impuestos"], ${MENU} a[href="/mas"]`,
+        titulo: "Renta DIAN y lo demás",
+        texto: "Renta DIAN te dice quién debe declarar y qué soportes guardar. En el celular, eso y las cuentas, la Academia y los ajustes están en «Más».",
+      },
+      {
+        ruta: "/",
+        objetivo: `${MENU} a[href="/academia"], ${MENU} a[href="/mas"]`,
+        titulo: "Aprende en la Academia",
+        texto: "Lecciones cortas sobre la app y la plata de la casa, y todas estas guías paso a paso.",
       },
       {
         titulo: "¡Listo para empezar!",
-        texto: "Cada pantalla tiene un botón «¿Cómo se usa?» que te guía paso a paso. Y en Configuración → Guías están todas. Te recomiendo empezar por registrar tu cuenta bancaria.",
+        texto: "Cada pantalla tiene un botón «¿Cómo se usa?» (el signo de pregunta) que te guía paso a paso. Te recomiendo empezar por registrar tu cuenta bancaria.",
       },
     ],
   },
@@ -104,73 +130,81 @@ export const GUIAS: readonly Guia[] = [
     pasos: [
       {
         ruta: "/cuentas",
-        objetivo: '[data-guia="form-cuenta"]',
-        titulo: "Aquí agregas tus cuentas",
-        texto: "Cada gasto o ingreso sale o entra de una cuenta. Vamos a llenar este formulario campo por campo.",
+        objetivo: crear("agregar-cuenta"),
+        titulo: "Agrega una cuenta",
+        texto: "Cada gasto o ingreso sale o entra de una cuenta. Toca «Agregar cuenta» para abrir el formulario.",
+        avance: "clic",
       },
       {
-        ruta: "/cuentas",
+        ruta: "/cuentas?nuevo=1",
         objetivo: '[data-guia="form-cuenta"] [role="radiogroup"]',
         titulo: "¿Qué tipo de cuenta es?",
         texto: "Elige «Cuenta bancaria» para ahorros o corriente. Tarjeta de crédito, billetera (Nequi, Daviplata) y efectivo funcionan igual.",
       },
       {
-        ruta: "/cuentas",
+        ruta: "/cuentas?nuevo=1",
         objetivo: '[data-guia="form-cuenta"] [name="entidad"]',
         titulo: "El banco",
         texto: "Escribe el nombre del banco o entidad, por ejemplo Bancolombia o Davivienda.",
       },
       {
-        ruta: "/cuentas",
+        ruta: "/cuentas?nuevo=1",
         objetivo: '[data-guia="form-cuenta"] [name="nombre"]',
         titulo: "¿Cómo la quieres ver?",
         texto: "Un nombre corto para reconocerla en las listas, como «Ahorros Bancolombia».",
       },
       {
-        ruta: "/cuentas",
+        ruta: "/cuentas?nuevo=1",
         objetivo: '[data-guia="form-cuenta"] [name="ultimos4"]',
         titulo: "Últimos 4 dígitos (opcional)",
         texto: "Te ayudan a distinguir dos cuentas del mismo banco. Nunca te pedimos el número completo ni la clave.",
       },
       {
-        ruta: "/cuentas",
+        ruta: "/cuentas?nuevo=1",
         objetivo: '[data-guia="form-cuenta"] [name="titular"]',
         titulo: "¿De quién es?",
         texto: "El titular cuenta para la Renta DIAN: los saldos suman al patrimonio de esa persona. Si es de los dos, déjala compartida.",
       },
       {
-        ruta: "/cuentas",
+        ruta: "/cuentas?nuevo=1",
         objetivo: '[data-guia="form-cuenta"] [name="saldo"]',
         titulo: "Saldo de hoy",
         texto: "Lo que tiene la cuenta hoy. Desde aquí My House suma y resta cada movimiento que registres.",
       },
       {
-        ruta: "/cuentas",
+        ruta: "/cuentas?nuevo=1",
         objetivo: '[data-guia="form-cuenta"] button[type="submit"]',
         titulo: "Guarda la cuenta",
-        texto: "Toca «Guardar». Si falta algo obligatorio, el formulario te lo marca.",
+        texto: "Toca «Guardar cuenta». Si falta algo obligatorio, el formulario te lo marca.",
         avance: "envio",
       },
       {
         ruta: "/cuentas",
         objetivo: 'section[aria-label="Tus cuentas"]',
         titulo: "¡Cuenta creada!",
-        texto: "Aquí ves tus cuentas con su saldo. Toca una para editarla o archivarla. Repite para tus tarjetas y el efectivo de la casa.",
+        texto: "Aquí ves tus cuentas con su saldo. Con «Editar» la cambias o la archivas. Repite para tus tarjetas y el efectivo de la casa.",
       },
     ],
   },
   {
     id: "gasto",
     titulo: "Registrar un gasto",
-    descripcion: "El registro rápido: monto, categoría y cuenta.",
+    descripcion: "Monto, en qué fue y listo: la categoría se sugiere sola.",
     icono: "egresos",
     para: "editores",
     pasos: [
       {
         ruta: "/rapido",
+        objetivo: '[role="tablist"][aria-label="Cómo registrar"]',
+        titulo: "Tres formas de registrar",
+        texto: "«Escribirlo» para anotarlo tú, «Foto o PDF» para que el asistente lea la factura y «Por WhatsApp» (muy pronto). Vamos con «Escribirlo».",
+      },
+      {
+        ruta: "/rapido",
         objetivo: 'form [role="radiogroup"][aria-label="Tipo"]',
         titulo: "¿Gasto o ingreso?",
         texto: "Elige «Gasto» cuando sale plata e «Ingreso» cuando entra (salario, ventas, reembolsos).",
+        faltante: "Para registrar necesitas una cuenta. Haz primero la guía «Registrar una cuenta bancaria».",
       },
       {
         ruta: "/rapido",
@@ -180,30 +214,32 @@ export const GUIAS: readonly Guia[] = [
       },
       {
         ruta: "/rapido",
-        objetivo: "form fieldset:nth-of-type(1)",
+        objetivo: 'form [name="comercio"]',
         titulo: "¿En qué?",
-        texto: "Toca la categoría: mercado, transporte, servicios… Las que más usas salen primero. Si no está, búscala en «Otra categoría».",
+        texto: "Escríbelo como se lo dirías a alguien: «droguería», «mercado», «Terpel». Si ya lo habías registrado antes, te sugerimos la categoría.",
       },
       {
         ruta: "/rapido",
-        objetivo: "form fieldset:nth-of-type(2)",
-        titulo: "¿De dónde salió?",
-        texto: "Toca la cuenta o tarjeta con la que pagaste. Así el saldo de esa cuenta queda al día.",
-        faltante: "Aún no tienes cuentas. Haz primero la guía «Registrar una cuenta bancaria».",
+        objetivo: '[data-guia="sugerencia"], form fieldset, [data-guia="elegir-categoria"]',
+        titulo: "Categoría y cuenta",
+        texto: "Si te sugerimos una categoría, revísala y toca «Cambiar» si no es. Si no, elige la categoría y la cuenta de donde salió la plata.",
+      },
+      {
+        ruta: "/rapido",
+        objetivo: 'form [role="radiogroup"][aria-label="Estado"]',
+        titulo: "¿Ya lo pagaste?",
+        texto: "«Ya lo pagué» lo cuenta de una vez. «Lo pago después» lo deja pendiente en Movimientos hasta que lo marques como pagado.",
       },
       {
         ruta: "/rapido",
         objetivo: 'form button[type="submit"]',
         titulo: "Guárdalo",
-        texto: "Toca el botón para guardar. Se activa cuando eliges categoría y cuenta.",
+        texto: "Toca «Guardar» (o Enter en el computador). «Guardar y otro» deja la ventana abierta para el siguiente.",
         avance: "envio",
       },
       {
-        ruta: "/rapido",
-        objetivo: 'form [role="status"]',
         titulo: "¡Quedó registrado!",
-        texto: "Ya cuenta en tu resumen del mes y en el saldo de la cuenta. Desde «Ver movimientos» lo puedes corregir.",
-        faltante: "Si no se guardó, revisa el mensaje del formulario y vuelve a intentarlo.",
+        texto: "Ya cuenta en tu resumen del mes y en el saldo de la cuenta. Si el formulario mostró un error, corrígelo y vuelve a guardar.",
       },
     ],
   },
@@ -216,9 +252,9 @@ export const GUIAS: readonly Guia[] = [
     pasos: [
       {
         ruta: "/movimientos",
-        objetivo: "main h1",
+        objetivo: 'nav[aria-label="Movimientos"]',
         titulo: "Todos tus movimientos",
-        texto: "Aquí está todo lo que entra y sale del mes. Arriba cambias de mes con las flechas.",
+        texto: "En «Todos» está lo que entra y sale del mes. «Por revisar» tiene lo que el asistente no pudo registrar solo, e «Importar extracto» trae el mes desde el banco.",
       },
       {
         ruta: "/movimientos",
@@ -234,7 +270,7 @@ export const GUIAS: readonly Guia[] = [
       },
       {
         ruta: "/movimientos",
-        objetivo: 'main a[href^="/movimientos/"]:not([href="/movimientos/nuevo"])',
+        objetivo: 'main a[href^="/movimientos/"]:not([href="/movimientos/nuevo"]):not([href="/movimientos/revisar"])',
         titulo: "Abre un movimiento",
         texto: "Tócalo para ver su detalle y corregirlo (en computador, el lápiz al final de la fila).",
         avance: "clic",
@@ -275,6 +311,67 @@ export const GUIAS: readonly Guia[] = [
     ],
   },
   {
+    id: "revisar",
+    titulo: "Resolver lo que quedó por revisar",
+    descripcion: "Los comprobantes a los que el asistente les falta un dato.",
+    icono: "documentos",
+    para: "editores",
+    pasos: [
+      {
+        ruta: "/movimientos/revisar",
+        objetivo: 'nav[aria-label="Movimientos"]',
+        titulo: "Por revisar",
+        texto: "Cuando subes una foto o un PDF, el asistente registra solo lo que entiende. Si le falta un dato (la fecha, la categoría), lo deja en esta pestaña.",
+      },
+      {
+        ruta: "/movimientos/revisar",
+        objetivo: '[data-guia="por-revisar"]',
+        titulo: "Un comprobante pendiente",
+        texto: "Arriba ves lo que leyó: comercio, fecha y monto. Debajo, la pregunta que no pudo responder.",
+        faltante: "No hay nada por revisar ahora. Cuando el asistente tenga una duda, aparecerá aquí con un número en el menú.",
+      },
+      {
+        ruta: "/movimientos/revisar",
+        objetivo: '[data-guia="por-revisar"] button[type="submit"]',
+        titulo: "Complétalo y regístralo",
+        texto: "Corrige o completa los campos y toca «Registrar». Si marcas «Recordar la categoría», la próxima vez lo hace solo.",
+        avance: "envio",
+      },
+      {
+        titulo: "¡Listo!",
+        texto: "Quedó en Movimientos con su comprobante como soporte. Lo que el asistente aprende se ve en Asistente → Reglas que aprendí.",
+      },
+    ],
+  },
+  {
+    id: "importar",
+    titulo: "Importar el extracto del banco",
+    descripcion: "Trae el mes completo en PDF o CSV, sin duplicados.",
+    icono: "cuentas",
+    para: "editores",
+    pasos: [
+      {
+        ruta: "/importar",
+        objetivo: '[data-guia="importar-archivo"]',
+        titulo: "Elige la cuenta y el archivo",
+        texto: "Descarga el extracto desde la banca en línea (PDF o CSV). Aquí eliges a qué cuenta pertenece y subes el archivo.",
+        faltante: "Primero crea la cuenta a la que pertenece el extracto: haz la guía «Registrar una cuenta bancaria».",
+      },
+      {
+        ruta: "/importar",
+        objetivo: '[data-guia="importar-archivo"]',
+        titulo: "Columnas y revisión",
+        texto: "Al cargarlo detectamos las columnas, marcamos los posibles duplicados y sugerimos categorías. Tú solo revisas y confirmas.",
+      },
+      {
+        ruta: "/importar",
+        objetivo: '[data-guia="importaciones"]',
+        titulo: "Si algo salió mal, deshazlo",
+        texto: "Cada importación queda aquí. «Deshacer» borra todo lo que trajo ese archivo, sin tocar lo demás.",
+      },
+    ],
+  },
+  {
     id: "deuda",
     titulo: "Registrar una deuda",
     descripcion: "Un préstamo o crédito, con su cuota y sus abonos.",
@@ -283,59 +380,60 @@ export const GUIAS: readonly Guia[] = [
     pasos: [
       {
         ruta: "/deudas",
-        objetivo: '[data-guia="form-deuda"]',
+        objetivo: crear("nueva-deuda"),
         titulo: "Tus deudas en un solo lugar",
-        texto: "Préstamos, créditos de libre inversión, Sistecrédito, lo que le debes a un familiar. Vamos campo por campo.",
+        texto: "Préstamos, créditos, Sistecrédito, lo que le debes a un familiar. Toca «Nueva deuda» para registrarla.",
+        avance: "clic",
       },
       {
-        ruta: "/deudas",
+        ruta: "/deudas?nuevo=1",
         objetivo: '[data-guia="form-deuda"] [name="nombre"]',
-        titulo: "¿Con quién es?",
-        texto: "El nombre con que la reconoces: «Préstamo Davivienda», «Crédito moto»…",
+        titulo: "¿A quién le debes?",
+        texto: "El nombre con que la reconoces: «Préstamo Davivienda», «Crédito moto», «Mamá de Camila».",
       },
       {
-        ruta: "/deudas",
+        ruta: "/deudas?nuevo=1",
         objetivo: '[data-guia="form-deuda"] [name="detalle"]',
         titulo: "¿Para qué fue? (opcional)",
         texto: "Una nota corta para recordar de qué se trata.",
       },
       {
-        ruta: "/deudas",
+        ruta: "/deudas?nuevo=1",
         objetivo: '[data-guia="form-deuda"] [name="monto"]',
-        titulo: "Saldo acordado",
+        titulo: "Monto acordado",
         texto: "El total que debes pagar (lo que te prestaron más los intereses, si ya lo sabes).",
       },
       {
-        ruta: "/deudas",
+        ruta: "/deudas?nuevo=1",
         objetivo: '[data-guia="form-deuda"] [name="pagado_inicial"]',
         titulo: "¿Cuánto llevas pagado?",
         texto: "Si ya habías pagado parte antes de registrarla aquí, escríbelo para que el avance sea real.",
       },
       {
-        ruta: "/deudas",
+        ruta: "/deudas?nuevo=1",
         objetivo: '[data-guia="form-deuda"] [name="cuota"]',
         titulo: "La cuota",
-        texto: "El valor que pagas cada vez. Déjalo vacío si abonas lo que puedas, sin cuota fija.",
+        texto: "El valor que pagas cada mes. Déjalo vacío si abonas lo que puedas, sin cuota fija.",
       },
       {
-        ruta: "/deudas",
+        ruta: "/deudas?nuevo=1",
         objetivo: '[data-guia="form-deuda"] [name="dia_pago"]',
         titulo: "Cuotas y día de pago",
         texto: "Cuántas cuotas son y qué día del mes pagas. Con eso calculamos cuándo terminas.",
       },
       {
-        ruta: "/deudas",
+        ruta: "/deudas?nuevo=1",
         objetivo: '[data-guia="form-deuda"] button[type="submit"]',
-        titulo: "Agrégala",
-        texto: "Toca «Agregar deuda».",
+        titulo: "Guárdala",
+        texto: "Toca «Guardar deuda».",
         avance: "envio",
       },
       {
         ruta: "/deudas",
-        objetivo: '[data-guia="abono"]',
+        objetivo: '[data-guia="abonar"]',
         titulo: "Registra cada abono aquí",
-        texto: "Cada vez que pagues una cuota, regístrala en este cuadro: queda como gasto en Deudas y la barra de avance se mueve.",
-        faltante: "Cuando tengas una deuda registrada, aquí aparece el cuadro para registrar abonos.",
+        texto: "Cada vez que pagues una cuota, tócalo: queda como gasto en Deudas y la barra de avance se mueve.",
+        faltante: "Cuando tengas una deuda registrada, aquí aparece el botón para registrar abonos.",
       },
     ],
   },
@@ -348,65 +446,119 @@ export const GUIAS: readonly Guia[] = [
     pasos: [
       {
         ruta: "/recurrentes",
-        objetivo: "#nuevo",
+        objetivo: crear("nuevo-pago-fijo"),
         titulo: "Lo que se repite, una sola vez",
-        texto: "Registra aquí cada pago que se repite. My House lo programa 7 días antes y te avisa para que no se te pase.",
+        texto: "Registra aquí cada pago que se repite. My House lo programa 7 días antes y te avisa para que no se te pase. Toca «Nuevo pago fijo».",
+        avance: "clic",
+      },
+      {
+        ruta: "/recurrentes?nuevo=1",
+        objetivo: '[data-guia="form-pago-fijo"] [role="radiogroup"][aria-label="Tipo"]',
+        titulo: "¿Pago o ingreso?",
+        texto: "«Gasto» para arriendo, servicios, colegio. «Ingreso» para tu salario: así proyectamos tu ahorro.",
         faltante: "Primero necesitas una cuenta. Haz la guía «Registrar una cuenta bancaria».",
       },
       {
-        ruta: "/recurrentes",
-        objetivo: '#nuevo [role="radiogroup"][aria-label="Tipo"]',
-        titulo: "¿Pago o ingreso?",
-        texto: "«Gasto» para arriendo, servicios, colegio. «Ingreso» para tu salario: así proyectamos tu ahorro.",
-      },
-      {
-        ruta: "/recurrentes",
-        objetivo: '#nuevo [name="descripcion"]',
-        titulo: "¿Qué es?",
+        ruta: "/recurrentes?nuevo=1",
+        objetivo: '[data-guia="form-pago-fijo"] [name="descripcion"]',
+        titulo: "¿Qué pagas?",
         texto: "Un nombre claro: «Arriendo», «Internet Claro», «Salario Camila».",
       },
       {
-        ruta: "/recurrentes",
-        objetivo: '#nuevo [name="monto"]',
+        ruta: "/recurrentes?nuevo=1",
+        objetivo: '[data-guia="form-pago-fijo"] [name="monto"]',
         titulo: "¿Cuánto?",
         texto: "El valor de cada pago. Si cambia un poco cada mes (como la luz), pon un promedio.",
       },
       {
-        ruta: "/recurrentes",
-        objetivo: '#nuevo [name="account_id"]',
-        titulo: "¿De qué cuenta?",
-        texto: "La cuenta de donde sale (o a la que llega, si es ingreso).",
-      },
-      {
-        ruta: "/recurrentes",
-        objetivo: '#nuevo [name="category_id"]',
-        titulo: "Categoría",
-        texto: "Ubícalo en su categoría para que sume bien en el presupuesto y el costo de vida.",
-      },
-      {
-        ruta: "/recurrentes",
-        objetivo: '#nuevo [name="frecuencia"]',
-        titulo: "¿Cada cuánto?",
-        texto: "Mensual, quincenal, bimestral, anual…",
-      },
-      {
-        ruta: "/recurrentes",
-        objetivo: '#nuevo [name="fecha_inicio"]',
+        ruta: "/recurrentes?nuevo=1",
+        objetivo: '[data-guia="form-pago-fijo"] [name="fecha_inicio"]',
         titulo: "¿Qué día?",
         texto: "La fecha de un pago (por ejemplo el próximo). Desde ella se calculan los siguientes.",
       },
       {
-        ruta: "/recurrentes",
-        objetivo: '#nuevo button[type="submit"]',
-        titulo: "Créalo",
-        texto: "Toca el botón para crearlo.",
+        ruta: "/recurrentes?nuevo=1",
+        objetivo: '[data-guia="form-pago-fijo"] [name="category_id"]',
+        titulo: "Categoría",
+        texto: "Ubícalo en su categoría para que sume bien en el presupuesto y el costo de vida.",
+      },
+      {
+        ruta: "/recurrentes?nuevo=1",
+        objetivo: '[data-guia="form-pago-fijo"] [name="account_id"]',
+        titulo: "¿De qué cuenta?",
+        texto: "La cuenta de donde sale (o a la que llega, si es ingreso).",
+      },
+      {
+        ruta: "/recurrentes?nuevo=1",
+        objetivo: '[data-guia="form-pago-fijo"] [name="frecuencia"]',
+        titulo: "¿Cada cuánto?",
+        texto: "Mensual, quincenal, bimestral, anual…",
+      },
+      {
+        ruta: "/recurrentes?nuevo=1",
+        objetivo: '[data-guia="form-pago-fijo"] button[type="submit"]',
+        titulo: "Guárdalo",
+        texto: "Toca «Guardar pago fijo».",
         avance: "envio",
       },
       {
         ruta: "/recurrentes",
         objetivo: "main h1",
         titulo: "¡Programado!",
-        texto: "Aparece en el calendario y en la lista. Cuando llegue el día, confírmalo en Movimientos con un toque.",
+        texto: "Aparece en el calendario y en la lista. Cuando llegue el día, márcalo como pagado con un toque.",
+      },
+    ],
+  },
+  {
+    id: "recordatorio",
+    titulo: "Crear un recordatorio",
+    descripcion: "Una fecha de pago que no se te puede pasar: SOAT, matrícula, seguros.",
+    icono: "alertas",
+    para: "editores",
+    pasos: [
+      {
+        ruta: "/recordatorios",
+        objetivo: crear("nuevo-recordatorio"),
+        titulo: "Fechas que no se pueden pasar",
+        texto: "Para pagos que no son de cada mes o que no quieres programar: el SOAT, la matrícula, un seguro anual. Toca «Nuevo recordatorio».",
+        avance: "clic",
+      },
+      {
+        ruta: "/recordatorios?nuevo=1",
+        objetivo: '[data-guia="form-recordatorio"] [name="nombre"]',
+        titulo: "¿Qué hay que pagar?",
+        texto: "Un nombre claro, como «SOAT del carro».",
+      },
+      {
+        ruta: "/recordatorios?nuevo=1",
+        objetivo: '[data-guia="form-recordatorio"] [name="fecha"]',
+        titulo: "¿Cuándo?",
+        texto: "La fecha de pago. El monto es opcional.",
+      },
+      {
+        ruta: "/recordatorios?nuevo=1",
+        objetivo: '[data-guia="form-recordatorio"] fieldset:nth-of-type(1)',
+        titulo: "¿Se repite?",
+        texto: "Una vez, cada mes o cada año.",
+      },
+      {
+        ruta: "/recordatorios?nuevo=1",
+        objetivo: '[data-guia="form-recordatorio"] fieldset:nth-of-type(2)',
+        titulo: "¿Con cuánta anticipación?",
+        texto: "Puedes elegir varios: el mismo día y una semana antes, por ejemplo.",
+      },
+      {
+        ruta: "/recordatorios?nuevo=1",
+        objetivo: '[data-guia="form-recordatorio"] button[type="submit"]',
+        titulo: "Guárdalo",
+        texto: "Toca «Guardar recordatorio». Los avisos por correo llegan a las 7:00 a. m.",
+        avance: "envio",
+      },
+      {
+        ruta: "/recordatorios",
+        objetivo: 'section[aria-label="Próximas fechas"]',
+        titulo: "Tus próximas fechas",
+        texto: "Aquí están los recordatorios y los pagos fijos, por mes. Con el interruptor apagas o prendes el aviso.",
       },
     ],
   },
@@ -418,29 +570,171 @@ export const GUIAS: readonly Guia[] = [
     para: "editores",
     pasos: [
       {
-        ruta: "/presupuesto?editar=1",
-        objetivo: 'input[aria-label^="Gasto variable de"]',
-        titulo: "Gasto variable por categoría",
-        texto: "Los pagos fijos ya cuentan solos. Aquí escribes lo que cambia: cuánto piensas gastar al mes en mercado, transporte, salidas…",
+        ruta: "/presupuesto",
+        objetivo: crear("agregar-presupuesto"),
+        titulo: "Agrega un presupuesto",
+        texto: "Los pagos fijos ya cuentan solos. Aquí planeas lo que cambia: mercado, transporte, salidas. Toca «Agregar presupuesto».",
+        avance: "clic",
       },
       {
-        ruta: "/presupuesto?editar=1",
-        objetivo: "form .lg\\:sticky",
+        ruta: "/presupuesto?nuevo=1",
+        objetivo: '[data-guia="form-presupuesto"] select',
+        titulo: "La categoría",
+        texto: "Elige en qué quieres poner un tope mensual. Si ya tenía, verás cuánto.",
+      },
+      {
+        ruta: "/presupuesto?nuevo=1",
+        objetivo: '[data-guia="form-presupuesto"] input[inputmode="numeric"]',
+        titulo: "¿Cuánto al mes?",
+        texto: "Escribe el monto, o toca una sugerencia: el promedio de tus últimos 3 meses, un poco más o ahorrar el 10 %.",
+      },
+      {
+        ruta: "/presupuesto?nuevo=1",
+        objetivo: '[data-guia="quedaria"]',
         titulo: "Tu presupuesto total",
-        texto: "Se suma mientras escribes: fijos + variable. Las categorías esenciales forman tu número mínimo.",
+        texto: "Te mostramos cómo quedaría el presupuesto del mes. Se repite cada mes hasta que lo cambies.",
       },
       {
-        ruta: "/presupuesto?editar=1",
-        objetivo: 'form button[type="submit"]',
+        ruta: "/presupuesto?nuevo=1",
+        objetivo: '[data-guia="form-presupuesto"] button[type="submit"]',
         titulo: "Guárdalo",
-        texto: "Toca «Guardar presupuesto». Se repite cada mes; lo puedes ajustar cuando quieras.",
+        texto: "Toca «Guardar presupuesto».",
         avance: "envio",
       },
       {
         ruta: "/presupuesto",
-        objetivo: "main h1",
-        titulo: "¡Presupuesto listo!",
-        texto: "Ahora ves cuánto llevas gastado por categoría y el semáforo te avisa antes de pasarte.",
+        objetivo: '[aria-label="Semáforo"]',
+        titulo: "El semáforo",
+        texto: "Verde: vas bien. Amarillo: a este ritmo te pasarás. Rojo: ya te pasaste. Con «Editar presupuesto» cambias todas las categorías a la vez.",
+      },
+    ],
+  },
+  {
+    id: "meta",
+    titulo: "Crear una meta de ahorro",
+    descripcion: "El fondo de emergencia, un viaje o la matrícula, con fecha.",
+    icono: "ahorro",
+    para: "editores",
+    pasos: [
+      {
+        ruta: "/metas",
+        objetivo: crear("nueva-meta"),
+        titulo: "Ahorra con un propósito",
+        texto: "Una meta tiene un monto y una fecha; con eso te decimos cuánto apartar cada mes. Toca «Nueva meta».",
+        avance: "clic",
+        faltante: "Las metas de ahorro vienen con el plan Familia. Míralo en Configuración → Plan.",
+      },
+      {
+        ruta: "/metas?nuevo=1",
+        objetivo: '[data-guia="form-meta"] [name="nombre"]',
+        titulo: "¿Para qué ahorras?",
+        texto: "Empieza por el fondo de emergencia: de 3 a 6 meses del número mínimo del hogar.",
+      },
+      {
+        ruta: "/metas?nuevo=1",
+        objetivo: '[data-guia="form-meta"] [name="monto"]',
+        titulo: "¿Cuánto necesitas?",
+        texto: "El total que quieres reunir.",
+      },
+      {
+        ruta: "/metas?nuevo=1",
+        objetivo: '[data-guia="form-meta"] [name="fecha_objetivo"]',
+        titulo: "¿Para cuándo?",
+        texto: "Con la fecha calculamos el aporte mensual que necesitas.",
+      },
+      {
+        ruta: "/metas?nuevo=1",
+        objetivo: '[data-guia="form-meta"] [name="aporte_mensual"]',
+        titulo: "Tu aporte de cada mes",
+        texto: "Lo que piensas apartar. Si no alcanza para llegar a tiempo, te avisamos cuánto subirlo.",
+      },
+      {
+        ruta: "/metas?nuevo=1",
+        objetivo: '[data-guia="form-meta"] [name="es_emergencia"]',
+        titulo: "¿Es el fondo de emergencia?",
+        texto: "Márcalo si lo es: se muestra destacado y se mide en meses de tu número mínimo.",
+      },
+      {
+        ruta: "/metas?nuevo=1",
+        objetivo: '[data-guia="form-meta"] button[type="submit"]',
+        titulo: "Créala",
+        texto: "Toca «Crear meta».",
+        avance: "envio",
+      },
+      {
+        ruta: "/metas",
+        objetivo: '[data-guia="aportar"]',
+        titulo: "Aporta cada mes",
+        texto: "Cada vez que apartes plata, tócalo: queda como gasto en «Ahorro e inversión» (no cuenta en el costo de vida) y la meta avanza.",
+        faltante: "Para aportar necesitas una cuenta de donde sale la plata.",
+      },
+    ],
+  },
+  {
+    id: "renta",
+    titulo: "Entender tu Renta DIAN",
+    descripcion: "Quién debe declarar, qué hacer ahora y qué soportes guardar.",
+    icono: "declaracion-renta",
+    para: "todos",
+    pasos: [
+      {
+        ruta: "/impuestos",
+        objetivo: '[aria-label="Quién declara"]',
+        titulo: "¿Quién debe declarar?",
+        texto: "Una tarjeta por cada adulto del hogar: si ya pasó un tope de la DIAN, si está cerca o si por ahora no tiene que declarar. Toca una para ver sus detalles.",
+        faltante: "Para ver el semáforo, el hogar necesita personas adultas y movimientos registrados.",
+      },
+      {
+        ruta: "/impuestos",
+        objetivo: '[data-guia="que-hacer"]',
+        titulo: "Qué hacer ahora",
+        texto: "Los pasos para llegar a la declaración sin afanes, en orden. El que tiene borde verde es el siguiente.",
+      },
+      {
+        ruta: "/impuestos",
+        objetivo: 'section[aria-label="Topes de la DIAN"]',
+        titulo: "Los topes",
+        texto: "Cada medidor compara lo acumulado en el año con un tope. Basta con pasar uno (rojo) para tener que declarar. Amarillo es que va por encima del 70 %.",
+      },
+      {
+        ruta: "/impuestos",
+        objetivo: '[data-guia="etiquetas"]',
+        titulo: "Totales para el contador",
+        texto: "Lo que marcaste con etiqueta DIAN (salud, honorarios, dependientes…), ya sumado. Es lo primero que te va a pedir el contador.",
+      },
+      {
+        ruta: "/impuestos",
+        objetivo: "#reporte",
+        titulo: "Tu contador",
+        texto: "Dale acceso de solo lectura para que vea todo esto sin pedirte archivos. Cálculo orientativo: la decisión final es tuya y de tu contador.",
+      },
+    ],
+  },
+  {
+    id: "asistente",
+    titulo: "Usar el asistente de comprobantes",
+    descripcion: "Sube fotos o PDF y deja que los registre solo.",
+    icono: "documentos",
+    para: "editores",
+    pasos: [
+      {
+        ruta: "/comprobantes",
+        objetivo: '[data-guia="compositor"]',
+        titulo: "Sube o escribe",
+        texto: "Con el clip adjuntas fotos o PDF; con la cámara tomas la foto de la factura. También puedes escribir «almuerzo 25 mil con la Visa».",
+        faltante: "El asistente no está configurado en este hogar o tu rol es de solo lectura.",
+      },
+      {
+        ruta: "/comprobantes",
+        objetivo: 'section[aria-label="Conversación con el asistente"]',
+        titulo: "Lo que encontró",
+        texto: "Por cada comprobante te dice qué registró, con la categoría y la cuenta. Si ya existía (un pago fijo, por ejemplo), lo adjunta como soporte y no lo duplica.",
+      },
+      {
+        ruta: "/comprobantes",
+        objetivo: '[data-guia="asistente-revisar"], [data-guia="reglas"]',
+        titulo: "Por revisar y reglas",
+        texto: "Si le falta un dato, lo deja por revisar. Y lo que confirmas lo aprende: la próxima vez categoriza ese comercio solo.",
       },
     ],
   },
@@ -453,41 +747,36 @@ export const GUIAS: readonly Guia[] = [
     pasos: [
       {
         ruta: "/ajustes/miembros",
-        objetivo: '[data-guia="invitar"]',
+        objetivo: '[data-guia="invitar-miembro"]',
         titulo: "Registren juntos",
-        texto: "Quien invites entra con su propio correo y ve el mismo hogar: las mismas cuentas y movimientos.",
+        texto: "Quien invites entra con su propio correo y ve el mismo hogar: las mismas cuentas y movimientos. Toca «Invitar miembro».",
+        avance: "clic",
       },
       {
-        ruta: "/ajustes/miembros",
+        ruta: "/ajustes/miembros?nuevo=1",
         objetivo: '[data-guia="invitar"] [name="email"]',
         titulo: "Su correo",
-        texto: "Escribe el correo de la persona. Le enviamos la invitación ahí.",
+        texto: "Escribe el correo de la persona. Si hay por dónde enviarlo, le llega la invitación ahí.",
       },
       {
-        ruta: "/ajustes/miembros",
-        objetivo: '[data-guia="invitar"] [name="rol"]',
+        ruta: "/ajustes/miembros?nuevo=1",
+        objetivo: '[data-guia="invitar"] fieldset',
         titulo: "¿Qué puede hacer?",
-        texto: "Editor: registra y corrige. Administrador: además maneja miembros. Contador: solo mira, ideal para tu declaración.",
+        texto: "Pareja o familiar: registra y corrige. Administrador: además maneja miembros. Contador: solo mira, ideal para tu declaración.",
       },
       {
-        ruta: "/ajustes/miembros",
+        ruta: "/ajustes/miembros?nuevo=1",
         objetivo: '[data-guia="invitar"] button[type="submit"]',
-        titulo: "Crea la invitación",
-        texto: "Toca «Crear invitación».",
+        titulo: "Envía la invitación",
+        texto: "Toca «Enviar invitación».",
         avance: "envio",
       },
       {
-        ruta: "/ajustes/miembros",
+        ruta: "/ajustes/miembros?nuevo=1",
         objetivo: 'input[aria-label="Enlace de la invitación"]',
         titulo: "Comparte el enlace",
-        texto: "También puedes mandarle este enlace por WhatsApp con «Compartir». Al abrirlo, crea su cuenta y entra a tu hogar.",
+        texto: "Mándale este enlace por WhatsApp con «Compartir». Al abrirlo crea su cuenta y entra a tu hogar. Queda en «Invitaciones pendientes» hasta que la acepte.",
         faltante: "Si no se creó, revisa el mensaje del formulario (por ejemplo, el límite de personas de tu plan).",
-      },
-      {
-        ruta: "/ajustes/miembros",
-        objetivo: '[data-guia="invitaciones"]',
-        titulo: "Invitaciones pendientes",
-        texto: "Aquí quedan hasta que la acepten. Si te equivocaste, puedes revocarla.",
       },
     ],
   },

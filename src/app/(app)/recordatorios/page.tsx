@@ -1,5 +1,7 @@
-import Link from "next/link";
-import { Chip, Tarjeta, Titulo, cx } from "@/components/ui";
+import { AccionPrincipal, Chip, Tarjeta, Titulo, cx } from "@/components/ui";
+import { Ventana } from "@/components/ui/ventana";
+import { PestanasPagos } from "../pestanas-secciones";
+import { BotonGuia } from "@/components/guia/boton-guia";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP } from "@/lib/dinero";
 import { formatearMes, hoy, sumarDias } from "@/lib/fechas";
@@ -14,15 +16,7 @@ import type { Estado } from "@/lib/acciones";
 export const metadata = { title: "Recordatorios" };
 
 export default function Recordatorios() {
-  return (
-    <>
-      <Link href="/recurrentes" className="mb-1 inline-block text-[13px] font-semibold text-cuerpo hover:underline">
-        ← Pagos fijos
-      </Link>
-      <Titulo subtitulo="Las fechas importantes, para que nada se venza">Recordatorios de pago</Titulo>
-      <Contenido />
-    </>
-  );
+  return <Contenido />;
 }
 
 type Item = { clave: string; id: string; tipo: "recordatorio" | "regla"; fecha: string; nombre: string; detalle: string; cuando: string; por: string; monto: number | null; activo: boolean };
@@ -30,6 +24,7 @@ type Item = { clave: string; id: string; tipo: "recordatorio" | "regla"; fecha: 
 const CANALES: Record<string, string> = { whatsapp: "WhatsApp", correo: "Correo", notificacion: "Notificación" };
 const REPETIR: Record<string, string> = { una_vez: "Una vez", mensual: "Cada mes", anual: "Cada año" };
 const mesCorto = new Intl.DateTimeFormat("es-CO", { month: "short", timeZone: "UTC" });
+const diaSemana = new Intl.DateTimeFormat("es-CO", { weekday: "long", day: "numeric", timeZone: "UTC" });
 
 async function Contenido() {
   const ctx = await obtenerContexto(); // antes de hoy(): marca el render como dinámico
@@ -70,8 +65,27 @@ async function Contenido() {
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
   const grupos = Map.groupBy(items, (i) => (i.fecha.slice(0, 4) === fecha.slice(0, 4) ? i.fecha.slice(0, 7) : i.fecha.slice(0, 4)));
   const pronto = sumarDias(fecha, 7);
+  const proximo = items.find((i) => i.activo && i.fecha >= fecha);
+  const ejemplo = proximo ? { nombre: proximo.nombre, monto: proximo.monto, dia: diaSemana.format(new Date(`${proximo.fecha}T00:00:00Z`)) } : null;
 
   return (
+    <>
+    <Titulo
+      subtitulo="Las fechas importantes, para que nada se venza"
+      accion={
+        <>
+          <BotonGuia id="recordatorio" />
+          {ctx.puedeEditar && (
+            <AccionPrincipal href="/recordatorios?nuevo=1" guia="nuevo-recordatorio">
+              Nuevo recordatorio
+            </AccionPrincipal>
+          )}
+        </>
+      }
+    >
+      Recordatorios de pago
+    </Titulo>
+    <PestanasPagos activa="/recordatorios" />
     <div className="grid grid-cols-1 items-start gap-4 md:gap-5 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
       <section aria-label="Próximas fechas" className="rounded-2xl border border-borde bg-elevada px-4 pt-2 pb-4 md:px-6">
         {items.length === 0 && <p className="py-6 text-sm text-tenue">Aún no hay fechas. Crea un recordatorio o un pago fijo.</p>}
@@ -124,11 +138,21 @@ async function Contenido() {
       </section>
 
       <aside className="flex min-w-0 flex-col gap-4">
-        {ctx.puedeEditar && (
-          <Tarjeta titulo="Nuevo recordatorio">
-            <FormularioRecordatorio />
-          </Tarjeta>
-        )}
+        <Tarjeta titulo="Así llega el aviso">
+          <div className="rounded-[14px] bg-[#e9f3ee] p-3">
+            <div className="rounded-xl rounded-bl-[4px] bg-elevada px-3 py-2.5 text-sm leading-5 shadow-[0_1px_0_#d6e3dd]">
+              <b>My House</b>
+              <br />
+              Hola {ctx.miembro.nombre.split(/\s+/)[0]}. {ejemplo ? <>El {ejemplo.dia} vence <b>{ejemplo.nombre}</b>{ejemplo.monto ? <> por <b>{formatearCOP(ejemplo.monto)}</b></> : null}.</> : <>Mañana vence un pago que agendaste.</>} Cuando lo pagues, márcalo en
+              tus pagos fijos.
+              <span className="block text-right text-[13px] text-tenue">7:00 a. m.</span>
+            </div>
+          </div>
+          <div className="mt-3 flex justify-between gap-2.5 text-sm">
+            <span className="text-cuerpo">Hora de los avisos</span>
+            <b>7:00 a. m.</b>
+          </div>
+        </Tarjeta>
         <Tarjeta titulo="Avisos por correo">
           <ul className="space-y-2 text-sm text-cuerpo">
             <li>
@@ -162,6 +186,12 @@ async function Contenido() {
         </Tarjeta>
       </aside>
     </div>
+    {ctx.puedeEditar && (
+      <Ventana titulo="Nuevo recordatorio" subtitulo="Una fecha de pago que no se te puede pasar." guia="form-recordatorio">
+        <FormularioRecordatorio />
+      </Ventana>
+    )}
+    </>
   );
 }
 

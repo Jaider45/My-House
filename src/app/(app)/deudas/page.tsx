@@ -1,4 +1,7 @@
-import { Barra, Chip, CuadroIcono, Tarjeta, Titulo, Vacio, type Tono } from "@/components/ui";
+import Link from "next/link";
+import { AccionPrincipal, IconoMas, Barra, Chip, CuadroIcono, Tarjeta, TarjetaAcademia, Titulo, Vacio, clasesBoton, type Tono } from "@/components/ui";
+import { Ventana } from "@/components/ui/ventana";
+import { PestanasPagos } from "../pestanas-secciones";
 import { Icono, type NombreIcono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP } from "@/lib/dinero";
@@ -10,14 +13,7 @@ import { BotonGuia } from "@/components/guia/boton-guia";
 export const metadata = { title: "Deudas" };
 
 export default function Deudas() {
-  return (
-    <>
-      <Titulo subtitulo="Cuánto deben, cuánto llevan pagado y cuándo terminan" accion={<BotonGuia id="deuda" />}>
-        Deudas del hogar
-      </Titulo>
-      <Contenido />
-    </>
-  );
+  return <Contenido />;
 }
 
 const mayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -53,8 +49,26 @@ async function Contenido() {
   const mesesFin = Math.max(0, ...filas.map((f) => f.mesesRestantes ?? 0));
   const libre = mayuscula(formatearMes(sumarMeses(mes, mesesFin)).replace(" de ", " "));
   const vencida = filas.find((f) => f.vencida && f.cuota);
+  const conAbono = ctx.puedeEditar && !!cuentas?.length;
 
   return (
+    <>
+      <Titulo
+        subtitulo="Cuánto deben, cuánto llevan pagado y cuándo terminan"
+        accion={
+          <>
+            <BotonGuia id="deuda" />
+            {ctx.puedeEditar && (
+              <AccionPrincipal href="/deudas?nuevo=1" guia="nueva-deuda">
+                Nueva deuda
+              </AccionPrincipal>
+            )}
+          </>
+        }
+      >
+        Deudas del hogar
+      </Titulo>
+      <PestanasPagos activa="/deudas" />
     <div className="space-y-4 md:space-y-5">
       {filas.length === 0 ? (
         <Vacio icono="deducciones" titulo="Sin deudas registradas">
@@ -90,7 +104,7 @@ async function Contenido() {
             </div>
           </Tarjeta>
 
-          <div className="hidden overflow-x-auto rounded-2xl border border-borde bg-elevada md:block">
+          <div className="relative hidden overflow-x-auto rounded-2xl border border-borde bg-elevada md:block">
             <table className="tabla">
               <thead>
                 <tr>
@@ -102,6 +116,7 @@ async function Contenido() {
                   <th className="hidden xl:table-cell">Fecha límite</th>
                   <th className="min-w-[170px]">Progreso</th>
                   <th>Estado</th>
+                  {conAbono && <th className="w-px"><span className="sr-only">Acciones</span></th>}
                 </tr>
               </thead>
               <tbody>
@@ -133,6 +148,22 @@ async function Contenido() {
                     <td>
                       <Chip tono={d.estado.tono}>{d.estado.texto}</Chip>
                     </td>
+                    {conAbono && (
+                      <td className="!pl-0">
+                        {d.pendiente > 0 && (
+                          <Link
+                            href={`/deudas?nuevo=abono-${d.id}`}
+                            scroll={false}
+                            data-guia="abonar"
+                            title={`Registrar abono a ${d.nombre}`}
+                            aria-label={`Registrar abono a ${d.nombre}`}
+                            className={clasesBoton("secundario", "!size-9 !px-0")}
+                          >
+                            <IconoMas tamano={18} />
+                          </Link>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -155,6 +186,7 @@ async function Contenido() {
                     </span>
                   </td>
                   <td />
+                  {conAbono && <td />}
                 </tr>
               </tfoot>
             </table>
@@ -199,6 +231,11 @@ async function Contenido() {
                     <dd className="font-bold">{d.fecha_limite ? formatearFecha(d.fecha_limite) : "—"}</dd>
                   </div>
                 </dl>
+                {conAbono && d.pendiente > 0 && (
+                  <Link href={`/deudas?nuevo=abono-${d.id}`} scroll={false} data-guia="abonar" className={clasesBoton("secundario", "h-9 w-full text-sm")}>
+                    Registrar abono
+                  </Link>
+                )}
               </section>
             ))}
           </div>
@@ -218,32 +255,29 @@ async function Contenido() {
         </>
       )}
 
+      <TarjetaAcademia
+        href="/academia/deudas/bola-de-nieve-o-avalancha"
+        icono="deducciones"
+        etiqueta="Academia · Deudas sin miedo"
+        titulo="Bola de nieve o avalancha: cuál deuda pagar primero"
+      />
+
       {ctx.puedeEditar && (
-        <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-2">
-          {filas.some((d) => d.pendiente > 0) && cuentas?.length ? (
-            <Tarjeta guia="abono" titulo="Registrar abono" subtitulo="Queda como gasto en Deudas y suma al avance">
-              <div className="flex flex-col gap-5">
-                {filas
-                  .filter((d) => d.pendiente > 0)
-                  .map((d) => (
-                    <details key={d.id} className="rounded-xl border border-borde p-3">
-                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold">
-                        {d.nombre}
-                        <span className="text-sm font-normal text-cuerpo">Pendiente {formatearCOP(d.pendiente)}</span>
-                      </summary>
-                      <div className="mt-3">
-                        <FormularioAbono deudaId={d.id} cuota={d.cuota} cuentas={cuentas} />
-                      </div>
-                    </details>
-                  ))}
-              </div>
-            </Tarjeta>
-          ) : null}
-          <Tarjeta guia="form-deuda" titulo="Agregar deuda">
+        <>
+          <Ventana titulo="Nueva deuda" subtitulo="Un crédito, una tarjeta o un préstamo con alguien." guia="form-deuda">
             <FormularioDeuda />
-          </Tarjeta>
-        </div>
+          </Ventana>
+          {conAbono &&
+            filas
+              .filter((d) => d.pendiente > 0)
+              .map((d) => (
+                <Ventana key={d.id} valor={`abono-${d.id}`} titulo={`Abono a ${d.nombre}`} subtitulo={`Pendiente ${formatearCOP(d.pendiente)}. Queda como gasto en Deudas y suma al avance.`} guia="abono">
+                  <FormularioAbono deudaId={d.id} cuota={d.cuota} cuentas={cuentas!} />
+                </Ventana>
+              ))}
+        </>
       )}
     </div>
+    </>
   );
 }

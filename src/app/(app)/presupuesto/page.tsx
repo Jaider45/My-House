@@ -1,23 +1,24 @@
-import { Aviso, Barra, Chip, CuadroIcono, EnlaceBoton, Kpi, SelectorMes, Tarjeta, Titulo, Vacio, cx, type Tono } from "@/components/ui";
+import { AccionPrincipal, Barra, Chip, CuadroIcono, EnlaceBoton, Explicacion, Kpi, SelectorMes, TarjetaAcademia, Titulo, Vacio, cx, type Tono } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearCOP, porcentaje } from "@/lib/dinero";
 import { formatearMes, hoy, mesDe, rangoMes, sumarMeses } from "@/lib/fechas";
 import { raizDe, type Categoria } from "@/lib/categorias";
 import { iconoCategoria } from "@/lib/categorias/iconos";
-import { ETIQUETA_FRECUENCIA, montoMensual } from "@/lib/recurrentes";
+import { montoMensual } from "@/lib/recurrentes";
 import { filasPresupuesto, semaforo as semaforoTotal, type Semaforo } from "@/lib/presupuesto";
 import { cargarPlan } from "@/lib/presupuesto/servidor";
 import { cargarCatalogos } from "@/lib/catalogos";
 import { tieneFuncion } from "@/lib/planes/servidor";
 import Link from "next/link";
 import type { TotalCategoria } from "@/lib/finanzas";
-import { FormularioRegla } from "../recurrentes/formulario";
-import { FormularioPresupuesto } from "./formulario";
+import { FormularioAgregarPresupuesto, FormularioPresupuesto } from "./formulario";
+import { Ventana } from "@/components/ui/ventana";
+import { PestanasPlanea } from "../pestanas-secciones";
 import { BotonGuia } from "@/components/guia/boton-guia";
 
 export const metadata = { title: "Presupuesto" };
 
-const SEMAFORO: Record<Semaforo, { tono: Tono; texto: string; barra: "ok" | "alerta" | "error" }> = {
+const SEMAFORO: Record<Semaforo, { tono: Tono & ("ok" | "alerta" | "error"); texto: string; barra: "ok" | "alerta" | "error" }> = {
   en_rango: { tono: "ok", texto: "En rango", barra: "ok" },
   atento: { tono: "alerta", texto: "Atento", barra: "alerta" },
   excedido: { tono: "error", texto: "Excedido", barra: "error" },
@@ -112,11 +113,17 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
               </span>
             )}
             <BotonGuia id="presupuesto" />
+            {ctx.puedeEditar && !editar && (
+              <AccionPrincipal href={`/presupuesto?${mes !== mesActual ? `mes=${mes}&` : ""}nuevo=1`} guia="agregar-presupuesto">
+                Agregar presupuesto
+              </AccionPrincipal>
+            )}
           </>
         }
       >
         {`Presupuesto de ${nombreMes}`}
       </Titulo>
+      <PestanasPlanea activa="/presupuesto" />
 
       {editar ? (
         <FormularioPresupuesto
@@ -136,14 +143,13 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
       ) : lista.length === 0 ? (
         <Vacio icono="casa" titulo="Aún no hay presupuesto" acciones={ctx.puedeEditar ? <EnlaceBoton href={`/presupuesto?mes=${mes}&editar=1`}>Armar el presupuesto</EnlaceBoton> : undefined}>
           El presupuesto parte de tus pagos fijos (arriendo, servicios, colegio…) y le suma lo que quieras gastar en cada
-          categoría. Empieza agregando tus pagos fijos aquí abajo.
+          categoría. Carga tus pagos fijos en Pagos → Pagos fijos y aquí suma lo que quieras gastar en lo demás.
         </Vacio>
       ) : (
         <div className="space-y-4 md:space-y-5">
           <section aria-label="Resumen del presupuesto" className="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
-            <Kpi icono="casa" etiqueta="Presupuesto total" valor={formatearCOP(total.presupuesto)} detalle={`Fijos ${formatearCOP(total.fijos)} + variable ${formatearCOP(total.adicional)}`} />
+            <Kpi etiqueta="Presupuesto total" valor={formatearCOP(total.presupuesto)} detalle={`Fijos ${formatearCOP(total.fijos)} + variable ${formatearCOP(total.adicional)}`} />
             <Kpi
-              icono="egresos"
               etiqueta="Gastado a la fecha"
               valor={formatearCOP(total.real)}
               detalle={
@@ -154,13 +160,11 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
               }
             />
             <Kpi
-              icono="ahorro"
               etiqueta="Disponible"
               valor={formatearCOP(disponible)}
               detalle={mes === mesActual && diasRestantes > 0 && disponible > 0 ? `${formatearCOP(Math.floor(disponible / diasRestantes))} por día hasta el ${diasMes}` : "Lo que queda del presupuesto"}
             />
             <Kpi
-              icono="resumen"
               etiqueta="Pronóstico de cierre"
               valor={conPronostico ? formatearCOP(total.pronostico) : "Plan Familia"}
               detalle={!conPronostico ? <Link href="/ajustes/plan" className="font-semibold underline-offset-4 hover:underline">Ver planes</Link> :
@@ -184,7 +188,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
             </span>
           </div>
 
-          <div className="hidden overflow-x-auto rounded-2xl border border-borde bg-elevada md:block">
+          <div className="relative hidden overflow-x-auto rounded-2xl border border-borde bg-elevada md:block">
             <table className="tabla">
               <thead>
                 <tr>
@@ -195,7 +199,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
                   <th className="der">Real</th>
                   <th className="der">Diferencia</th>
                   <th className="min-w-[150px]">Progreso</th>
-                  <th className="der hidden lg:table-cell">Prom. 3 meses</th>
+                  <th className="der hidden 2xl:table-cell">Prom. 3 meses</th>
                   <th className="der">Pronóstico</th>
                   <th>Semáforo</th>
                 </tr>
@@ -205,7 +209,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
                   <tr key={f.id}>
                     <td>
                       <span className="inline-flex items-center gap-2 font-bold">
-                        <CuadroIcono nombre={iconoCategoria(f.nombre)} tamano={28} />
+                        <CuadroIcono nombre={iconoCategoria(f.nombre)} tamano={28} tono={SEMAFORO[f.semaforo].tono} />
                         {f.nombre}
                       </span>
                     </td>
@@ -213,7 +217,12 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
                     <td className="der hidden text-cuerpo 2xl:table-cell">{f.adicional ? formatearCOP(f.adicional) : "—"}</td>
                     <td className="der font-semibold">{formatearCOP(f.presupuesto)}</td>
                     <td className="der">{formatearCOP(f.real)}</td>
-                    <td className={cx("der", f.diferencia < 0 ? "font-semibold text-error-tinta" : "text-cuerpo")}>{firmado(f.diferencia)}</td>
+                    <td className="der min-w-[150px] !whitespace-normal">
+                      <b className={f.semaforo === "excedido" ? "text-error-tinta" : f.semaforo === "atento" ? "text-alerta-tinta" : "text-ok-tinta"}>
+                        {f.diferencia < 0 ? `Te pasaste ${formatearCOP(-f.diferencia)}` : f.semaforo === "atento" ? `Quedan ${formatearCOP(f.diferencia)}, vas rápido` : `Quedan ${formatearCOP(f.diferencia)}`}
+                      </b>
+                      <span className="block text-[13px] text-tenue">{firmado(f.diferencia)}</span>
+                    </td>
                     <td>
                       <span className="flex items-center gap-2.5">
                         <span className="flex-1">
@@ -222,7 +231,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
                         <span className="w-10 text-right text-[13px] text-cuerpo">{f.porcentaje} %</span>
                       </span>
                     </td>
-                    <td className="der hidden text-cuerpo lg:table-cell">{formatearCOP(f.promedio3)}</td>
+                    <td className="der hidden text-cuerpo 2xl:table-cell">{formatearCOP(f.promedio3)}</td>
                     <td className="der">{formatearCOP(f.pronostico)}</td>
                     <td>
                       <Chip tono={SEMAFORO[f.semaforo].tono}>{SEMAFORO[f.semaforo].texto}</Chip>
@@ -246,7 +255,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
                       <span className="w-10 text-right text-[13px] text-cuerpo">{porcentaje(total.real, total.presupuesto)} %</span>
                     </span>
                   </td>
-                  <td className="der hidden lg:table-cell">{formatearCOP(total.promedio3)}</td>
+                  <td className="der hidden 2xl:table-cell">{formatearCOP(total.promedio3)}</td>
                   <td className="der">{formatearCOP(total.pronostico)}</td>
                   <td>
                     <Chip tono={estadoTotal.tono}>{estadoTotal.texto}</Chip>
@@ -260,7 +269,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
             {lista.map((f) => (
               <section key={f.id} className="flex flex-col gap-2.5 rounded-2xl border border-borde bg-elevada p-4">
                 <div className="flex items-center gap-3">
-                  <CuadroIcono nombre={iconoCategoria(f.nombre)} />
+                  <CuadroIcono nombre={iconoCategoria(f.nombre)} tono={SEMAFORO[f.semaforo].tono} />
                   <b className="min-w-0 flex-1 truncate text-[15px]">{f.nombre}</b>
                   <Chip tono={SEMAFORO[f.semaforo].tono}>{SEMAFORO[f.semaforo].texto}</Chip>
                 </div>
@@ -284,63 +293,37 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
               </EnlaceBoton>
             )}
           </div>
+          <Explicacion icono="educacion">
+            <b>¿Cómo leer este presupuesto?</b> Verde: vas bien. Amarillo: a este ritmo te pasarás antes del {diasMes}. Rojo: ya te
+            pasaste.{" "}
+            <Link href="/academia/finanzas/presupuesto-que-se-cumple" className="font-bold underline">
+              Aprende a armarlo en 4 minutos
+            </Link>
+          </Explicacion>
+          <TarjetaAcademia
+            href="/academia/finanzas"
+            icono="educacion"
+            etiqueta="Academia · Finanzas del hogar desde cero"
+            titulo="Cómo armar un presupuesto que sí se cumple"
+          />
         </div>
       )}
 
-      <div id="pagos-fijos" className="mt-4 grid scroll-mt-20 grid-cols-1 gap-4 md:mt-5 md:gap-5 lg:grid-cols-3">
-        <Tarjeta
-          className="lg:col-span-2"
-          titulo="Pagos fijos"
-          subtitulo={`${reglas.length} ${reglas.length === 1 ? "pago" : "pagos"} · ${formatearCOP(reglas.reduce((s, r) => s + montoMensual(r.monto, r.frecuencia), 0))} al mes`}
-          accion={
-            <EnlaceBoton href="/recurrentes" variante="secundario" className="h-9 px-3 text-sm">
-              Ver calendario
-            </EnlaceBoton>
-          }
-        >
-          {reglas.length ? (
-            <ul>
-              {reglas.map((r) => {
-                const cat = porId.get(r.category_id);
-                const nombreRaiz = raizDe(porId, r.category_id)?.nombre ?? cat?.nombre ?? "";
-                return (
-                  <li key={r.id} className="flex min-h-14 items-center gap-3 border-b border-divisor py-2 last:border-b-0">
-                    <CuadroIcono nombre={iconoCategoria(nombreRaiz || r.descripcion)} />
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-[15px] font-semibold">{r.descripcion}</span>
-                      <span className="truncate text-[13px] text-cuerpo">
-                        {ETIQUETA_FRECUENCIA[r.frecuencia]} · {cat?.nombre ?? "Sin categoría"}
-                        {raizDe(porId, r.category_id)?.excluir_de_costo_vida && " · ahorro, no cuenta en el costo de vida"}
-                      </span>
-                    </span>
-                    <span className="flex flex-col items-end">
-                      <b className="text-[15px] whitespace-nowrap">{formatearCOP(r.monto)}</b>
-                      {r.frecuencia !== "mensual" && <span className="text-[12px] text-tenue">{formatearCOP(montoMensual(r.monto, r.frecuencia))} al mes</span>}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="py-3 text-sm text-tenue">Aún no tienes pagos fijos. Agrega el arriendo, los servicios, el colegio, los créditos, el internet…</p>
-          )}
-          <p className="mt-3 text-[13px] text-tenue">Para cambiar, pausar o eliminar un pago fijo, ábrelo en «Ver calendario».</p>
-        </Tarjeta>
+      {ctx.puedeEditar && !editar && (
+        <Ventana titulo="Agregar presupuesto" subtitulo="Cuánto quieres gastar al mes en una categoría, además de sus pagos fijos." guia="form-presupuesto">
+          <FormularioAgregarPresupuesto
+            mes={mes}
+            totalActual={total.presupuesto}
+            categorias={raices
+              .map((c) => {
+                const x = de(c.id);
+                return { id: c.id, nombre: c.nombre, variable: x.adicional, fijos: x.fijos, promedio3: Math.round(x.previos / 3) };
+              })
+              .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))}
+          />
+        </Ventana>
+      )}
 
-        {ctx.puedeEditar &&
-          (catalogos.cuentas.length ? (
-            <Tarjeta titulo="Agregar pago fijo" subtitulo="Cuenta en el presupuesto y en el costo de vida desde ya">
-              <FormularioRegla cuentas={catalogos.cuentas} categorias={catalogos.categorias} hoy={fecha} soloGasto />
-            </Tarjeta>
-          ) : (
-            <div className="space-y-3">
-              <Aviso tipo="info">Para agregar pagos fijos, primero crea una cuenta (de dónde salen los pagos).</Aviso>
-              <EnlaceBoton href="/cuentas" className="w-full">
-                Crear cuenta
-              </EnlaceBoton>
-            </div>
-          ))}
-      </div>
     </>
   );
 }

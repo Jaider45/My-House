@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Boton, Chip, FilaLista, Tarjeta, Titulo } from "@/components/ui";
+import { AccionPrincipal, Boton, Chip, FilaLista, Tarjeta, Titulo } from "@/components/ui";
 import type { NombreIcono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
 import { cerrarSesion } from "@/app/(auth)/acciones";
@@ -8,7 +8,7 @@ import { PestanasConfiguracion } from "./pestanas";
 export const metadata = { title: "Configuración" };
 
 const SECCIONES: { href: string; titulo: string; texto: string; icono: NombreIcono }[] = [
-  { href: "/guias", titulo: "Guías paso a paso", texto: "Te enseño a usar cada pantalla", icono: "meta" },
+  { href: "/academia", titulo: "Academia y guías", texto: "Lecciones y guías paso a paso por la app", icono: "educacion" },
   { href: "/comprobantes", titulo: "Comprobantes", texto: "Fotos y PDF que se registran solos", icono: "documentos" },
   { href: "/deudas", titulo: "Deudas", texto: "Cuánto deben y cuándo terminan", icono: "deducciones" },
   { href: "/metas", titulo: "Metas de ahorro", texto: "Para qué ahorra la casa", icono: "ahorro" },
@@ -26,10 +26,16 @@ const SECCIONES: { href: string; titulo: string; texto: string; icono: NombreIco
 
 const ROLES = { admin: "Administrador", editor: "Editor", contador: "Contador · solo lectura" } as const;
 
-export default function Ajustes() {
+export default async function Ajustes() {
+  const ctx = await obtenerContexto();
   return (
     <>
-      <Titulo subtitulo="El hogar, quién entra, con qué cuentas y con qué valores">Configuración</Titulo>
+      <Titulo
+        subtitulo="El hogar, quién entra, con qué cuentas y con qué valores"
+        accion={ctx.esAdmin ? <AccionPrincipal href="/ajustes/miembros?nuevo=1">Invitar miembro</AccionPrincipal> : undefined}
+      >
+        Configuración
+      </Titulo>
       <PestanasConfiguracion actual="/ajustes" />
       <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
         <div className="flex flex-col gap-4 md:gap-5">

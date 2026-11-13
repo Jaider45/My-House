@@ -9,6 +9,8 @@ import type { Categoria } from "@/lib/categorias";
 import { iconoCategoria } from "@/lib/categorias/iconos";
 import { cargarSemaforo, type SemaforoAnio } from "@/lib/impuestos/servidor";
 import { cargarPlan } from "@/lib/presupuesto/servidor";
+import { entradasPorCategoria, filasPresupuesto } from "@/lib/presupuesto";
+import type { NombreIcono } from "@/components/marca";
 import { fechasEnRango } from "@/lib/recurrentes";
 import { BotonGuia } from "@/components/guia/boton-guia";
 
@@ -34,7 +36,7 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
   const { desde, hasta } = rangoMes(mes);
 
   const anio = Number(mesActual.slice(0, 4));
-  const [{ data: filas }, { data: categorias }, { count: personas }, { count: cuentas }, { plan, reglas }, { count: sinCategoria }, { data: programados }, semaforo] =
+  const [{ data: filas }, { data: categorias }, { count: personas }, { count: cuentas }, { plan, reglas, presupuestos }, { count: sinCategoria }, { data: programados }, semaforo] =
     await Promise.all([
       ctx.supabase.rpc("totales_por_categoria", { p_household: ctx.hogar.id, p_desde: rangoMes(sumarMeses(mes, -11)).desde, p_hasta: hasta }),
       ctx.supabase.from("categories").select("id, nombre, padre_id, clase, tipo, es_esencial, excluir_de_costo_vida, archivada"),
@@ -88,7 +90,13 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
   const encabezado = (
     <Titulo
       subtitulo="Cuánto cuesta sostener la casa este mes"
-      accion={<SelectorMes etiqueta={formatearMes(mes).replace(" de ", " ")} anterior={`/?mes=${sumarMeses(mes, -1)}`} siguiente={mes < mesActual ? `/?mes=${sumarMeses(mes, 1)}` : undefined} />}
+      registrar={ctx.puedeEditar}
+      accion={
+        <>
+          <SelectorMes etiqueta={formatearMes(mes).replace(" de ", " ")} anterior={`/?mes=${sumarMeses(mes, -1)}`} siguiente={mes < mesActual ? `/?mes=${sumarMeses(mes, 1)}` : undefined} />
+          <BotonGuia id="bienvenida" />
+        </>
+      }
     >
       {titulo}
     </Titulo>
@@ -136,9 +144,32 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
   }
 
   const cantidadIngresos = todas.filter((f) => f.mes.startsWith(mes) && f.tipo === "ingreso" && f.estado === "confirmado").reduce((s, f) => s + (f.cantidad ?? 0), 0);
-  const previsto = r.costoVida + r.ahorro;
   const vencidos = pendientes.filter((p) => p.fecha < hoyISO).length;
   const nombreDelMes = formatearMes(mes).replace(/ de \d{4}$/, "");
+
+  // Top de categorías contra presupuesto y gasto pronosticado: el mismo cálculo de la pantalla Presupuesto.
+  const diasMes = Number(hasta.slice(8));
+  const dia = mes < mesActual ? diasMes : Number(hoyISO.slice(8));
+  const filasPres = filasPresupuesto(
+    entradasPorCategoria({ mes, categorias: cats, reglas: conPlan ? reglas : [], presupuestos: conPlan ? presupuestos : [], totales: todas }),
+    dia,
+    diasMes,
+  );
+  const pronosticado = filasPres.reduce((s, f) => s + f.pronostico, 0);
+  const top = [...filasPres].filter((f) => f.real > 0).sort((a, b) => b.real - a.real).slice(0, 5);
+  const pasada = top.find((c) => c.semaforo === "excedido");
+  const academia: { href: string; icono: NombreIcono; etiqueta: string; titulo: string }[] = [
+    { href: "/academia/finanzas/numero-minimo", icono: "educacion", etiqueta: "Lección · 3 min", titulo: "¿Qué es el número mínimo del hogar?" },
+    { href: "/academia/empieza/registrar", icono: "egresos", etiqueta: "Uso de la app · 2 min", titulo: "Registra un gasto en 10 segundos" },
+    pasada
+      ? { href: "/academia/finanzas/cuando-te-pasas", icono: iconoCategoria(pasada.nombre), etiqueta: `Porque ${pasada.nombre} se pasó`, titulo: "Qué hacer cuando una categoría se pasa" }
+      : { href: "/academia/ahorro/cuanto-fondo", icono: "ahorro", etiqueta: "Lección · 4 min", titulo: "¿Cuánto debe tener tu fondo de emergencia?" },
+  ];
+  const SEM = {
+    en_rango: { tono: "ok", texto: "En rango" },
+    atento: { tono: "alerta", texto: "Atento" },
+    excedido: { tono: "error", texto: "Excedido" },
+  } as const;
 
   return (
     <>
@@ -159,16 +190,7 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
             icono="egresos"
             etiqueta="Gastos del mes"
             valor={formatearCOP(r.gastos)}
-            detalle={
-              previsto ? (
-                <span className="flex flex-col gap-1.5">
-                  <Barra porcentaje={porcentaje(r.gastos, previsto)} tono="marca" />
-                  {porcentaje(r.gastos, previsto)} % de los {formatearCOP(previsto)} previstos
-                </span>
-              ) : (
-                "Sin gastos previstos"
-              )
-            }
+            detalle={pronosticado ? `${porcentaje(r.gastos, pronosticado)} % del gasto pronosticado` : "Sin gasto pronosticado"}
           />
           <Kpi
             icono="calendario"
@@ -176,13 +198,13 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
             valor={formatearCOP(r.porPagar)}
             detalle={
               r.pagosPorPagar
-                ? `${r.pagosPorPagar} ${r.pagosPorPagar === 1 ? "pago" : "pagos"} por hacer${vencidos ? ` · ${vencidos} ${vencidos === 1 ? "vencido" : "vencidos"}` : ""}`
+                ? `${r.pagosPorPagar} ${r.pagosPorPagar === 1 ? "pago" : "pagos"}${vencidos ? ` · ${vencidos} ${vencidos === 1 ? "vencido" : "vencidos"}` : ""}`
                 : "Todo pagado este mes"
             }
           />
           <Kpi
             icono="ahorro"
-            etiqueta={conPlan ? "Ahorro proyectado" : "Ahorro del mes"}
+            etiqueta="Ahorro del mes"
             valor={r.ingresosEsperados ? formatearCOP(r.ahorroProyectado) : "—"}
             detalle={
               !r.ingresosEsperados
@@ -191,7 +213,7 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
                   : "Sin ingresos registrados"
                 : r.ahorroProyectado < 0
                   ? "El costo de vida supera los ingresos"
-                  : `${porcentaje(r.ahorroProyectado, r.ingresosEsperados)} % de los ingresos`
+                  : `${conPlan ? "Proyectado · " : ""}${porcentaje(r.ahorroProyectado, r.ingresosEsperados)} % de los ingresos`
             }
           />
           <Kpi
@@ -206,18 +228,38 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
             }
           />
           <Kpi
-            icono="familia"
-            etiqueta="Costo de vida"
-            valor={formatearCOP(r.costoVida)}
-            detalle={`${formatearCOP(r.costoPorPersona)} por persona · ${personas ?? 1} en el hogar`}
+            icono="resumen"
+            etiqueta={conPlan ? "Gasto pronosticado" : "Gasto del mes"}
+            valor={formatearCOP(pronosticado)}
+            detalle={conPlan ? `Cierre estimado al ${diasMes} de ${nombreDelMes}` : `Costo de vida ${formatearCOP(r.costoVida)}`}
           />
         </section>
 
+        {ctx.puedeEditar && (
+          <div aria-label="Accesos rápidos" className="grid grid-cols-1 gap-2 md:grid-cols-3 md:gap-3">
+            {(
+              [
+                ["/rapido", "egresos", "Registrar movimiento", "Toma 10 segundos"],
+                ["/rapido?modo=foto", "documentos", "Subir un comprobante", "Foto, PDF o captura"],
+                ["/importar", "cuentas", "Importar el extracto", "PDF o CSV del banco"],
+              ] as const
+            ).map(([href, icono, titulo, texto]) => (
+              <Link key={href} href={href} className="flex items-center gap-3 rounded-[14px] border border-borde bg-elevada px-4 py-3.5 text-[15px] font-semibold hover:bg-arena">
+                <CuadroIcono nombre={icono} tamano={40} />
+                <span>
+                  {titulo}
+                  <small className="block text-[13px] font-normal text-cuerpo">{texto}</small>
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+
         {conPlan && !reglas.some((g) => g.tipo === "gasto") && ctx.puedeEditar && (
           <Aviso tipo="info">
-            Aún no tienes pagos fijos: el costo de vida solo cuenta lo que registras.{" "}
-            <Link href="/presupuesto" className="font-semibold underline">
-              Carga el arriendo, los servicios y demás en Presupuesto
+            Aún no tienes pagos fijos: el pronóstico solo cuenta lo que registras.{" "}
+            <Link href="/recurrentes?nuevo=1" className="font-semibold underline">
+              Carga el arriendo, los servicios y demás en Pagos fijos
             </Link>{" "}
             para verlo completo desde el primer día del mes.
           </Aviso>
@@ -229,7 +271,7 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
           <Tarjeta
             className="lg:col-span-2"
             titulo="Ingresos contra gastos"
-            subtitulo="Últimos 12 meses"
+            subtitulo="Últimos 12 meses, en millones de pesos"
             accion={
               <div className="flex flex-wrap gap-4 text-[13px] text-cuerpo">
                 <span className="inline-flex items-center gap-1.5">
@@ -242,7 +284,7 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <i className="rayado-teja size-3 rounded-[3px]" />
-                  Programados
+                  Pronóstico
                 </span>
               </div>
             }
@@ -250,7 +292,7 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
             <Grafico filas={todas} mes={mes} />
           </Tarjeta>
 
-          <Tarjeta titulo="Próximos pagos" subtitulo="Lo programado para los próximos 15 días">
+          <Tarjeta titulo="Próximos pagos" subtitulo="Lo que vence en los próximos 15 días">
             {pendientes.length ? (
               pendientes.map((p) => {
                 const cat = p.category_id ? porId.get(p.category_id) : undefined;
@@ -273,133 +315,76 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
           </Tarjeta>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
-          <Tarjeta
-            className="lg:col-span-2"
-            titulo={`Costo de vida de ${nombreDelMes}`}
-            subtitulo={conPlan ? "Por categoría: lo presupuestado, o lo gastado si ya lo superaste" : "Lo que se gastó en cada categoría"}
-            accion={
-              <EnlaceBoton href={conPlan ? "/presupuesto" : `/movimientos?mes=${mes}`} variante="secundario" className="h-9 px-3 text-sm">
-                {conPlan ? "Ajustar presupuesto" : "Ver movimientos"}
-              </EnlaceBoton>
-            }
-          >
-            {r.esperadoPorCategoria.length ? (
-              <ul>
-                {r.esperadoPorCategoria.slice(0, 7).map((c) => {
-                  const cat = c.id ? porId.get(c.id) : undefined;
-                  const avance = conPlan ? porcentaje(c.comprometido, c.esperado) : porcentaje(c.esperado, r.costoVida);
-                  return (
-                    <li key={c.id ?? "sin"} className="border-b border-divisor last:border-b-0">
-                      <Link
-                        href={c.id ? `/movimientos?mes=${mes}&categoria=${c.id}` : `/movimientos?mes=${mes}&categoria=sin`}
-                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3 md:grid-cols-[minmax(180px,1.2fr)_minmax(0,2fr)_190px_96px] md:gap-4"
-                      >
-                        <span className="flex min-w-0 items-center gap-3 text-[15px] font-semibold">
-                          <CuadroIcono nombre={iconoCategoria(c.nombre)} />
-                          <span className="truncate">{c.nombre}</span>
-                        </span>
-                        <span className="col-span-2 row-start-2 md:col-span-1 md:row-start-auto">
-                          <Barra porcentaje={avance} tono={c.esencial ? "marca" : "teja"} gruesa />
-                        </span>
-                        <span className="row-start-3 text-sm text-cuerpo md:row-start-auto md:text-right">
-                          {conPlan ? (
-                            <>
-                              <b className="text-tinta">{formatearCOP(c.esperado)}</b> · llevas {formatearCorto(c.comprometido)}
-                            </>
-                          ) : (
-                            <>
-                              <b className="text-tinta">{formatearCOP(c.esperado)}</b> · {avance} %
-                            </>
-                          )}
-                        </span>
-                        <span className="col-start-2 row-start-1 justify-self-end md:col-start-auto md:row-start-auto">
-                          <Chip tono={c.esencial ? "info" : "neutro"}>{!cat ? "Sin categoría" : c.esencial ? "Esencial" : "No esencial"}</Chip>
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="text-sm text-tenue">Sin gastos ni presupuesto en este mes.</p>
-            )}
-            {r.esperadoPorCategoria.length > 7 && (
-              <p className="mt-2 text-[13px] text-tenue">
-                Y {r.esperadoPorCategoria.length - 7} categorías más en{" "}
-                <Link href="/presupuesto" className="font-semibold underline">
-                  Presupuesto
-                </Link>
-                .
-              </p>
-            )}
-            {(sinCategoria ?? 0) > 0 && (
-              <div className="mt-3">
-                <Aviso tipo="info">
-                  <Link href={`/movimientos?mes=${mes}&categoria=sin`} className="font-semibold underline">
-                    {sinCategoria} movimientos sin categoría
+        <Tarjeta
+          titulo="Top de categorías contra presupuesto"
+          subtitulo={`Las ${top.length || 5} categorías donde más has gastado en ${nombreDelMes}`}
+          accion={
+            <EnlaceBoton href={conPlan ? "/presupuesto" : `/presupuesto?mes=${mes}`} variante="secundario" className="h-9 px-3 text-sm">
+              Ver presupuesto
+            </EnlaceBoton>
+          }
+        >
+          {top.length ? (
+            <ul>
+              {top.map((c) => (
+                <li key={c.id} className="border-b border-divisor last:border-b-0">
+                  <Link
+                    href={`/movimientos?mes=${mes}&categoria=${c.id}`}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3 md:grid-cols-[minmax(0,1fr)_180px_96px] lg:grid-cols-[minmax(200px,1.2fr)_minmax(0,2fr)_200px_104px] lg:gap-4"
+                  >
+                    <span className="flex min-w-0 items-center gap-3 text-[15px] font-semibold">
+                      <CuadroIcono nombre={iconoCategoria(c.nombre)} />
+                      <span className="truncate">{c.nombre}</span>
+                    </span>
+                    <span className="col-span-full row-start-2 lg:col-span-1 lg:row-start-auto">
+                      <Barra porcentaje={c.porcentaje} tono={SEM[c.semaforo].tono} gruesa />
+                    </span>
+                    <span className="row-start-3 text-sm text-cuerpo md:row-start-auto md:text-right">
+                      <b className="text-tinta">{formatearCOP(c.real)}</b> de {formatearCOP(c.presupuesto)}
+                    </span>
+                    <span className="col-start-2 row-start-1 justify-self-end md:col-start-auto md:row-start-auto">
+                      <Chip tono={SEM[c.semaforo].tono}>{SEM[c.semaforo].texto}</Chip>
+                    </span>
                   </Link>
-                  : clasifícalos para afinar el número mínimo.
-                </Aviso>
-              </div>
-            )}
-          </Tarjeta>
-
-          <Tarjeta titulo="Número mínimo del hogar" subtitulo="Lo que la casa necesita cada mes sí o sí">
-            <dl className="text-[15px]">
-              {[
-                ["Pagos fijos esenciales", r.numeroMinimo.fijos],
-                [
-                  r.numeroMinimo.mesesPromedio
-                    ? `Variables esenciales (presupuesto o promedio de ${r.numeroMinimo.mesesPromedio} ${r.numeroMinimo.mesesPromedio === 1 ? "mes" : "meses"})`
-                    : "Variables esenciales (presupuesto o este mes)",
-                  r.numeroMinimo.variablesEsenciales,
-                ],
-                [`Imprevistos (${ctx.hogar.cuotaImprevistosPct} %)`, r.numeroMinimo.imprevistos],
-              ].map(([etiqueta, valor]) => (
-                <div key={etiqueta} className="flex justify-between gap-3 border-b border-divisor py-2.5">
-                  <dt className="text-cuerpo">{etiqueta}</dt>
-                  <dd className="font-semibold whitespace-nowrap">{formatearCOP(valor as number)}</dd>
-                </div>
+                </li>
               ))}
-              <div className="flex justify-between gap-3 pt-3 text-base font-bold">
-                <dt>Número mínimo</dt>
-                <dd className="whitespace-nowrap">{formatearCOP(r.numeroMinimo.total)}</dd>
-              </div>
-            </dl>
-            <div className="mt-5 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-cuerpo">Esenciales del costo de vida</span>
-                <span className="font-semibold">{porcentaje(r.costoEsencial, r.costoVida)} %</span>
-              </div>
-              <Barra porcentaje={porcentaje(r.costoEsencial, r.costoVida)} tono="marca" />
-              <div className="flex justify-between pt-1">
-                <span className="text-cuerpo">Pagos fijos del costo de vida</span>
-                <span className="font-semibold">{porcentaje(r.fijos, r.costoVida)} %</span>
-              </div>
-              <Barra porcentaje={porcentaje(r.fijos, r.costoVida)} tono="teja" />
+            </ul>
+          ) : (
+            <p className="text-sm text-tenue">Aún no hay gastos en {nombreDelMes}.</p>
+          )}
+          {(sinCategoria ?? 0) > 0 && (
+            <div className="mt-3">
+              <Aviso tipo="info">
+                <Link href={`/movimientos?mes=${mes}&categoria=sin`} className="font-semibold underline">
+                  {sinCategoria} movimientos sin categoría
+                </Link>
+                : clasifícalos para afinar el número mínimo.
+              </Aviso>
             </div>
-            <details className="group mt-5 rounded-xl bg-mosaico px-4 py-3 text-[13px] leading-5 text-cuerpo">
-              <summary className="cursor-pointer list-none font-semibold text-tinta">
-                ¿Cómo se calcula? <span className="text-tenue group-open:hidden">Ver</span>
-              </summary>
-              <ul className="mt-2 list-disc space-y-1.5 pl-4">
-                <li>
-                  <b>Costo de vida</b>: por cada categoría, lo presupuestado (pagos fijos + gasto variable) o lo que ya gastaste si es
-                  más. No incluye «Ahorro e inversión».
-                </li>
-                <li>
-                  <b>Número mínimo</b>: solo categorías esenciales. En cada una, lo mayor entre lo presupuestado y lo que sueles
-                  gastar (promedio de los últimos 3 meses), más la cuota de imprevistos.
-                </li>
-                <li>
-                  <b>Ahorro proyectado</b>: ingresos esperados (los recibidos o tus ingresos fijos, lo mayor) menos el costo de vida.
-                </li>
-                <li>Los meses cerrados se miden con lo que realmente pasó.</li>
-              </ul>
-            </details>
-          </Tarjeta>
-        </div>
+          )}
+        </Tarjeta>
+
+        <section aria-label="Academia" className="flex flex-col gap-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-[17px] leading-[22px] font-bold md:text-xl md:leading-[26px]">Aprende en la Academia</h2>
+            <Link href="/academia" className="inline-flex h-9 items-center px-3 text-sm font-semibold hover:underline">
+              Ver todo
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            {academia.map((a) => (
+              <Link key={a.href} href={a.href} className="flex items-center gap-3 rounded-[14px] border border-borde bg-elevada px-4 py-3.5 hover:bg-arena">
+                <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg bg-arena">
+                  <Icono nombre={a.icono} tamano={22} />
+                </span>
+                <span>
+                  <small className="block text-xs font-semibold tracking-[0.02em] text-cuerpo uppercase">{a.etiqueta}</small>
+                  <b className="text-[15px] leading-5">{a.titulo}</b>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
       </div>
     </>
   );

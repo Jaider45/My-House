@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Aviso, Chip, Tarjeta, Titulo, Vacio, cx } from "@/components/ui";
+import { Aviso, Chip, Tarjeta, TarjetaAcademia, Titulo, Vacio, clasesBoton, cx } from "@/components/ui";
+import { BotonGuia } from "@/components/guia/boton-guia";
 import { Icono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
@@ -44,6 +45,10 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
     ctx.supabase.from("members").select("id, user_id, nit_digitos").eq("es_dependiente", false),
     ctx.supabase.from("calendario_tributario").select("digitos, fecha").eq("pais", ctx.hogar.pais).eq("anio_gravable", anio),
   ]);
+  const [{ count: sinTitular }, { count: contadores }] = await Promise.all([
+    ctx.supabase.from("accounts").select("id", { count: "exact", head: true }).eq("archivada", false).is("titular_member_id", null),
+    ctx.supabase.from("members").select("id", { count: "exact", head: true }).eq("rol", "contador"),
+  ]);
 
   const porEtiqueta = new Map<string, { total: number; cantidad: number }>();
   for (const t of etiquetados ?? []) {
@@ -70,12 +75,50 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
     puedeEditar: ctx.esAdmin || (!!adulto && adulto.user_id === ctx.userId),
   };
 
+  // «Qué hacer ahora» (diseño): lo que se puede marcar como hecho con datos de My House, del más útil al menos.
+  const etiquetados_ = (etiquetados ?? []).length;
+  const pasos = [
+    {
+      titulo: "Etiquetar ingresos y gastos",
+      texto: etiquetados_ ? `${etiquetados_} movimientos con etiqueta tributaria en ${anio}` : "Salud, educación, honorarios: en «Más detalles» de cada movimiento",
+      hecho: etiquetados_ > 0,
+      accion: { href: "/movimientos", texto: "Ir a movimientos" },
+    },
+    {
+      titulo: "Asignar el titular de cada cuenta",
+      texto: sinTitular ? `${sinTitular} ${sinTitular === 1 ? "cuenta sin titular" : "cuentas sin titular"}: sus movimientos no suman a nadie` : "Cada cuenta suma a su dueño",
+      hecho: !sinTitular,
+      accion: { href: "/cuentas", texto: "Revisar cuentas" },
+    },
+    {
+      titulo: "Escribir los dos últimos dígitos de la cédula",
+      texto: plazo.digitos ? `Cédula terminada en ${plazo.digitos}` : "Con ellos te decimos la fecha límite y te avisamos antes",
+      hecho: !!plazo.digitos,
+      accion: null,
+    },
+    {
+      titulo: "Pedir el certificado de ingresos y retenciones",
+      texto: "Lo entrega la empresa en marzo. Agenda un recordatorio para no olvidarlo",
+      hecho: false,
+      accion: ctx.puedeEditar ? { href: "/recordatorios?nuevo=1", texto: "Recordarme" } : null,
+    },
+    {
+      titulo: "Darle acceso al contador",
+      texto: contadores ? "Ya hay un contador con acceso de solo lectura" : "Ve movimientos, Renta DIAN y soportes, sin poder cambiar nada",
+      hecho: !!contadores,
+      accion: ctx.esAdmin ? { href: "/ajustes/miembros?nuevo=1", texto: "Invitar" } : null,
+    },
+  ];
+  const siguiente = pasos.findIndex((x) => !x.hecho);
+
   return (
     <>
       <Titulo
         subtitulo={`Quién debe declarar en ${anio + 1} y qué soportes tener listos`}
         accion={
-          personas.length > 1 && (
+          <>
+          <BotonGuia id="renta" />
+          {personas.length > 1 && (
             <div role="group" aria-label="Persona" className="inline-flex gap-1 rounded-[10px] bg-mosaico p-1">
               {personas.map((p) => (
                 <Link key={p.member_id} href={enlace(anio, p.member_id)} aria-current={p === persona ? "true" : undefined} className={claseSegmento(p === persona)}>
@@ -83,15 +126,83 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
                 </Link>
               ))}
             </div>
-          )
+          )}
+          </>
         }
       >
         {`Renta DIAN · año gravable ${anio}`}
       </Titulo>
 
       <div className="space-y-4 md:space-y-5">
+        {!semaforo.ok && <Aviso tipo="info">{semaforo.motivo}</Aviso>}
+        {personas.length > 0 && (
+          <div
+            aria-label="Quién declara"
+            className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1.5 md:mx-0 md:grid md:grid-cols-2 md:gap-5 md:overflow-visible md:px-0 xl:grid-cols-3"
+          >
+            {personas.map((p) => (
+              <TarjetaPersona key={p.member_id} persona={p} anio={anio} activa={p === persona} href={enlace(anio, p.member_id)} plazo={p === persona ? plazo : null} />
+            ))}
+            <section id="reporte" className="flex shrink-0 basis-[84%] snap-start flex-col gap-2.5 rounded-2xl bg-monte p-4 text-arena md:basis-auto md:p-6">
+              <span className="inline-flex size-10 items-center justify-center rounded-lg bg-[#1b4a3e]">
+                <Icono nombre="documentos" tamano={22} />
+              </span>
+              <h2 className="text-xl leading-[26px] font-bold">Reporte para el contador</h2>
+              <p className="text-sm leading-[21px] text-sobre-monte">
+                {contadores
+                  ? "Tu contador ya tiene acceso de solo lectura: ve los topes, los totales por etiqueta y los soportes. Muy pronto podrás descargarlo en PDF y Excel."
+                  : "Topes, totales por etiqueta y soportes. Muy pronto podrás descargarlo en PDF y Excel; mientras tanto, dale acceso de solo lectura a tu contador."}
+              </p>
+              {ctx.esAdmin && !contadores && (
+                <Link href="/ajustes/miembros?nuevo=1" className={clasesBoton("secundario", "mt-auto self-start border-arena bg-arena text-monte hover:bg-arena/90")}>
+                  Invitar al contador
+                </Link>
+              )}
+            </section>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
-          <Tarjeta>
+          {persona && (
+            <Tarjeta guia="que-hacer" className="lg:col-span-2" titulo={`Qué hacer ahora · ${persona.nombre.split(" ")[0]}`} subtitulo={`${pasos.filter((x) => x.hecho).length} de ${pasos.length} listos. Lo demás llega con tiempo.`}>
+              <ol className="flex flex-col gap-2">
+                {pasos.map((x, i) => (
+                  <li
+                    key={x.titulo}
+                    className={cx(
+                      "flex flex-wrap items-center gap-2.5 rounded-[14px] border px-3 py-2.5 md:gap-3.5 md:px-4 md:py-3.5",
+                      x.hecho ? "border-borde bg-pagina" : i === siguiente ? "border-monte bg-elevada shadow-[inset_0_0_0_1px_var(--color-monte)]" : "border-borde bg-elevada",
+                    )}
+                  >
+                    <span
+                      className={cx(
+                        "inline-flex size-[26px] shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold md:size-8 md:text-sm",
+                        x.hecho ? "border-ok bg-ok text-white" : i === siguiente ? "border-monte bg-monte text-arena" : "border-control",
+                      )}
+                    >
+                      {x.hecho ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M5 12l5 5 9-10" />
+                        </svg>
+                      ) : (
+                        i + 1
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <b className={cx("block text-sm md:text-[15px]", x.hecho && "text-cuerpo line-through")}>{x.titulo}</b>
+                      <span className="text-xs text-cuerpo md:text-sm">{x.texto}</span>
+                    </span>
+                    {!x.hecho && x.accion && (
+                      <Link href={x.accion.href} className={clasesBoton("secundario", "ml-9 h-8 px-3 text-[13px] md:ml-0 md:h-9 md:text-sm")}>
+                        {x.accion.texto}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </Tarjeta>
+          )}
+          <Tarjeta className={cx(!persona && "lg:col-span-3")}>
             <p className="mb-2 text-[13px] leading-[18px] font-semibold text-cuerpo">Año gravable</p>
             <nav aria-label="Año gravable" className="mb-4 flex flex-wrap gap-1 rounded-[10px] bg-mosaico p-1">
               {(anios ?? []).map(({ anio: a }) => (
@@ -119,7 +230,6 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
               </dl>
             )}
           </Tarjeta>
-          <div className="lg:col-span-2">{!semaforo.ok ? <Aviso tipo="info">{semaforo.motivo}</Aviso> : persona ? <AvisoPersona persona={persona} anio={anio} unidad={unidad} plazo={plazo} /> : null}</div>
         </div>
 
         {semaforo.ok && !persona && <Vacio>No hay personas adultas en el hogar.</Vacio>}
@@ -147,7 +257,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
         )}
 
         <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
-          <section className="overflow-hidden rounded-2xl border border-borde bg-elevada lg:col-span-2">
+          <section data-guia="etiquetas" className="overflow-hidden rounded-2xl border border-borde bg-elevada lg:col-span-2">
             <div className="px-4 pt-4 md:px-6 md:pt-5">
               <h2 className="text-[17px] leading-[22px] font-bold md:text-xl md:leading-[26px]">Totales por etiqueta tributaria</h2>
               <p className="mt-0.5 text-sm text-tenue">Lo que el contador va a necesitar, ya sumado</p>
@@ -247,6 +357,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
           )}
         </div>
 
+        <TarjetaAcademia href="/academia/renta" icono="declaracion-renta" etiqueta="Academia · 3 lecciones" titulo="Renta para personas naturales, sin enredos" />
         <p className="text-[13px] text-tenue">
           Cálculo orientativo con base en lo que registras en My House. La decisión final de declarar es tuya y de tu contador.
         </p>
@@ -257,37 +368,56 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
 
 type Plazo = { digitos: string | null; fecha: string | null; puedeEditar: boolean };
 
-function AvisoPersona({ persona, anio, unidad, plazo }: { persona: SemaforoPersona; anio: number; unidad: string; plazo: Plazo }) {
+/** Tarjeta de una persona (diseño «Quién declara»): si debe declarar, en una frase, y su plazo si es la elegida. */
+function TarjetaPersona({ persona, anio, activa, href, plazo }: { persona: SemaforoPersona; anio: number; activa: boolean; href: string; plazo: Plazo | null }) {
   const rebasados = persona.topes.filter((t) => t.semaforo === "rojo");
   const cerca = persona.topes.filter((t) => t.semaforo === "amarillo");
+  const mayor = [...persona.topes].sort((a, b) => b.porcentaje - a.porcentaje)[0];
   const lista = (ts: ResultadoTope[]) => ts.map((t) => `${t.nombre.toLowerCase()} (${t.porcentaje} %)`).join(", ");
-  const { titulo, texto, clases } = {
+  const { chip, tono, titulo, texto } = {
     rojo: {
-      titulo: `${persona.nombre} debe declarar en ${anio + 1}`,
-      texto: `Superó ${rebasados.length === 1 ? "el tope de" : "los topes de"} ${lista(rebasados)}.${cerca.length ? ` Además, ${cerca.length === 1 ? "otro tope está cerca" : "otros topes están cerca"}: ${lista(cerca)}.` : ""}`,
-      clases: "bg-error-fondo text-error-tinta",
+      chip: "Obligado",
+      tono: "error" as const,
+      titulo: `Sí, debe declarar en ${anio + 1}`,
+      texto: `Superó ${rebasados.length === 1 ? "el tope de" : "los topes de"} ${lista(rebasados)}.${cerca.length ? ` También está cerca: ${lista(cerca)}.` : ""}`,
     },
     amarillo: {
-      titulo: `${persona.nombre} está cerca de un tope`,
+      chip: "Cerca",
+      tono: "alerta" as const,
+      titulo: "Está cerca de un tope",
       texto: `Cerca: ${lista(cerca)}. Si alcanza cualquiera, deberá declarar en ${anio + 1}.`,
-      clases: "bg-alerta-fondo text-alerta-tinta",
     },
     verde: {
-      titulo: `${persona.nombre} sigue bajo los topes de ${anio}`,
-      texto: `Ningún acumulado llega al 70 % de su tope en ${unidad}. My House te avisa si eso cambia.`,
-      clases: "bg-ok-fondo text-ok-tinta",
+      chip: "Bajo el tope",
+      tono: "ok" as const,
+      titulo: "Por ahora, no",
+      texto: `Está bajo los ${persona.topes.length} topes.${mayor ? ` Lo más cerca es ${mayor.nombre.toLowerCase()}, con el ${mayor.porcentaje} %.` : ""} Te avisamos si se acerca.`,
     },
   }[persona.estado];
+  const iniciales = persona.nombre
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((x) => x[0]?.toUpperCase())
+    .join("");
   return (
-    <section aria-label={`Estado de ${persona.nombre}`} className={cx("flex h-full items-start gap-4 rounded-2xl px-5 py-4", clases)}>
-      <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-white">
-        <Icono nombre="declaracion-renta" tamano={22} acento={false} />
-      </span>
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <strong className="text-xl leading-[26px]">{titulo}</strong>
-        <span className="text-sm">{texto}</span>
-        <PlazoDeclarar persona={persona} plazo={plazo} />
-      </div>
+    <section
+      aria-label={`Estado de ${persona.nombre}`}
+      className={cx(
+        "flex shrink-0 basis-[84%] snap-start flex-col gap-2.5 rounded-2xl border bg-elevada p-4 md:basis-auto md:p-6",
+        persona.estado === "rojo" ? "border-[#f2c4b5]" : "border-borde",
+        activa && "shadow-[inset_0_0_0_1px_var(--color-monte)]",
+      )}
+    >
+      <Link href={href} className="flex items-center gap-3">
+        <span className={cx("inline-flex size-10 shrink-0 items-center justify-center rounded-full font-bold", persona.estado === "rojo" ? "bg-monte text-arena" : "bg-teja text-white")}>
+          {iniciales}
+        </span>
+        <b className="flex-1 text-[17px]">{persona.nombre.split(" ")[0]}</b>
+        <Chip tono={tono}>{chip}</Chip>
+      </Link>
+      <h2 className="text-[22px] leading-7 font-bold">{titulo}</h2>
+      <p className="text-sm leading-[21px] text-cuerpo">{texto}</p>
+      {plazo && persona.estado !== "verde" && <PlazoDeclarar persona={persona} plazo={plazo} />}
     </section>
   );
 }

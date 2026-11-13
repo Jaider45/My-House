@@ -5,7 +5,7 @@ import { Aviso, cx } from "@/components/ui";
 import { enviarAlAsistente } from "./acciones";
 
 /** Reduce fotos grandes a 1600 px en JPEG antes de subirlas: menos espera y menos datos móviles. */
-async function comprimir(archivo: File): Promise<File> {
+export async function comprimir(archivo: File): Promise<File> {
   if (!archivo.type.startsWith("image/") || archivo.size < 600_000) return archivo;
   try {
     const imagen = await createImageBitmap(archivo);
