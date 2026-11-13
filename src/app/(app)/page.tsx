@@ -94,12 +94,6 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
   );
 
   if (r.ingresos + r.gastos + r.porPagar + r.costoVida === 0) {
-    const pasos = [
-      { icono: "cuentas", titulo: "Crea tus cuentas", detalle: "Banco, efectivo, tarjetas", hecho: (cuentas ?? 0) > 0, href: "/cuentas" },
-      { icono: "calendario", titulo: "Carga tus pagos fijos", detalle: "Arriendo, servicios, colegio, créditos", hecho: reglas.length > 0, href: "/presupuesto" },
-      { icono: "egresos", titulo: "Registra tu primer gasto", detalle: "Toma menos de 10 segundos", hecho: false, href: "/rapido" },
-      { icono: "familia", titulo: "Invita a tu pareja", detalle: "Registren juntos, vean lo mismo", hecho: (personas ?? 0) > 1, href: "/ajustes/miembros" },
-    ] as const;
     return (
       <>
         {encabezado}
@@ -118,14 +112,6 @@ async function Tablero({ searchParams }: { searchParams: Promise<Record<string, 
           >
             Registra tu primer gasto o importa el extracto del banco. Con tus pagos fijos cargados, My House calcula el número mínimo del hogar.
           </Vacio>
-          <Tarjeta>
-            <p className="mb-2 text-xs leading-4 font-bold tracking-[0.12em] uppercase">Primeros pasos</p>
-            {pasos.map((p) => (
-              <Link key={p.titulo} href={p.href} className="block">
-                <FilaLista icono={p.icono} titulo={p.titulo} detalle={p.detalle} valor={<Chip tono={p.hecho ? "ok" : "neutro"}>{p.hecho ? "Hecho" : "Pendiente"}</Chip>} />
-              </Link>
-            ))}
-          </Tarjeta>
         </div>
       </>
     );

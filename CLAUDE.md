@@ -394,6 +394,15 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     chequeo. Correo sin enviar nada: una llave Resend de solo envío responde `restricted_api_key` (401) = operativa.
     IA operativa si al menos un proveedor conectado responde. `/api/salud` resume todo (503 si algo falla).
 
+47. Recorrido de configuración inicial (`/primeros-pasos`, rama `feat/recorrido`). Pasos puros en `src/lib/recorrido`
+    (cuentas, ingreso fijo, pagos fijos, gasto variable, primer movimiento propio —origen ≠ `recurrente`—, personas o
+    invitación, 2FA; los dos últimos opcionales); cada uno se marca hecho con los datos del hogar activo (conteos
+    filtrados por `household_id`: con varios hogares RLS deja ver todos). «Ahora no», «Retomar» y ocultar la guía se
+    guardan en `user_metadata.recorrido[hogarId]` (por persona y hogar, viajan en el JWT: oculta = cero consultas;
+    la acción hace `updateUser` + `refreshSession`). La barra (`src/components/recorrido`) va en el layout en su
+    propio `<Suspense>`, solo para admin/editor y hogares activos; si ya estás en la pantalla del paso muestra qué
+    hacer ahí. Al terminar felicita y «Cerrar» la oculta. `mfa_activa` del JWT sale en `obtenerUsuario().mfaActiva`.
+
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas
   (pasó con `storage-api`: migraciones vacías y Storage arrancaba sin tablas). Síntoma: `relation "storage.buckets"

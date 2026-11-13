@@ -8,6 +8,7 @@ import { PestanasConfiguracion } from "./pestanas";
 export const metadata = { title: "Configuración" };
 
 const SECCIONES: { href: string; titulo: string; texto: string; icono: NombreIcono }[] = [
+  { href: "/primeros-pasos", titulo: "Primeros pasos", texto: "Guía para dejar el hogar configurado", icono: "meta" },
   { href: "/comprobantes", titulo: "Comprobantes", texto: "Fotos y PDF que se registran solos", icono: "documentos" },
   { href: "/deudas", titulo: "Deudas", texto: "Cuánto deben y cuándo terminan", icono: "deducciones" },
   { href: "/metas", titulo: "Metas de ahorro", texto: "Para qué ahorra la casa", icono: "ahorro" },

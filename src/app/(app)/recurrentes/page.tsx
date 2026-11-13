@@ -277,7 +277,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
 
           {ctx.puedeEditar &&
             (catalogos.cuentas.length ? (
-              <Tarjeta titulo="Nuevo pago fijo">
+              <Tarjeta id="nuevo" titulo="Nuevo pago fijo">
                 <FormularioRegla cuentas={catalogos.cuentas} categorias={catalogos.categorias} hoy={fecha} />
               </Tarjeta>
             ) : (

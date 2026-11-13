@@ -48,6 +48,8 @@ export const obtenerUsuario = cache(async () => {
     hogar: (claims as { hogar?: ClaimHogar }).hogar,
     /** Cómo se abrió la sesión (contraseña, código, recuperación, 2FA) y cuándo. */
     amr: claims.amr,
+    /** Tiene 2FA activa (custom_access_token_hook); undefined en tokens viejos. */
+    mfaActiva: (claims as { mfa_activa?: boolean }).mfa_activa,
   };
 });
 
