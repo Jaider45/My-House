@@ -13,6 +13,7 @@ import Link from "next/link";
 import type { TotalCategoria } from "@/lib/finanzas";
 import { FormularioRegla } from "../recurrentes/formulario";
 import { FormularioPresupuesto } from "./formulario";
+import { BotonGuia } from "@/components/guia/boton-guia";
 
 export const metadata = { title: "Presupuesto" };
 
@@ -110,6 +111,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
                 </EnlaceBoton>
               </span>
             )}
+            <BotonGuia id="presupuesto" />
           </>
         }
       >

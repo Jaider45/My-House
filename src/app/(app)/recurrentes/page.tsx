@@ -10,6 +10,7 @@ import { confirmarMovimiento } from "../movimientos/acciones";
 import { cambiarEstadoRegla, eliminarRegla } from "./acciones";
 import { FormularioRegla } from "./formulario";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
+import { BotonGuia } from "@/components/guia/boton-guia";
 
 export const metadata = { title: "Pagos fijos" };
 
@@ -105,6 +106,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
             <EnlaceBoton href="/recordatorios" variante="secundario">
               Recordatorios
             </EnlaceBoton>
+            <BotonGuia id="pago_fijo" />
           </>
         }
       >

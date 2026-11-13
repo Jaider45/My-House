@@ -117,6 +117,7 @@ export function Tarjeta({
   children,
   className,
   id,
+  guia,
 }: {
   titulo?: ReactNode;
   subtitulo?: ReactNode;
@@ -124,10 +125,13 @@ export function Tarjeta({
   children: ReactNode;
   className?: string;
   id?: string;
+  /** Marca para las guías interactivas (`data-guia`). */
+  guia?: string;
 }) {
   return (
     <section
       id={id}
+      data-guia={guia}
       className={cx(
         "scroll-mt-4 rounded-2xl border border-borde bg-elevada p-4 text-tinta md:p-6",
         className,

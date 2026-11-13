@@ -5,13 +5,16 @@ import { formatearCOP } from "@/lib/dinero";
 import { formatearFecha, formatearMes, hoy, mesDe, sumarMeses } from "@/lib/fechas";
 import { avanceDeuda } from "@/lib/deudas";
 import { FormularioAbono, FormularioDeuda } from "./formularios";
+import { BotonGuia } from "@/components/guia/boton-guia";
 
 export const metadata = { title: "Deudas" };
 
 export default function Deudas() {
   return (
     <>
-      <Titulo subtitulo="Cuánto deben, cuánto llevan pagado y cuándo terminan">Deudas del hogar</Titulo>
+      <Titulo subtitulo="Cuánto deben, cuánto llevan pagado y cuándo terminan" accion={<BotonGuia id="deuda" />}>
+        Deudas del hogar
+      </Titulo>
       <Contenido />
     </>
   );
@@ -218,7 +221,7 @@ async function Contenido() {
       {ctx.puedeEditar && (
         <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-2">
           {filas.some((d) => d.pendiente > 0) && cuentas?.length ? (
-            <Tarjeta titulo="Registrar abono" subtitulo="Queda como gasto en Deudas y suma al avance">
+            <Tarjeta guia="abono" titulo="Registrar abono" subtitulo="Queda como gasto en Deudas y suma al avance">
               <div className="flex flex-col gap-5">
                 {filas
                   .filter((d) => d.pendiente > 0)
@@ -236,7 +239,7 @@ async function Contenido() {
               </div>
             </Tarjeta>
           ) : null}
-          <Tarjeta titulo="Agregar deuda">
+          <Tarjeta guia="form-deuda" titulo="Agregar deuda">
             <FormularioDeuda />
           </Tarjeta>
         </div>

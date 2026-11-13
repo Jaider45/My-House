@@ -15,6 +15,7 @@ import { opcionesCategoria, raizDe } from "@/lib/categorias";
 import { iconoCategoria } from "@/lib/categorias/iconos";
 import { confirmarMovimiento } from "./acciones";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
+import { BotonGuia } from "@/components/guia/boton-guia";
 
 export const metadata = { title: "Movimientos" };
 
@@ -190,6 +191,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
               anterior={enlaceMes(sumarMeses(mes, -1))}
               siguiente={enlaceMes(sumarMeses(mes, 1))}
             />
+            <BotonGuia id="ver_movimiento" />
             <span className="hidden md:contents">
               <EnlaceBoton href="/importar" variante="secundario">
                 <svg

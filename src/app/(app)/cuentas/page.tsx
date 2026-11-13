@@ -7,6 +7,7 @@ import { avanceDeuda } from "@/lib/deudas";
 import { archivarCuenta } from "./acciones";
 import { BotonEliminarCuenta, FormularioCuenta, type Cuenta } from "./formulario";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
+import { BotonGuia } from "@/components/guia/boton-guia";
 
 export const metadata = { title: "Cuentas y tarjetas" };
 
@@ -20,7 +21,9 @@ const TIPOS: Record<Cuenta["tipo"], { texto: string; filtro: string; icono: Nomb
 export default function Cuentas({ searchParams }: PageProps<"/cuentas">) {
   return (
     <>
-      <Titulo subtitulo="Dónde está la plata de la casa y cuánto deben las tarjetas">Cuentas y tarjetas</Titulo>
+      <Titulo subtitulo="Dónde está la plata de la casa y cuánto deben las tarjetas" accion={<BotonGuia id="cuenta" />}>
+        Cuentas y tarjetas
+      </Titulo>
       <Contenido searchParams={searchParams} />
     </>
   );
@@ -162,6 +165,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
 
         {ctx.puedeEditar && (
           <Tarjeta
+            guia="form-cuenta"
             titulo={editando ? `Editar ${editando.nombre}` : "Agregar cuenta o tarjeta"}
             subtitulo={editando ? undefined : "Solo nombre y últimos 4 dígitos. Nunca te pedimos claves."}
             accion={

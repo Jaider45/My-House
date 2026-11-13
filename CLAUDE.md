@@ -394,14 +394,17 @@ sección Admin SaaS del lienzo «My House — Pantallas webapp», `project/Admin
     chequeo. Correo sin enviar nada: una llave Resend de solo envío responde `restricted_api_key` (401) = operativa.
     IA operativa si al menos un proveedor conectado responde. `/api/salud` resume todo (503 si algo falla).
 
-47. Recorrido de configuración inicial (`/primeros-pasos`, rama `feat/recorrido`). Pasos puros en `src/lib/recorrido`
-    (cuentas, ingreso fijo, pagos fijos, gasto variable, primer movimiento propio —origen ≠ `recurrente`—, personas o
-    invitación, 2FA; los dos últimos opcionales); cada uno se marca hecho con los datos del hogar activo (conteos
-    filtrados por `household_id`: con varios hogares RLS deja ver todos). «Ahora no», «Retomar» y ocultar la guía se
-    guardan en `user_metadata.recorrido[hogarId]` (por persona y hogar, viajan en el JWT: oculta = cero consultas;
-    la acción hace `updateUser` + `refreshSession`). La barra (`src/components/recorrido`) va en el layout en su
-    propio `<Suspense>`, solo para admin/editor y hogares activos; si ya estás en la pantalla del paso muestra qué
-    hacer ahí. Al terminar felicita y «Cerrar» la oculta. `mfa_activa` del JWT sale en `obtenerUsuario().mfaActiva`.
+47. Guías interactivas (rama `feat/recorrido`). `src/lib/guias` (puro): catálogo de guías (bienvenida, cuenta, gasto,
+    ver movimiento, deuda, pago fijo, presupuesto, invitar, dos pasos), cada paso con `ruta` (`/x/*` = subrutas;
+    `?editar=1` = parámetro exigido), `objetivo` (selector CSS: primer elemento visible —Next 16 deja la pantalla
+    anterior oculta en el DOM—; un campo se ilumina con su `<label>`), `avance` (`siguiente`, `clic`, `envio` = el
+    `submit` del formulario, que el navegador no dispara si falta un campo) y `omitirSi`. `MotorGuia`
+    (`src/components/guia`, en el layout) oscurece con cuatro paneles que además bloquean los toques fuera del hueco
+    (una sombra gigante salía tenue en celular), sigue la posición por `requestAnimationFrame`, enseña el enlace del
+    menú si está visible o navega solo, y espera 15 s antes de decir «no lo encuentro». Paso en curso en
+    sessionStorage; guías hechas en `user_metadata.guias` (por persona; la bienvenida se ofrece una vez).
+    Se inicia con `BotonGuia` («¿Cómo se usa?» en cada pantalla) o en `/guias`; las de registrar se niegan al rol
+    contador. Marcas en el DOM: `Tarjeta guia="…"` → `data-guia`. Al cambiar un formulario, revisar su guía.
 
 ## Entorno local: problemas conocidos
 - Si el disco se llena mientras Docker descarga imágenes, pueden quedar archivos de 0 bytes en las capas

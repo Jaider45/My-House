@@ -4,6 +4,7 @@ import { obtenerContexto } from "@/lib/sesion";
 import { cargarCatalogos } from "@/lib/catalogos";
 import { hoy, sumarDias } from "@/lib/fechas";
 import { RegistroRapido } from "./registro-rapido";
+import { BotonGuia } from "@/components/guia/boton-guia";
 
 export const metadata = { title: "Registrar" };
 
@@ -14,11 +15,16 @@ export default function Rapido() {
         <h1 id="titulo-registro" className="text-[17px] leading-[22px] font-bold md:text-xl md:leading-[26px]">
           Registrar movimiento
         </h1>
-        <Link href="/" aria-label="Cerrar" className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-mosaico">
+        <span className="flex items-center gap-1">
+          <BotonGuia id="gasto" variante="fantasma" className="h-9 px-2 text-sm">
+            ¿Cómo se usa?
+          </BotonGuia>
+          <Link href="/" aria-label="Cerrar" className="inline-flex size-10 items-center justify-center rounded-lg hover:bg-mosaico">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
-        </Link>
+          </Link>
+        </span>
       </div>
       <div className="px-5 pt-2 pb-5 md:px-6 md:pb-6">
         <Contenido />

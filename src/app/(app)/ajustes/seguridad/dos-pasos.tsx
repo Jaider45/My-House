@@ -71,7 +71,7 @@ export function DosPasos({ inicial }: { inicial: string | null }) {
             Estado: <strong>inactiva</strong>. Recomendada: protege tu información financiera aunque alguien conozca tu
             contraseña.
           </p>
-          <Boton onClick={activar} disabled={pendiente}>
+          <Boton onClick={activar} disabled={pendiente} data-guia="activar-2fa">
             {pendiente ? "Preparando…" : "Activar"}
           </Boton>
         </>

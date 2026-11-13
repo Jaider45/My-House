@@ -7,6 +7,7 @@ import { cambiarRol, quitarMiembro, revocarInvitacion } from "../acciones";
 import { CopiarEnlace, FormularioInvitar, FormularioPersona } from "./formularios";
 import { PestanasConfiguracion } from "@/app/(app)/ajustes/pestanas";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
+import { BotonGuia } from "@/components/guia/boton-guia";
 
 export const metadata = { title: "Miembros" };
 
@@ -15,7 +16,9 @@ const ROLES = { admin: "Administrador", editor: "Editor", contador: "Contador" }
 export default function Miembros() {
   return (
     <>
-      <Titulo subtitulo="El hogar, quién entra, con qué cuentas y con qué valores">Configuración</Titulo>
+      <Titulo subtitulo="El hogar, quién entra, con qué cuentas y con qué valores" accion={<BotonGuia id="invitar">Cómo invitar</BotonGuia>}>
+        Configuración
+      </Titulo>
       <PestanasConfiguracion actual="/ajustes/miembros" />
       <Contenido />
     </>
@@ -86,10 +89,10 @@ async function Contenido() {
 
         {ctx.esAdmin && (
           <>
-            <Tarjeta titulo="Invitar a alguien">
+            <Tarjeta guia="invitar" titulo="Invitar a alguien">
               <FormularioInvitar />
             </Tarjeta>
-            <Tarjeta titulo="Invitaciones pendientes">
+            <Tarjeta guia="invitaciones" titulo="Invitaciones pendientes">
               {invitaciones?.length ? (
                 <ul className="space-y-3">
                   {invitaciones.map((i) => (

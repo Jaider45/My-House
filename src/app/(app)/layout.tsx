@@ -3,7 +3,7 @@ import { Cargando } from "@/components/ui";
 import { ColaSinConexion } from "@/components/cola-sin-conexion";
 import { AvisoSuspendido } from "@/components/aviso-suspendido";
 import { AvisoAccesoSoporte } from "@/components/aviso-acceso-soporte";
-import { Recorrido } from "@/components/recorrido/recorrido";
+import { Guia } from "@/components/guia/guia";
 import { BarraNavegacion, Navegacion } from "./navegacion";
 import { SelectorHogar } from "./hogar-activo";
 import { misHogares } from "./mis-hogares";
@@ -21,14 +21,14 @@ export default function LayoutApp({ children }: { children: React.ReactNode }) {
           <AvisoAccesoSoporte />
           <SelectorHogar />
         </Suspense>
-        {/* Aparte: sus consultas no retrasan los avisos ni el selector de hogar. */}
-        <Suspense>
-          <Recorrido />
-        </Suspense>
         {/* Único límite de carga de las pantallas: al navegar, React mantiene la pantalla anterior hasta que
             la nueva está lista (sin esqueleto ni la espera mínima de 300 ms que React impone al reemplazarlo). */}
         <Suspense fallback={<Cargando />}>{children}</Suspense>
       </main>
+      {/* Guías interactivas: oscurece la pantalla e ilumina lo que toca usar (src/lib/guias). */}
+      <Suspense>
+        <Guia />
+      </Suspense>
     </div>
   );
 }
