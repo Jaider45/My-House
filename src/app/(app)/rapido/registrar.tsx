@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useCallback, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Aviso, clasesBoton, cx } from "@/components/ui";
 import { Icono, type NombreIcono } from "@/components/marca";
 import { MarcoVentana } from "@/components/ui/ventana";
@@ -44,6 +44,10 @@ export function VentanaRegistrar({
   const inicial = useSearchParams().get("modo");
   const [modo, setModo] = useState<Modo>(inicial === "foto" || inicial === "whatsapp" ? inicial : "escribir");
   const cerrar = useCallback(() => (sobrePantalla ? router.back() : router.push("/")), [router, sobrePantalla]);
+  // Abierta encima de otra pantalla: la ranura paralela conserva lo último al navegar, así que se cierra sola en
+  // cuanto la URL deja de ser /rapido (antes lo hacía una ruta comodín que Next 16 rechaza por chocar con las demás).
+  const ruta = usePathname();
+  if (sobrePantalla && ruta !== "/rapido") return null;
 
   return (
     <MarcoVentana
