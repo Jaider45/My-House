@@ -173,11 +173,11 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
                 <Link href={`/reporte-renta?anio=${anio}`} className={clasesBoton("secundario", "border-arena bg-arena text-monte hover:bg-arena/90")}>
                   Exportar reporte
                 </Link>
-                <a href={`/api/reporte-renta?anio=${anio}`} className={clasesBoton("fantasma", "text-arena hover:bg-[#1b4a3e]")}>
+                <a href={`/api/reporte-renta?anio=${anio}`} className={clasesBoton("fantasma", "!text-arena hover:!bg-[#1b4a3e]")}>
                   Excel
                 </a>
                 {ctx.esAdmin && !contadores && (
-                  <Link href="/ajustes/miembros?nuevo=1" className={clasesBoton("fantasma", "text-arena underline hover:bg-[#1b4a3e]")}>
+                  <Link href="/ajustes/miembros?nuevo=1" className={clasesBoton("fantasma", "!text-arena underline hover:!bg-[#1b4a3e]")}>
                     Invitar al contador
                   </Link>
                 )}
