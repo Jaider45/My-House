@@ -175,3 +175,47 @@ export async function enviarPlantillaWhatsapp(numero: string, plantilla: string,
     return { ok: false, detalle: `No se pudo enviar: ${e instanceof Error ? e.message : String(e)}` };
   }
 }
+
+/** Plantillas: crea una en Meta (queda en revisión). Devuelve el id de Meta y su estado. */
+export async function crearPlantillaMeta(cuerpo: unknown): Promise<{ ok: true; id: string; status: string } | { ok: false; detalle: string }> {
+  const w = await leerIntegracion("whatsapp");
+  if (!w?.valores.waba_id || !w.valores.token) return { ok: false, detalle: "Conecta WhatsApp en Integraciones (con el identificador de la cuenta, WABA ID)." };
+  try {
+    const r = await fetch(`${GRAPH}/${encodeURIComponent(w.valores.waba_id)}/message_templates`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${w.valores.token}`, "content-type": "application/json" },
+      body: JSON.stringify(cuerpo),
+      signal: tiempo(),
+    });
+    const d = await json(r);
+    if (!r.ok) {
+      const e = d.error as { error_user_msg?: string; message?: string } | undefined;
+      return { ok: false, detalle: e?.error_user_msg ?? e?.message ?? `Meta respondió ${r.status}.` };
+    }
+    return { ok: true, id: String(d.id ?? ""), status: String(d.status ?? "PENDING") };
+  } catch (e) {
+    return { ok: false, detalle: `No se pudo conectar con Meta: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+export type PlantillaMeta = { id: string; name: string; language: string; status: string; category: string; rejected_reason?: string };
+
+/** Todas las plantillas de la cuenta (para sincronizar estados). */
+export async function listarPlantillasMeta(): Promise<{ ok: true; plantillas: PlantillaMeta[] } | { ok: false; detalle: string }> {
+  const w = await leerIntegracion("whatsapp");
+  if (!w?.valores.waba_id || !w.valores.token) return { ok: false, detalle: "Conecta WhatsApp en Integraciones (con el WABA ID)." };
+  const plantillas: PlantillaMeta[] = [];
+  let url: string | null = `${GRAPH}/${encodeURIComponent(w.valores.waba_id)}/message_templates?fields=id,name,language,status,category,rejected_reason&limit=100`;
+  try {
+    for (let i = 0; url && i < 10; i++) {
+      const r: Response = await fetch(url, { headers: { authorization: `Bearer ${w.valores.token}` }, signal: tiempo(), cache: "no-store" });
+      const d = await json(r);
+      if (!r.ok) return { ok: false, detalle: (d.error as { message?: string })?.message ?? `Meta respondió ${r.status}.` };
+      plantillas.push(...((d.data as PlantillaMeta[]) ?? []));
+      url = ((d.paging as { next?: string } | undefined)?.next as string | undefined) ?? null;
+    }
+    return { ok: true, plantillas };
+  } catch (e) {
+    return { ok: false, detalle: `No se pudo conectar con Meta: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
