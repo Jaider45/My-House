@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cx } from "@/components/ui";
 
 const PESTANAS = [
-  { href: "/ajustes", texto: "Resumen" },
+  { href: "/ajustes", texto: "Configuración" },
   { href: "/ajustes/hogar", texto: "Hogar" },
   { href: "/ajustes/miembros", texto: "Miembros" },
   { href: "/ajustes/plan", texto: "Plan" },

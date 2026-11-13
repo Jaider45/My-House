@@ -1,4 +1,5 @@
 import { obtenerContexto } from "@/lib/sesion";
+import { trmDelHogar } from "@/lib/trm/servidor";
 import { cargarCatalogos } from "@/lib/catalogos";
 import { hoy, sumarDias } from "@/lib/fechas";
 import { iaDelHogar } from "@/lib/ia";
@@ -35,7 +36,7 @@ export async function PantallaRegistrar({ sobrePantalla }: { sobrePantalla: bool
   // Familiar: solo gastos escritos a mano (el asistente y los ingresos son de quienes editan).
   const familiar = !ctx.puedeEditar;
   const fecha = hoy();
-  const [catalogos, { data: recientes }, ia] = await Promise.all([
+  const [catalogos, { data: recientes }, ia, trm] = await Promise.all([
     cargarCatalogos(ctx),
     ctx.supabase
       .from("transactions")
@@ -46,10 +47,11 @@ export async function PantallaRegistrar({ sobrePantalla }: { sobrePantalla: bool
       .order("fecha", { ascending: false })
       .limit(2000),
     familiar ? Promise.resolve(null) : iaDelHogar(ctx),
+    trmDelHogar(ctx),
   ]);
   return (
     <VentanaRegistrar
-      datos={{ cuentas: catalogos.cuentas, categorias: catalogos.categorias, frecuentes: masUsadas(recientes ?? []), sugerencias: conceptos(recientes ?? []), hoy: fecha, soloGasto: familiar }}
+      datos={{ cuentas: catalogos.cuentas, categorias: catalogos.categorias, frecuentes: masUsadas(recientes ?? []), sugerencias: conceptos(recientes ?? []), hoy: fecha, soloGasto: familiar, trm: trm?.valor ?? null }}
       sinCuentas={!catalogos.cuentas.length}
       iaLista={ia !== null}
       sobrePantalla={sobrePantalla}

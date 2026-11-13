@@ -2,6 +2,7 @@ import { after, NextResponse, type NextRequest } from "next/server";
 import { DIAS_ANTES_PAGO_FIJO, DIAS_PLAZO_DIAN, planificarAvisos, type Aviso, type DatosHogar } from "@/lib/avisos";
 import { enviarCorreo, sitio } from "@/lib/correo/enviar";
 import { hoy as hoyBogota, sumarDias } from "@/lib/fechas";
+import { actualizarTrm } from "@/lib/trm/servidor";
 import { leerConfigHogar } from "@/lib/hogar";
 import { cargarSemaforo } from "@/lib/impuestos/servidor";
 import { crearClienteServicio, hayServicio } from "@/lib/supabase/servicio";
@@ -56,6 +57,8 @@ export async function GET(request: NextRequest) {
   const anio = Number(hoy.slice(0, 4));
   const lunes = new Date(`${hoy}T00:00:00Z`).getUTCDay() === 1;
   const ayer = sumarDias(hoy, -1);
+  // La TRM del día (Configuración → UVT y TRM), una vez por corrida: en paralelo con lo demás.
+  const trm = vuelta === 1 ? actualizarTrm(db) : null;
 
   let consulta = db.from("households").select("id, nombre, pais, config").order("id").limit(HOGARES_POR_PAGINA + 1);
   if (desde) consulta = consulta.gt("id", desde);
@@ -234,6 +237,7 @@ export async function GET(request: NextRequest) {
     // Se despacha y no se espera la respuesta: la siguiente vuelta corre con su propio tiempo límite.
     after(() => Promise.race([fetch(url, { headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } }).catch(() => null), esperar(5000)]));
   }
+  await trm;
   console.info(`[avisos] ${JSON.stringify({ hoy, vuelta, desde, ...resumen, siguiente })}`);
   return NextResponse.json({ hoy, vuelta, ...resumen, siguiente });
 }

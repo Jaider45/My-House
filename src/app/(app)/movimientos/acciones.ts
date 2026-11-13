@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { obtenerContexto } from "@/lib/sesion";
+import { trmDelHogar } from "@/lib/trm/servidor";
+import { dolaresAPesos, formatearTrm } from "@/lib/trm";
 import { idDe, mensajeError, NO_ENCONTRADO, SOLO_LECTURA, type Estado } from "@/lib/acciones";
 import { movimientoDesdeFormulario } from "@/lib/ingesta";
 import { formatearCOP } from "@/lib/dinero";
@@ -62,6 +64,16 @@ export async function registrarRapido(_: Estado, datos: FormData): Promise<Estad
   if (!ctx.puedeRegistrar) return { error: "Tu rol es de solo lectura." };
   // El rol Familiar solo registra gastos (la base también lo exige).
   if (!ctx.puedeEditar && datos.get("tipo") !== "gasto") return { error: "Tu rol solo registra gastos." };
+  // Pago en dólares: se convierte en el servidor con la TRM del hogar y queda anotado en la nota.
+  const usd = Number(String(datos.get("usd") ?? "").replace(",", "."));
+  if (datos.get("usd") !== null && String(datos.get("usd")).trim() !== "") {
+    if (!(usd > 0 && usd < 1e9)) return { error: "Escribe el valor en dólares." };
+    const trm = await trmDelHogar(ctx);
+    if (!trm) return { error: "Aún no hay TRM para convertir. Escribe el valor en pesos." };
+    datos.set("monto", String(dolaresAPesos(usd, trm.valor)));
+    const nota = String(datos.get("nota") ?? "").trim();
+    datos.set("nota", `${nota ? `${nota} · ` : ""}US$ ${usd.toLocaleString("es-CO", { maximumFractionDigits: 2 })} a TRM ${formatearTrm(trm.valor)}`);
+  }
   datos.set("member_id", ctx.miembro.id);
   const r = movimientoDesdeFormulario(datos);
   if (!r.ok) return { error: r.error };

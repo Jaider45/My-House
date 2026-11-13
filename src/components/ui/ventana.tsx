@@ -135,9 +135,9 @@ export function MarcoVentana({
  * Pie de la ventana: Cancelar + guardar, separado por una línea y pegado abajo en la hoja del celular. Fuera de una
  * ventana es solo el botón de guardar.
  */
-export function PieVentana({ children, pendiente, className }: { children: ReactNode; pendiente?: string; className?: string }) {
+export function PieVentana({ children, pendiente, className, variante }: { children: ReactNode; pendiente?: string; className?: string; variante?: "peligro" }) {
   const ventana = useVentana();
-  if (!ventana) return <BotonEnviar pendiente={pendiente}>{children}</BotonEnviar>;
+  if (!ventana) return <BotonEnviar pendiente={pendiente} variante={variante}>{children}</BotonEnviar>;
   return (
     <div
       className={cx(
@@ -148,7 +148,7 @@ export function PieVentana({ children, pendiente, className }: { children: React
       <button type="button" onClick={ventana.cerrar} className="inline-flex h-10 items-center rounded-lg px-4 text-[15px] font-semibold hover:bg-mosaico">
         Cancelar
       </button>
-      <BotonEnviar pendiente={pendiente} className="min-w-40">
+      <BotonEnviar pendiente={pendiente} variante={variante} className="min-w-40">
         {children}
       </BotonEnviar>
     </div>

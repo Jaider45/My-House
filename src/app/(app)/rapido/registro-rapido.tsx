@@ -1,5 +1,7 @@
 "use client";
 
+import { formatearCOP } from "@/lib/dinero";
+
 import Link from "next/link";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { Aviso, claseControl, cx } from "@/components/ui";
@@ -32,6 +34,8 @@ type Props = {
   alGuardar?: () => void;
   /** Rol Familiar: solo registra gastos (sin selector de tipo). */
   soloGasto?: boolean;
+  /** TRM del hogar para pagos en dólares (null = no hay). */
+  trm?: number | null;
 };
 
 const chip = (activo: boolean, conIcono = false) =>
@@ -46,7 +50,9 @@ const seg = (activo: boolean) =>
  * Registrar → «Escribirlo» (diseño «Registrar movimiento»): monto grande, concepto en texto libre y la categoría y la
  * cuenta que sugiere lo último registrado con ese concepto. «Cambiar» abre las categorías más usadas y las cuentas.
  */
-export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, hoy, alGuardar, soloGasto }: Props) {
+export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, hoy, alGuardar, soloGasto, trm }: Props) {
+  const [enDolares, setEnDolares] = useState(false);
+  const [dolares, setDolares] = useState("");
   const [tipo, setTipo] = useState<"gasto" | "ingreso">("gasto");
   const [cuenta, setCuenta] = useState(cuentas[0]?.id ?? "");
   const [concepto, setConcepto] = useState("");
@@ -132,7 +138,35 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, h
         />
       )}
 
-      <CampoMonto key={reinicio} etiqueta="¿Cuánto?" name="monto" grande autoFocus enterKeyHint="next" />
+      {enDolares && trm ? (
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[13px] leading-[18px] font-semibold text-cuerpo" htmlFor="registro-usd">
+            ¿Cuánto? (en dólares)
+          </label>
+          <input
+            id="registro-usd"
+            name="usd"
+            inputMode="decimal"
+            autoFocus
+            value={dolares}
+            onChange={(e) => setDolares(e.target.value.replace(/[^\d.,]/g, ""))}
+            placeholder="US$ 12,99"
+            className={`${claseControl} h-14 text-2xl font-bold`}
+          />
+          <span className="text-[13px] text-cuerpo">
+            {Number(dolares.replace(",", ".")) > 0
+              ? `≈ ${formatearCOP(Math.round(Number(dolares.replace(",", ".")) * trm))} con la TRM de ${formatearCOP(Math.round(trm))}`
+              : `Se convierte a pesos con la TRM de ${formatearCOP(Math.round(trm))}`}
+          </span>
+        </div>
+      ) : (
+        <CampoMonto key={reinicio} etiqueta="¿Cuánto?" name="monto" grande autoFocus enterKeyHint="next" />
+      )}
+      {trm ? (
+        <button type="button" onClick={() => setEnDolares(!enDolares)} className="-mt-2 self-start text-[13px] font-semibold text-cuerpo underline-offset-4 hover:underline">
+          {enDolares ? "Escribirlo en pesos" : "¿Pagaste en dólares?"}
+        </button>
+      ) : null}
 
       <label className="flex min-w-0 flex-col gap-1.5">
         <span className="text-[13px] leading-[18px] font-semibold text-cuerpo">¿En qué?</span>

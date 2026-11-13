@@ -202,3 +202,49 @@ export async function guardarAsistente(_: Estado, datos: FormData): Promise<Esta
   revalidatePath("/comprobantes");
   return { ok: "Asistente actualizado." };
 }
+
+/** Nombre y ciudad del hogar (Configuración → Hogar y miembros). La cuota y el contexto se editan en Hogar. */
+export async function guardarDatosHogar(_: Estado, datos: FormData): Promise<Estado> {
+  const r = z
+    .object({
+      nombre: z.string().trim().min(1, "Ponle un nombre al hogar.").max(80),
+      ciudad: z
+        .string()
+        .optional()
+        .transform((v) => v?.trim() || null)
+        .pipe(z.string().max(60).nullable()),
+    })
+    .safeParse(Object.fromEntries(datos));
+  if (!r.success) return { error: r.error.issues[0].message };
+  const ctx = await obtenerContexto();
+  if (!ctx.esAdmin) return { error: SOLO_ADMIN };
+  const { data, error } = await ctx.supabase.from("households").update({ nombre: r.data.nombre, ciudad: r.data.ciudad }).eq("id", ctx.hogar.id).select("id");
+  if (error) return { error: mensajeError(error) };
+  if (!data.length) return { error: NO_ENCONTRADO };
+  await ctx.supabase.auth.refreshSession(); // el nombre viaja en el JWT
+  revalidatePath("/", "layout");
+  return { ok: "Cambios guardados." };
+}
+
+/** «Actualizar TRM a diario» (la oficial) o una TRM fija que escribe el hogar. */
+export async function guardarTrm(_: Estado, datos: FormData): Promise<Estado> {
+  const auto = datos.get("auto") !== "0";
+  const manual = Number(String(datos.get("manual") ?? "").replace(/\./g, "").replace(",", "."));
+  if (!auto && !(manual > 0 && manual < 100_000)) return { error: "Escribe la TRM que quieres usar (pesos por dólar)." };
+  const ctx = await obtenerContexto();
+  if (!ctx.esAdmin) return { error: SOLO_ADMIN };
+  const config = fusionarConfigHogar(await configActual(ctx), { trm: { auto, manual: auto ? null : Math.round(manual * 100) / 100 } });
+  const { data, error } = await ctx.supabase.from("households").update({ config: config as { [k: string]: Json } }).eq("id", ctx.hogar.id).select("id");
+  if (error) return { error: mensajeError(error) };
+  if (!data.length) return { error: NO_ENCONTRADO };
+  revalidatePath("/ajustes");
+  return { ok: auto ? "Usaremos la TRM oficial de cada día." : "Listo: usaremos esa TRM para tus pagos en dólares." };
+}
+
+/** Cierra la sesión en los demás dispositivos (esta sigue abierta). */
+export async function cerrarOtrasSesiones(): Promise<Estado> {
+  const ctx = await obtenerContexto();
+  const { error } = await ctx.supabase.auth.signOut({ scope: "others" });
+  if (error) return { error: mensajeError(error) };
+  return { ok: "Listo: cerramos tu sesión en los otros dispositivos." };
+}

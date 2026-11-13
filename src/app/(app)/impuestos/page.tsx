@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Aviso, Chip, Tarjeta, TarjetaAcademia, Titulo, Vacio, clasesBoton, cx } from "@/components/ui";
+import { AccionPrincipal, Aviso, Chip, Tarjeta, TarjetaAcademia, Titulo, Vacio, clasesBoton, cx } from "@/components/ui";
 import { BotonGuia } from "@/components/guia/boton-guia";
 import { Icono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
@@ -7,7 +7,8 @@ import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { formatearCOP } from "@/lib/dinero";
 import { formatearFechaLarga, hoy } from "@/lib/fechas";
-import { guardarDigitos } from "./acciones";
+import { enviarReporte, guardarDigitos, recordarCertificado } from "./acciones";
+import { estadoSoportes } from "@/lib/impuestos/reporte";
 import { cargarSemaforo, COLOR_SEMAFORO, type SemaforoPersona } from "@/lib/impuestos/servidor";
 import type { ResultadoTope } from "@/lib/impuestos/tipos";
 
@@ -36,7 +37,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
     ctx.supabase.from("tax_params").select("anio").eq("pais", ctx.hogar.pais).order("anio", { ascending: false }),
     ctx.supabase
       .from("transactions")
-      .select("monto, tipo, tax_tags(nombre)")
+      .select("monto, tipo, fecha, comercio, tax_tags(nombre), attachments(id, archivo_path, tipo)")
       .not("tax_tag_id", "is", null)
       .eq("estado", "confirmado")
       .gte("fecha", `${anio}-01-01`)
@@ -50,12 +51,19 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
     ctx.supabase.from("members").select("id", { count: "exact", head: true }).eq("rol", "contador"),
   ]);
 
-  const porEtiqueta = new Map<string, { total: number; cantidad: number }>();
+  const porEtiqueta = new Map<string, { total: number; cantidad: number; conSoporte: number }>();
   for (const t of etiquetados ?? []) {
     const nombre = t.tax_tags?.nombre ?? "Otra";
-    const previo = porEtiqueta.get(nombre) ?? { total: 0, cantidad: 0 };
-    porEtiqueta.set(nombre, { total: previo.total + t.monto, cantidad: previo.cantidad + 1 });
+    const previo = porEtiqueta.get(nombre) ?? { total: 0, cantidad: 0, conSoporte: 0 };
+    porEtiqueta.set(nombre, { total: previo.total + t.monto, cantidad: previo.cantidad + 1, conSoporte: previo.conSoporte + (t.attachments?.length ? 1 : 0) });
   }
+  // Carpeta de soportes: los archivos de los movimientos con etiqueta del año (enlaces firmados por 1 hora).
+  const soportes = (etiquetados ?? [])
+    .flatMap((t) => (t.attachments ?? []).map((a) => ({ id: a.id, ruta: a.archivo_path, tipo: a.tipo, fecha: t.fecha, concepto: t.comercio ?? t.tax_tags?.nombre ?? "Soporte", etiqueta: t.tax_tags?.nombre ?? null })))
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const { data: firmados } = soportes.length ? await ctx.supabase.storage.from("soportes").createSignedUrls(soportes.slice(0, 12).map((x) => x.ruta), 3600) : { data: [] };
+  const enlaceSoporte = new Map((firmados ?? []).map((f) => [f.path, f.signedUrl]));
+  const conSoporte = [...porEtiqueta.values()].filter((e) => e.conSoporte >= e.cantidad).length;
 
   const personas = semaforo.ok ? semaforo.personas : [];
   const persona = personas.find((p) => p.member_id === sp.persona) ?? personas.find((p) => p.estado === "rojo") ?? personas[0];
@@ -100,13 +108,21 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
       titulo: "Pedir el certificado de ingresos y retenciones",
       texto: "Lo entrega la empresa en marzo. Agenda un recordatorio para no olvidarlo",
       hecho: false,
-      accion: ctx.puedeEditar ? { href: "/recordatorios?nuevo=1", texto: "Recordarme" } : null,
+      accion: null,
+      formulario: ctx.puedeEditar ? ("certificado" as const) : null,
     },
     {
       titulo: "Darle acceso al contador",
       texto: contadores ? "Ya hay un contador con acceso de solo lectura" : "Ve movimientos, Renta DIAN y soportes, sin poder cambiar nada",
       hecho: !!contadores,
       accion: ctx.esAdmin ? { href: "/ajustes/miembros?nuevo=1", texto: "Invitar" } : null,
+    },
+    {
+      titulo: "Enviar el reporte al contador",
+      texto: contadores ? "Con un toque, cuando todo esté listo" : "Primero dale acceso al contador",
+      hecho: false,
+      accion: { href: `/reporte-renta?anio=${anio}`, texto: "Ver reporte" },
+      formulario: ctx.puedeEditar && contadores ? ("enviar" as const) : null,
     },
   ];
   const siguiente = pasos.findIndex((x) => !x.hecho);
@@ -118,6 +134,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
         accion={
           <>
           <BotonGuia id="renta" />
+          <AccionPrincipal href={`/reporte-renta?anio=${anio}`}>Exportar para el contador</AccionPrincipal>
           {personas.length > 1 && (
             <div role="group" aria-label="Persona" className="inline-flex gap-1 rounded-[10px] bg-mosaico p-1">
               {personas.map((p) => (
@@ -149,15 +166,22 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
               </span>
               <h2 className="text-xl leading-[26px] font-bold">Reporte para el contador</h2>
               <p className="text-sm leading-[21px] text-sobre-monte">
-                {contadores
-                  ? "Tu contador ya tiene acceso de solo lectura: ve los topes, los totales por etiqueta y los soportes. Muy pronto podrás descargarlo en PDF y Excel."
-                  : "Topes, totales por etiqueta y soportes. Muy pronto podrás descargarlo en PDF y Excel; mientras tanto, dale acceso de solo lectura a tu contador."}
+                Topes, totales por etiqueta y {soportes.length} {soportes.length === 1 ? "soporte" : "soportes"} en PDF y Excel.{" "}
+                {contadores ? "Tu contador ya tiene acceso de solo lectura." : "Dale acceso de solo lectura a tu contador para que lo vea todo."}
               </p>
-              {ctx.esAdmin && !contadores && (
-                <Link href="/ajustes/miembros?nuevo=1" className={clasesBoton("secundario", "mt-auto self-start border-arena bg-arena text-monte hover:bg-arena/90")}>
-                  Invitar al contador
+              <div className="mt-auto flex flex-wrap gap-2">
+                <Link href={`/reporte-renta?anio=${anio}`} className={clasesBoton("secundario", "border-arena bg-arena text-monte hover:bg-arena/90")}>
+                  Exportar reporte
                 </Link>
-              )}
+                <a href={`/api/reporte-renta?anio=${anio}`} className={clasesBoton("fantasma", "text-arena hover:bg-[#1b4a3e]")}>
+                  Excel
+                </a>
+                {ctx.esAdmin && !contadores && (
+                  <Link href="/ajustes/miembros?nuevo=1" className={clasesBoton("fantasma", "text-arena underline hover:bg-[#1b4a3e]")}>
+                    Invitar al contador
+                  </Link>
+                )}
+              </div>
             </section>
           </div>
         )}
@@ -196,6 +220,14 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
                       <Link href={x.accion.href} className={clasesBoton("secundario", "ml-9 h-8 px-3 text-[13px] md:ml-0 md:h-9 md:text-sm")}>
                         {x.accion.texto}
                       </Link>
+                    )}
+                    {!x.hecho && "formulario" in x && x.formulario && (
+                      <FormularioAccion accion={x.formulario === "certificado" ? recordarCertificado : enviarReporte} className="ml-9 flex flex-col items-start gap-1 md:ml-0">
+                        <input type="hidden" name="anio" value={anio} />
+                        <BotonEnviar variante="secundario" className="h-8 px-3 text-[13px] md:h-9 md:text-sm" pendiente="…">
+                          {x.formulario === "certificado" ? "Recordarme" : "Enviar"}
+                        </BotonEnviar>
+                      </FormularioAccion>
                     )}
                   </li>
                 ))}
@@ -269,19 +301,26 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
                     <tr>
                       <th className="pl-4! md:pl-6!">Etiqueta</th>
                       <th className="der hidden md:table-cell">Movimientos</th>
-                      <th className="der pr-4! md:pr-6!">Total {anio}</th>
+                      <th className="der">Total {anio}</th>
+                      <th className="pr-4! md:pr-6!">Soportes</th>
                     </tr>
                   </thead>
                   <tbody>
                     {[...porEtiqueta.entries()]
                       .sort((a, b) => b[1].total - a[1].total)
-                      .map(([nombre, { total, cantidad }]) => (
-                        <tr key={nombre}>
-                          <td className="pl-4! font-semibold whitespace-normal! md:pl-6!">{nombre}</td>
-                          <td className="der hidden text-cuerpo md:table-cell">{cantidad}</td>
-                          <td className="der pr-4! font-semibold md:pr-6!">{formatearCOP(total)}</td>
-                        </tr>
-                      ))}
+                      .map(([nombre, { total, cantidad, conSoporte: con }]) => {
+                        const e = estadoSoportes({ movimientos: cantidad, conSoporte: con });
+                        return (
+                          <tr key={nombre}>
+                            <td className="pl-4! font-semibold whitespace-normal! md:pl-6!">{nombre}</td>
+                            <td className="der hidden text-cuerpo md:table-cell">{cantidad}</td>
+                            <td className="der font-semibold">{formatearCOP(total)}</td>
+                            <td className="pr-4! md:pr-6!">
+                              <Chip tono={e.tono}>{e.texto}</Chip>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -292,19 +331,45 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
             )}
           </section>
 
-          <Tarjeta titulo="Cómo se calcula" subtitulo="Para que los topes reflejen a cada persona">
-            <ul className="space-y-3 text-[15px] text-cuerpo">
-              <li>Cada movimiento cuenta para la persona elegida en él o, si no tiene, para el titular de la cuenta.</li>
-              <li>
-                Asigna el titular de cada cuenta en{" "}
-                <Link href="/cuentas" className="font-semibold text-tinta underline">
-                  Cuentas
-                </Link>
-                .
-              </li>
-              <li>El patrimonio suma los saldos de las cuentas del titular; inmuebles y vehículos aún no se registran.</li>
-            </ul>
-          </Tarjeta>
+          <section aria-label="Carpeta de soportes" className="flex flex-col gap-1 rounded-2xl border border-borde bg-elevada p-4 md:p-6">
+            <h2 className="text-[17px] leading-[22px] font-bold md:text-xl md:leading-[26px]">Carpeta de soportes</h2>
+            <p className="mb-2 text-sm text-tenue">
+              {porEtiqueta.size ? `${conSoporte} de ${porEtiqueta.size} etiquetas con todos sus soportes` : "Aquí quedan los PDF y fotos de tus movimientos con etiqueta"}
+            </p>
+            {soportes.slice(0, 12).map((x) => (
+              <a
+                key={x.id}
+                href={enlaceSoporte.get(x.ruta) ?? "#"}
+                target="_blank"
+                rel="noreferrer"
+                className="flex min-h-14 items-center gap-3 border-b border-divisor hover:bg-mosaico/60"
+              >
+                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-mosaico">
+                  <Icono nombre={x.tipo === "certificado" ? "certificados" : "documentos"} tamano={20} />
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-sm font-semibold">{x.concepto}</span>
+                  <span className="truncate text-[13px] text-tenue">
+                    {x.etiqueta} · {formatearFechaLarga(x.fecha)}
+                  </span>
+                </span>
+                <Chip tono="ok">Listo</Chip>
+              </a>
+            ))}
+            {soportes.length > 12 && <p className="py-2 text-[13px] text-tenue">Y {soportes.length - 12} más en el reporte.</p>}
+            {ctx.puedeEditar && (
+              <Link href="/comprobantes#subir" className="mt-3 rounded-xl border border-dashed border-control p-4 text-center text-sm text-cuerpo hover:bg-mosaico">
+                Sube PDF o fotos al <b className="text-tinta underline">asistente</b>: los adjunta al movimiento que corresponde.
+              </Link>
+            )}
+            <p className="mt-3 text-[13px] text-tenue">
+              Cada movimiento cuenta para la persona elegida en él o para el titular de la cuenta (
+              <Link href="/cuentas" className="font-semibold text-tinta underline">
+                Cuentas
+              </Link>
+              ). El patrimonio suma los saldos de las cuentas del titular.
+            </p>
+          </section>
 
           {persona && beneficio && (
             <Tarjeta

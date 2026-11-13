@@ -42,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Registros del navegador de pruebas (Playwright MCP)
+.playwright-mcp/

@@ -17,6 +17,8 @@ export type ConfigHogar = {
   ia: { proveedor: ProveedorIa | null; modelo: string | null };
   /** Correos del hogar: resumen de los lunes (lo activa cada hogar) y si ya salió la bienvenida. */
   correo: { resumen_semanal: boolean; bienvenida_enviada: boolean; novedades: boolean };
+  /** TRM para convertir pagos en dólares: la oficial del día (auto) o la que escriba el hogar (manual, en pesos). */
+  trm: { auto: boolean; manual: number | null };
 };
 
 const esquema = z.object({
@@ -31,11 +33,14 @@ const esquema = z.object({
   correo: z
     .object({ resumen_semanal: z.boolean().catch(false), bienvenida_enviada: z.boolean().catch(false), novedades: z.boolean().catch(false) })
     .catch({ resumen_semanal: false, bienvenida_enviada: false, novedades: false }),
+  trm: z
+    .object({ auto: z.boolean().catch(true), manual: z.number().positive().max(100_000).nullable().catch(null) })
+    .catch({ auto: true, manual: null }),
 });
 
 export function leerConfigHogar(config: unknown): ConfigHogar {
   const base = typeof config === "object" && config !== null ? config : {};
-  return esquema.parse({ cuota_imprevistos_pct: 10, contexto: "", ia: {}, correo: {}, ...base });
+  return esquema.parse({ cuota_imprevistos_pct: 10, contexto: "", ia: {}, correo: {}, trm: {}, ...base });
 }
 
 /** Aplica cambios parciales sin perder lo demás de la configuración (incluidas claves desconocidas). */
