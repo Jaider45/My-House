@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Aviso, Boton, cx } from "@/components/ui";
 import { MarcoVentana } from "@/components/ui/ventana";
@@ -305,7 +306,8 @@ export function BotonPagar({ datos, monto, concepto, cobro, texto, className }: 
       <Boton type="button" className={cx("h-11", className)} onClick={() => setAbierta(true)}>
         {texto}
       </Boton>
-      {abierta && <VentanaPago datos={datos} monto={monto} concepto={concepto} cobro={cobro} alCerrar={() => setAbierta(false)} />}
+      {/* En el body: el botón vive dentro del formulario del cupón y un formulario no puede ir dentro de otro. */}
+      {abierta && createPortal(<VentanaPago datos={datos} monto={monto} concepto={concepto} cobro={cobro} alCerrar={() => setAbierta(false)} />, document.body)}
     </>
   );
 }
