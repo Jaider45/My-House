@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Boton, Chip, CuadroIcono, EnlaceBoton, SelectorMes, Titulo, Vacio, cx, type Tono } from "@/components/ui";
+import { Chip, CuadroIcono, EnlaceBoton, SelectorMes, Titulo, Vacio, cx, type Tono } from "@/components/ui";
 import { obtenerContexto } from "@/lib/sesion";
 import { cargarCatalogos } from "@/lib/catalogos";
 import { formatearCOP } from "@/lib/dinero";
@@ -16,6 +16,7 @@ import { iconoCategoria } from "@/lib/categorias/iconos";
 import { confirmarMovimiento } from "./acciones";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { BotonGuia } from "@/components/guia/boton-guia";
+import { FichasFiltro, SegmentoAmbito } from "./filtros";
 import { PestanasMovimientos } from "../pestanas-secciones";
 
 export const metadata = { title: "Movimientos" };
@@ -49,8 +50,6 @@ export default function Movimientos({
   );
 }
 
-const claseFiltro =
-  "h-9 rounded-full border border-control bg-elevada px-3 text-sm text-tinta outline-none focus:border-monte data-[on=true]:border-monte data-[on=true]:bg-monte data-[on=true]:text-arena";
 
 async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
   const sp = await searchParams;
@@ -66,6 +65,8 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
   const tipo = ["ingreso", "gasto", "transferencia"].includes(texto(sp.tipo))
     ? (texto(sp.tipo) as "ingreso" | "gasto" | "transferencia")
     : "";
+  // Estado: confirmados, por pagar (programados) o todos menos los programados.
+  const estado = ["confirmado", "programado", "sin_programados"].includes(texto(sp.estado)) ? texto(sp.estado) : "";
   const { desde, hasta } = rangoMes(mes);
   // Los catálogos y los movimientos van en paralelo (un viaje a la base en vez de dos). Solo el filtro por
   // categoría necesita los catálogos antes (para sumar las subcategorías). Ver docs/MEJORAS.md («Rendimiento React»).
@@ -87,6 +88,8 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
     );
   if (tipo) consulta = consulta.eq("tipo", tipo);
   if (ambito) consulta = consulta.eq("ambito", ambito);
+  if (estado === "confirmado" || estado === "sin_programados") consulta = consulta.eq("estado", "confirmado");
+  else if (estado === "programado") consulta = consulta.eq("estado", "programado");
   if (buscar)
     consulta = consulta.ilike(
       "comercio",
@@ -175,6 +178,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
     ...(categoria && { categoria }),
     ...(tipo && { tipo }),
     ...(ambito && { ambito }),
+    ...(estado && { estado }),
     ...(buscar && { q: buscar }),
   });
   const enlaceMes = (m: string) =>
@@ -207,6 +211,9 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
           className="flex flex-wrap items-center gap-2"
         >
           <input type="hidden" name="mes" value={mes} />
+          {[...filtros].filter(([k]) => k !== "q").map(([k, v]) => (
+            <input key={k} type="hidden" name={k} value={v} />
+          ))}
           <label className="relative flex min-w-0 flex-[1_1_100%] items-center md:max-w-[420px] md:flex-[1_1_280px]">
             <span className="sr-only">Buscar movimientos</span>
             <svg
@@ -232,75 +239,48 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
               className="h-11 w-full rounded-lg border border-control bg-elevada pr-3 pl-[38px] text-[15px] outline-none focus:border-monte"
             />
           </label>
-          <div className="-mx-4 flex w-[calc(100%+2rem)] items-center gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:w-auto md:flex-wrap md:overflow-visible md:p-0">
-            <select
-              name="tipo"
-              defaultValue={tipo}
-              aria-label="Tipo"
-              data-on={!!tipo}
-              className={claseFiltro}
-            >
-              <option value="">Tipo: todos</option>
-              <option value="gasto">Gastos</option>
-              <option value="ingreso">Ingresos</option>
-              <option value="transferencia">Transferencias</option>
-            </select>
-            <select
-              name="ambito"
-              defaultValue={ambito}
-              aria-label="Ámbito"
-              data-on={!!ambito}
-              className={claseFiltro}
-            >
-              <option value="">Personal y negocio</option>
-              <option value="personal">Solo personal</option>
-              <option value="negocio">Solo negocio</option>
-            </select>
-            <select
-              name="categoria"
-              defaultValue={categoria}
-              aria-label="Categoría"
-              data-on={!!categoria}
-              className={claseFiltro}
-            >
-              <option value="">Categoría: todas</option>
-              <option value="sin">Sin categoría</option>
-              {catalogos.categorias
-                .filter((c) => !c.padre_id)
-                .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
-                  </option>
-                ))}
-            </select>
-            <select
-              name="cuenta"
-              defaultValue={cuenta}
-              aria-label="Cuenta"
-              data-on={!!cuenta}
-              className={claseFiltro}
-            >
-              <option value="">Cuenta: todas</option>
-              {catalogos.cuentas.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-            <Boton
-              type="submit"
-              variante="secundario"
-              className="h-9 shrink-0 px-3 text-sm"
-            >
-              Filtrar
-            </Boton>
+          <SegmentoAmbito valor={ambito} />
+          <div className="-mx-4 flex w-[calc(100%+2rem)] items-center gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:w-full md:flex-wrap md:overflow-visible md:p-0" role="group" aria-label="Filtros">
+            <FichasFiltro
+              valores={{ tipo, categoria, cuenta, estado }}
+              filtros={[
+                {
+                  nombre: "tipo",
+                  etiqueta: "Tipo",
+                  opciones: [
+                    { valor: "", texto: "Todos" },
+                    { valor: "gasto", texto: "Gastos" },
+                    { valor: "ingreso", texto: "Ingresos" },
+                    { valor: "transferencia", texto: "Transferencias" },
+                  ],
+                },
+                {
+                  nombre: "categoria",
+                  etiqueta: "Categoría",
+                  opciones: [
+                    { valor: "", texto: "Todas" },
+                    { valor: "sin", texto: "Sin categoría" },
+                    ...catalogos.categorias
+                      .filter((c) => !c.padre_id)
+                      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
+                      .map((c) => ({ valor: c.id, texto: c.nombre })),
+                  ],
+                },
+                { nombre: "cuenta", etiqueta: "Cuenta", opciones: [{ valor: "", texto: "Todas" }, ...catalogos.cuentas.map((c) => ({ valor: c.id, texto: c.nombre }))] },
+                {
+                  nombre: "estado",
+                  etiqueta: "Estado",
+                  opciones: [
+                    { valor: "", texto: "Todos" },
+                    { valor: "sin_programados", texto: "Todos menos programados" },
+                    { valor: "confirmado", texto: "Pagados o recibidos" },
+                    { valor: "programado", texto: "Por pagar (programados)" },
+                  ],
+                },
+              ]}
+            />
             {filtros.size > 0 && (
-              <EnlaceBoton
-                href={`/movimientos?mes=${mes}`}
-                variante="fantasma"
-                className="h-9 shrink-0 px-3 text-sm"
-              >
+              <EnlaceBoton href={`/movimientos?mes=${mes}`} variante="fantasma" className="h-9 shrink-0 px-3 text-sm">
                 Limpiar filtros
               </EnlaceBoton>
             )}
