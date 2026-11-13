@@ -1,5 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { administradores, avisarAdministradores, crearClienteServicio, cronAutorizado } from "@/lib/pagos/servidor";
+import {
+  aceptacionWompi,
+  administradores,
+  avisarAdministradores,
+  crearClienteServicio,
+  crearTransaccion,
+  cronAutorizado,
+  obtenerWompi,
+  procesarTransaccion,
+} from "@/lib/pagos/servidor";
+import { referenciaIntento } from "@/lib/pagos/wompi";
 import { correoCampana, correoMora, correoPlanGratis, correoPruebaTermina, correoRenovacion } from "@/lib/correo/correos";
 import type { Contenido } from "@/lib/correo/plantilla";
 import { enviarCorreo, sitio } from "@/lib/correo/enviar";
@@ -55,6 +65,9 @@ export async function GET(request: NextRequest) {
   const { data: planes } = await db.from("planes").select("codigo, nombre, precio_mensual");
   const plan = new Map((planes ?? []).map((p) => [p.codigo, p]));
   const urlPlan = `${sitio()}/ajustes/plan`;
+  // Hogares con tarjeta guardada: el aviso de renovación dice que se cobra solo.
+  const { data: tarjetas } = await db.from("metodos_pago").select("household_id, marca, ultimos4").eq("activo", true).in("household_id", avisos.filter((a) => a.tipo === "renovacion").map((a) => a.hogar));
+  const tarjetaDe = new Map((tarjetas ?? []).map((t) => [t.household_id, `${t.marca ?? "Tarjeta"} ···${t.ultimos4 ?? ""}`]));
   const resumen = { avisos: avisos.length, correos: 0, repetidos: 0 };
 
   for (const a of avisos) {
@@ -72,7 +85,7 @@ export async function GET(request: NextRequest) {
       const base = { nombre: d.nombre, hogar: d.hogar, plan: nombrePlan, urlPlan, sitio: sitio() };
       switch (a.tipo) {
         case "renovacion":
-          return correoRenovacion({ ...base, monto: formatearCOP(a.monto ?? 0), vence: fecha(a.vence), periodo: a.periodo === "anual" ? "Anual" : "Mensual" });
+          return correoRenovacion({ ...base, monto: formatearCOP(a.monto ?? 0), vence: fecha(a.vence), periodo: a.periodo === "anual" ? "Anual" : "Mensual", tarjeta: tarjetaDe.get(a.hogar) ?? null });
         case "mora":
           return correoMora({ ...base, monto: a.monto ? formatearCOP(a.monto) : null, vencio: fecha(a.vence), baja: fecha(a.baja), dia: a.dia ?? 1 });
         case "prueba":
@@ -84,6 +97,31 @@ export async function GET(request: NextRequest) {
     const enviados = await avisarAdministradores(db, a.hogar, `cobro-${a.tipo}`, armar);
     resumen.correos += enviados;
     await db.from("avisos_enviados").update({ destinatarios: enviados }).eq("household_id", a.hogar).eq("clave", clave);
+  }
+
+  // ── Débito automático: renovaciones con tarjeta guardada ──
+  // El día del vencimiento y, si falla, los días 1, 3 y 7 de mora (`cobros_para_debitar` decide). Cada intento lleva
+  // su propia referencia; el resultado lo registra `procesarTransaccion` (o el webhook, lo que llegue primero).
+  const debitos = { intentos: 0, aprobados: 0, rechazados: 0, errores: 0 };
+  const wompi = await obtenerWompi();
+  if (wompi?.privada) {
+    const [{ data: porCobrar }, aceptacion] = await Promise.all([db.rpc("cobros_para_debitar", { p_hoy: hoy }), aceptacionWompi(wompi)]);
+    for (const c of aceptacion ? (porCobrar ?? []) : []) {
+      const referencia = referenciaIntento(c.referencia, c.intentos);
+      debitos.intentos++;
+      const t = await crearTransaccion(wompi, { referencia, monto: c.monto, email: c.email || "pagos@myhousecol.co", medio: { tipo: "fuente", fuente: c.fuente_id, cuotas: 1 }, aceptacion: aceptacion! });
+      if ("error" in t) {
+        debitos.errores++;
+        console.error("[cobros] débito", c.referencia, t.error);
+        continue;
+      }
+      await db.rpc("cobro_transaccion", { p_referencia: referencia, p_transaccion: t.id, p_metodo_pago: c.metodo_pago_id });
+      if (t.status !== "PENDING") {
+        await procesarTransaccion(db, t, { origen: "cron", transaction: t });
+        if (t.status === "APPROVED") debitos.aprobados++;
+        else debitos.rechazados++;
+      }
+    }
   }
 
   // ── Campañas programadas (consola → Comunicaciones) ──
@@ -125,6 +163,6 @@ export async function GET(request: NextRequest) {
 
   // Retención (Ley 1581): el detalle de correos y el registro técnico se borran a los 90 días.
   const { data: purgados } = await db.rpc("purgar_retencion");
-  console.info("[cobros]", hoy, JSON.stringify({ ...resumen, campanas, purgados }));
-  return NextResponse.json({ hoy, ...resumen, campanas, purgados });
+  console.info("[cobros]", hoy, JSON.stringify({ ...resumen, debitos, campanas, purgados }));
+  return NextResponse.json({ hoy, ...resumen, debitos, campanas, purgados });
 }

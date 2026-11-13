@@ -22,15 +22,15 @@ function politicaSeguridad(): string {
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:"],
     "font-src": ["'self'"],
-    "connect-src": ["'self'", supabase, turnstile, sentry, ...(dev ? ["ws:"] : [])],
+    // Wompi: la tarjeta se tokeniza desde el navegador (pago dentro de la app; nunca pasa por nuestro servidor).
+    "connect-src": ["'self'", supabase, turnstile, sentry, "https://production.wompi.co", "https://sandbox.wompi.co", ...(dev ? ["ws:"] : [])],
     "frame-src": [turnstile],
     "worker-src": ["'self'"],
     "manifest-src": ["'self'"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     // El ingreso con Google (sin JavaScript) es un POST que redirige a Supabase y de ahí a Google.
-    // Pagar el plan: la acción redirige al Web Checkout de Wompi (form-action también rige las redirecciones).
-    "form-action": ["'self'", supabase, google, "https://checkout.wompi.co"],
+    "form-action": ["'self'", supabase, google],
     "frame-ancestors": ["'none'"],
   };
   return Object.entries(directivas)

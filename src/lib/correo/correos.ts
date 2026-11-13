@@ -383,10 +383,24 @@ export function correoPagoRecibido(d: DatosPlan & { monto: string; periodo: stri
   };
 }
 
-export function correoRenovacion(d: DatosPlan & { monto: string; vence: string; periodo: string }): Contenido {
+export function correoRenovacion(d: DatosPlan & { monto: string; vence: string; periodo: string; tarjeta?: string | null }): Contenido {
+  if (d.tarjeta)
+    return {
+      asunto: `El ${d.vence} renovamos tu plan ${d.plan}: ${d.monto}`,
+      vistaPrevia: `Lo cobramos a tu tarjeta ${d.tarjeta}. No tienes que hacer nada.`,
+      etiqueta: "Renovación",
+      icono: { nombre: "calendario", tono: "claro" },
+      titulo: `Tu plan ${d.plan} se renueva el ${d.vence}`,
+      intro: `${hola(d.nombre)} ese día cobramos el siguiente periodo de ${d.hogar} a la tarjeta guardada. No tienes que hacer nada.`,
+      tarjeta: { filas: [{ k: "Valor", v: d.monto, grande: true }, { k: "Periodo", v: d.periodo }, { k: "Tarjeta", v: d.tarjeta }, { k: "Fecha", v: d.vence }] },
+      botones: [{ texto: "Ver mi plan", url: d.urlPlan }],
+      enlaceAlterno: d.urlPlan,
+      nota: { texto: "¿No quieres renovar o prefieres otra tarjeta? Cámbialo en Configuración → Plan antes de esa fecha." },
+      ...porqueAdmin(d.hogar),
+    };
   return {
     asunto: `Tu plan ${d.plan} vence el ${d.vence}: ${d.monto}`,
-    vistaPrevia: "Págalo con tarjeta, PSE, Nequi o Daviplata.",
+    vistaPrevia: "Págalo con tarjeta o Nequi, sin salir de My House.",
     etiqueta: "Renovación",
     icono: { nombre: "calendario", tono: "claro" },
     titulo: `Tu plan ${d.plan} vence el ${d.vence}`,

@@ -7,14 +7,16 @@ import { MensajeEstado } from "@/components/ui/estado";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { formatearCOP } from "@/lib/dinero";
 import { ahorroAnual, LIMITES, textoLimite, type Plan } from "@/lib/planes";
-import { cotizar, iniciarPrueba, pagar, type Cotizacion } from "./acciones";
+import { activarConCupon, cotizar, iniciarPrueba, type Cotizacion } from "./acciones";
+import { BotonPagar, type DatosPago } from "./pago";
 
 type Props = {
   planes: Plan[];
   efectivo: string;
   suscripcion: { plan: string; periodo: string; estado: string } | null;
   esAdmin: boolean;
-  pagosActivos: boolean;
+  /** null = Wompi no está conectado. */
+  pago: DatosPago | null;
   pruebaDisponible: boolean;
   pruebaDias: number;
   descuentoAnualVisible: boolean;
@@ -89,8 +91,8 @@ export function ElegirPlan(p: Props) {
   );
 }
 
-function Acciones({ plan, periodo, actual, suscripcion, esAdmin, pagosActivos, pruebaDisponible, pruebaDias }: Props & { plan: Plan; periodo: "mensual" | "anual"; actual: boolean }) {
-  const [estado, enviar] = useActionState(pagar, null);
+function Acciones({ plan, periodo, actual, suscripcion, esAdmin, pago, pruebaDisponible, pruebaDias }: Props & { plan: Plan; periodo: "mensual" | "anual"; actual: boolean }) {
+  const [estado, enviar] = useActionState(activarConCupon, null);
   const [cupon, setCupon] = useState("");
   const [abierto, setAbierto] = useState(false);
   const [q, setQ] = useState<Cotizacion | null>(null);
@@ -146,11 +148,26 @@ function Acciones({ plan, periodo, actual, suscripcion, esAdmin, pagosActivos, p
           </button>
         )}
         <MensajeEstado estado={estado} />
-        {!pagosActivos && !conCupon && <Aviso tipo="info">Los pagos estarán disponibles muy pronto.</Aviso>}
-        <BotonEnviar className="h-11 w-full" pendiente="Abriendo el pago…" disabled={!pagosActivos && !(conCupon && conCupon.monto === 0)}>
-          {conCupon?.monto === 0 ? "Activar con el cupón" : `Pagar ${formatearCOP(conCupon?.monto ?? precio)}`}
-        </BotonEnviar>
-        {pagosActivos && <p className="text-center text-xs text-tenue">Tarjeta, PSE, Nequi, Daviplata o Bancolombia, con Wompi.</p>}
+        {!pago && !conCupon && <Aviso tipo="info">Los pagos estarán disponibles muy pronto.</Aviso>}
+        {conCupon?.monto === 0 ? (
+          <BotonEnviar className="h-11 w-full" pendiente="Activando…">
+            Activar con el cupón
+          </BotonEnviar>
+        ) : pago ? (
+          <BotonPagar
+            datos={pago}
+            monto={conCupon?.monto ?? precio}
+            concepto={`Plan ${plan.nombre} ${periodo}`}
+            cobro={{ plan: plan.codigo, periodo, cupon: conCupon?.cupon ?? undefined }}
+            texto={`Pagar ${formatearCOP(conCupon?.monto ?? precio)}`}
+            className="w-full"
+          />
+        ) : (
+          <Boton className="h-11 w-full" disabled>
+            Pagar {formatearCOP(conCupon?.monto ?? precio)}
+          </Boton>
+        )}
+        {pago && <p className="text-center text-xs text-tenue">Con tarjeta o Nequi, aquí mismo: no sales de My House.</p>}
       </form>
       {pruebaDisponible && !actual && (
         <FormularioAccion accion={iniciarPrueba} className="flex flex-col">

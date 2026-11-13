@@ -1,24 +1,18 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
 /*
- * Wompi (pasarela para Colombia): Web Checkout para pagar cada periodo y eventos (webhook) para confirmarlo.
- * Funciones puras (sin red): firmas, URL del checkout y lectura de eventos. Probadas en wompi.test.ts.
+ * Wompi (pasarela para Colombia). El pago se hace dentro de la app: la tarjeta se tokeniza en el navegador
+ * (`cliente.ts`) y el servidor crea la transacción por la API (`servidor.ts`); los eventos (webhook) y la consulta de
+ * la transacción la confirman. Aquí, funciones puras (sin red): firmas, referencias y lectura de eventos.
  *
- * Variables (solo servidor): WOMPI_PUBLIC_KEY (pub_test_… o pub_prod_…), WOMPI_INTEGRITY_SECRET, WOMPI_EVENTS_SECRET.
- * Sin ellas la app no ofrece pagar (Configuración → Plan lo dice) y el webhook responde 503.
+ * Llaves: pública (pub_test_… o pub_prod_…), secretos de integridad y de eventos, y la privada (prv_…) para guardar
+ * tarjetas y renovar solo. Se conectan en consola → Integraciones (o WOMPI_* en el entorno).
  */
 
-export type ConfigWompi = { publica: string; integridad: string; eventos: string };
+export { apiWompi, esPruebas } from "./cliente";
 
-export function configWompi(env: NodeJS.ProcessEnv = process.env): ConfigWompi | null {
-  const publica = env.WOMPI_PUBLIC_KEY ?? "";
-  const integridad = env.WOMPI_INTEGRITY_SECRET ?? "";
-  const eventos = env.WOMPI_EVENTS_SECRET ?? "";
-  return publica && integridad && eventos ? { publica, integridad, eventos } : null;
-}
-
-export const esPruebas = (llavePublica: string) => llavePublica.startsWith("pub_test_");
-export const apiWompi = (llavePublica: string) => (esPruebas(llavePublica) ? "https://sandbox.wompi.co/v1" : "https://production.wompi.co/v1");
+/** `privada` es opcional: sin ella se puede pagar, pero no guardar la tarjeta ni renovar solo. */
+export type ConfigWompi = { publica: string; integridad: string; eventos: string; privada?: string };
 
 const sha256 = (texto: string) => createHash("sha256").update(texto).digest("hex");
 
@@ -27,23 +21,9 @@ export function firmaIntegridad(referencia: string, montoCentavos: number, secre
   return sha256(`${referencia}${montoCentavos}${moneda}${secreto}`);
 }
 
-/** URL del Web Checkout. Wompi vuelve a `redireccion` con `?id=<transacción>`. */
-export function urlCheckout(
-  c: ConfigWompi,
-  d: { referencia: string; monto: number; email?: string; nombre?: string; redireccion: string },
-): string {
-  const centavos = d.monto * 100;
-  const p = new URLSearchParams({
-    "public-key": c.publica,
-    currency: "COP",
-    "amount-in-cents": String(centavos),
-    reference: d.referencia,
-    "signature:integrity": firmaIntegridad(d.referencia, centavos, c.integridad),
-    "redirect-url": d.redireccion,
-  });
-  if (d.email) p.set("customer-data:email", d.email);
-  if (d.nombre) p.set("customer-data:full-name", d.nombre);
-  return `https://checkout.wompi.co/p/?${p.toString()}`;
+/** Wompi exige una referencia por transacción: el primer intento usa la del cobro y los demás `<ref>.<n>`. */
+export function referenciaIntento(referencia: string, intentos: number): string {
+  return intentos > 0 ? `${referencia}.${intentos + 1}` : referencia;
 }
 
 export type TransaccionWompi = {
@@ -53,6 +33,7 @@ export type TransaccionWompi = {
   amount_in_cents: number;
   payment_method_type?: string;
   payment_method?: { extra?: { brand?: string; last_four?: string; name?: string }; financial_institution_code?: string; phone_number?: string };
+  payment_source_id?: number | null;
   status_message?: string | null;
 };
 

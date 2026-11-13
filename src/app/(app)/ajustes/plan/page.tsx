@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import { Aviso, Barra, Chip, Tarjeta, Titulo, type Tono } from "@/components/ui";
+import { Barra, Chip, Tarjeta, Titulo, type Tono } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { cargarMiPlan } from "@/lib/planes/servidor";
 import { diasDePrueba, porcentajeUso, textoLimite } from "@/lib/planes";
-import { consultarTransaccion, obtenerWompi } from "@/lib/pagos/servidor";
+import { aceptacionWompi, obtenerWompi } from "@/lib/pagos/servidor";
 import { formatearCOP } from "@/lib/dinero";
 import { formatearFechaCorta, formatearMomento } from "@/lib/consola/formato";
 import { PestanasConfiguracion } from "../pestanas";
-import { cambiarRenovacion, pagarPendiente } from "./acciones";
+import { cambiarRenovacion, quitarTarjeta } from "./acciones";
 import { ElegirPlan } from "./elegir";
+import { BotonPagar, type DatosPago } from "./pago";
 
 export const metadata: Metadata = { title: "Plan" };
 
@@ -36,25 +37,28 @@ function Uso({ etiqueta, usado, tope, texto }: { etiqueta: string; usado: number
   );
 }
 
-/** Resultado del Web Checkout: Wompi vuelve con `?id=<transacción>`. El plan lo activa el webhook. */
-async function Resultado({ id }: { id: string }) {
-  const wompi = await obtenerWompi();
-  const t = wompi ? await consultarTransaccion(id, wompi.publica) : null;
-  if (!t) return null;
-  if (t.status === "APPROVED") return <Aviso tipo="ok">Recibimos tu pago de {formatearCOP(t.amount_in_cents / 100)}. Tu plan se actualiza en unos segundos (te llega un correo).</Aviso>;
-  if (t.status === "PENDING") return <Aviso tipo="info">Tu pago está en proceso. Te avisamos por correo cuando se confirme.</Aviso>;
-  return <Aviso>El pago no se completó{t.status_message ? `: ${t.status_message}` : "."} Puedes intentarlo de nuevo.</Aviso>;
-}
-
-export default async function PlanHogar({ searchParams }: PageProps<"/ajustes/plan">) {
+export default async function PlanHogar() {
   const { ctx, estado, planes, actual, limites, pruebaDias, descuentoAnualVisible } = await cargarMiPlan();
-  const sp = await searchParams;
-  const [{ data: sus }, { data: cobros }] = await Promise.all([
+  const wompi = await obtenerWompi();
+  const [{ data: sus }, { data: cobros }, { data: tarjeta }, aceptacion] = await Promise.all([
     ctx.supabase.from("suscripciones").select("plan, periodo, estado, vence, monto_periodo, cancelar_al_vencer").eq("household_id", ctx.hogar.id).maybeSingle(),
     ctx.esAdmin
-      ? ctx.supabase.from("cobros").select("id, creado, plan, periodo, motivo, monto, cupon, estado, metodo, metodo_detalle, referencia").eq("household_id", ctx.hogar.id).order("creado", { ascending: false }).limit(12)
+      ? ctx.supabase.from("cobros").select("id, creado, plan, periodo, motivo, monto, cupon, estado, metodo, metodo_detalle, referencia, error").eq("household_id", ctx.hogar.id).order("creado", { ascending: false }).limit(12)
       : Promise.resolve({ data: [] as never[] }),
+    ctx.esAdmin
+      ? ctx.supabase.from("metodos_pago").select("marca, ultimos4, vence, titular").eq("household_id", ctx.hogar.id).eq("activo", true).maybeSingle()
+      : Promise.resolve({ data: null }),
+    wompi && ctx.esAdmin ? aceptacionWompi(wompi) : Promise.resolve(null),
   ]);
+  const pago: DatosPago | null = wompi
+    ? {
+        llavePublica: wompi.publica,
+        terminos: aceptacion?.terminos || null,
+        datosUrl: aceptacion?.datosUrl || null,
+        guardada: tarjeta && wompi.privada ? { marca: tarjeta.marca, ultimos4: tarjeta.ultimos4 } : null,
+        puedeGuardar: Boolean(wompi.privada),
+      }
+    : null;
   const pendiente = cobros?.find((c) => c.estado === "pendiente");
   const enPrueba = estado.plan === "gratis" && diasDePrueba(estado.prueba_hasta) > 0;
   const nombrePlan = (c: string) => planes.find((p) => p.codigo === c)?.nombre ?? c;
@@ -72,8 +76,6 @@ export default async function PlanHogar({ searchParams }: PageProps<"/ajustes/pl
       <Titulo subtitulo="Lo que incluye tu plan, cuánto has usado y tus pagos">Configuración</Titulo>
       <PestanasConfiguracion actual="/ajustes/plan" />
       <div className="flex flex-col gap-5">
-        {typeof sp.id === "string" && <Resultado id={sp.id} />}
-
         <Tarjeta titulo={`Plan ${actual?.nombre ?? nombrePlan(estado.efectivo)}`} accion={<Chip tono={chip.tono}>{chip.texto}</Chip>}>
           <div className="grid gap-6 md:grid-cols-2">
             <div className="flex flex-col gap-3 text-sm">
@@ -90,9 +92,36 @@ export default async function PlanHogar({ searchParams }: PageProps<"/ajustes/pl
                   <span>
                     {pendiente.motivo === "renovacion" ? "Renovación pendiente" : "Pago sin terminar"}: <b>{formatearCOP(pendiente.monto)}</b> por el plan {nombrePlan(pendiente.plan)} {pendiente.periodo}.
                   </span>
-                  <FormularioAccion accion={pagarPendiente} className="flex">
-                    <BotonEnviar className="h-10" pendiente="Abriendo el pago…">
-                      Pagar {formatearCOP(pendiente.monto)}
+                  {pendiente.error && <span className="text-[13px]">Último intento: {pendiente.error.toLowerCase()}.</span>}
+                  {ctx.esAdmin && pago ? (
+                    <BotonPagar
+                      datos={pago}
+                      monto={pendiente.monto}
+                      concepto={`Plan ${nombrePlan(pendiente.plan)} ${pendiente.periodo}`}
+                      cobro="pendiente"
+                      texto={`Pagar ${formatearCOP(pendiente.monto)}`}
+                      className="self-start"
+                    />
+                  ) : (
+                    <span className="text-[13px]">Los pagos estarán disponibles muy pronto.</span>
+                  )}
+                </div>
+              )}
+              {ctx.esAdmin && tarjeta && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-borde p-3">
+                  <span>
+                    <b>
+                      {tarjeta.marca ?? "Tarjeta"} ···{tarjeta.ultimos4}
+                    </b>
+                    <br />
+                    <span className="text-[13px] text-tenue">
+                      {sus && sus.estado !== "cancelada" && !sus.cancelar_al_vencer ? `Renovación automática el ${dia(sus.vence)}` : "Guardada para tus pagos"}
+                      {tarjeta.vence ? ` · vence ${tarjeta.vence}` : ""}
+                    </span>
+                  </span>
+                  <FormularioAccion accion={quitarTarjeta} className="flex">
+                    <BotonEnviar variante="fantasma" className="h-9 text-sm" pendiente="…">
+                      Quitar tarjeta
                     </BotonEnviar>
                   </FormularioAccion>
                 </div>
@@ -129,7 +158,7 @@ export default async function PlanHogar({ searchParams }: PageProps<"/ajustes/pl
           efectivo={estado.efectivo}
           suscripcion={sus ? { plan: sus.plan, periodo: sus.periodo, estado: sus.estado } : null}
           esAdmin={ctx.esAdmin}
-          pagosActivos={(await obtenerWompi()) !== null}
+          pago={ctx.esAdmin ? pago : null}
           pruebaDisponible={!estado.prueba_usada && estado.plan === "gratis"}
           pruebaDias={pruebaDias}
           descuentoAnualVisible={descuentoAnualVisible}

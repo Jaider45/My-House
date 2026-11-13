@@ -233,14 +233,14 @@ isOneToOne: false
                   ]
                 },"cobros": {
                   Row: {
-                    "creado": string,"cupon": string | null,"descuento": number,"error": string | null,"estado": string,"factura_estado": string,"factura_numero": string | null,"factura_url": string | null,"household_id": string,"id": string,"metodo": string | null,"metodo_detalle": string | null,"monto": number,"motivo": string,"pagado_en": string | null,"pasarela": string,"periodo": string,"periodo_vence": string | null,"plan": string,"precio": number,"reembolso_motivo": string | null,"referencia": string,"transaccion_id": string | null
+                    "creado": string,"cupon": string | null,"descuento": number,"error": string | null,"estado": string,"factura_estado": string,"factura_numero": string | null,"factura_url": string | null,"household_id": string,"id": string,"intentos": number,"metodo": string | null,"metodo_detalle": string | null,"metodo_pago_id": string | null,"monto": number,"motivo": string,"pagado_en": string | null,"pasarela": string,"periodo": string,"periodo_vence": string | null,"plan": string,"precio": number,"reembolso_motivo": string | null,"referencia": string,"transaccion_id": string | null,"ultimo_intento": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "creado"?: string,"cupon"?: string | null,"descuento"?: number,"error"?: string | null,"estado"?: string,"factura_estado"?: string,"factura_numero"?: string | null,"factura_url"?: string | null,"household_id": string,"id"?: string,"metodo"?: string | null,"metodo_detalle"?: string | null,"monto": number,"motivo": string,"pagado_en"?: string | null,"pasarela"?: string,"periodo": string,"periodo_vence"?: string | null,"plan": string,"precio": number,"reembolso_motivo"?: string | null,"referencia": string,"transaccion_id"?: string | null
+                    "creado"?: string,"cupon"?: string | null,"descuento"?: number,"error"?: string | null,"estado"?: string,"factura_estado"?: string,"factura_numero"?: string | null,"factura_url"?: string | null,"household_id": string,"id"?: string,"intentos"?: number,"metodo"?: string | null,"metodo_detalle"?: string | null,"metodo_pago_id"?: string | null,"monto": number,"motivo": string,"pagado_en"?: string | null,"pasarela"?: string,"periodo": string,"periodo_vence"?: string | null,"plan": string,"precio": number,"reembolso_motivo"?: string | null,"referencia": string,"transaccion_id"?: string | null,"ultimo_intento"?: string | null
                   }
                   Update: {
-                    "creado"?: string,"cupon"?: string | null,"descuento"?: number,"error"?: string | null,"estado"?: string,"factura_estado"?: string,"factura_numero"?: string | null,"factura_url"?: string | null,"household_id"?: string,"id"?: string,"metodo"?: string | null,"metodo_detalle"?: string | null,"monto"?: number,"motivo"?: string,"pagado_en"?: string | null,"pasarela"?: string,"periodo"?: string,"periodo_vence"?: string | null,"plan"?: string,"precio"?: number,"reembolso_motivo"?: string | null,"referencia"?: string,"transaccion_id"?: string | null
+                    "creado"?: string,"cupon"?: string | null,"descuento"?: number,"error"?: string | null,"estado"?: string,"factura_estado"?: string,"factura_numero"?: string | null,"factura_url"?: string | null,"household_id"?: string,"id"?: string,"intentos"?: number,"metodo"?: string | null,"metodo_detalle"?: string | null,"metodo_pago_id"?: string | null,"monto"?: number,"motivo"?: string,"pagado_en"?: string | null,"pasarela"?: string,"periodo"?: string,"periodo_vence"?: string | null,"plan"?: string,"precio"?: number,"reembolso_motivo"?: string | null,"referencia"?: string,"transaccion_id"?: string | null,"ultimo_intento"?: string | null
                   }
                   Relationships: [
                     {
@@ -248,6 +248,12 @@ isOneToOne: false
       columns: ["household_id"]
 isOneToOne: false
       referencedRelation: "households"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "cobros_metodo_pago_id_fkey"
+      columns: ["metodo_pago_id"]
+isOneToOne: false
+      referencedRelation: "metodos_pago"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "cobros_plan_fkey"
@@ -637,6 +643,26 @@ isOneToOne: false
       referencedColumns: ["id","household_id"]
     },{
       foreignKeyName: "merchant_rules_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"metodos_pago": {
+                  Row: {
+                    "activo": boolean,"creado": string,"creado_por": string | null,"fuente_id": number,"household_id": string,"id": string,"marca": string | null,"tipo": string,"titular": string | null,"ultimos4": string | null,"vence": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activo"?: boolean,"creado"?: string,"creado_por"?: string | null,"fuente_id": number,"household_id": string,"id"?: string,"marca"?: string | null,"tipo": string,"titular"?: string | null,"ultimos4"?: string | null,"vence"?: string | null
+                  }
+                  Update: {
+                    "activo"?: boolean,"creado"?: string,"creado_por"?: string | null,"fuente_id"?: number,"household_id"?: string,"id"?: string,"marca"?: string | null,"tipo"?: string,"titular"?: string | null,"ultimos4"?: string | null,"vence"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "metodos_pago_household_id_fkey"
       columns: ["household_id"]
 isOneToOne: false
       referencedRelation: "households"
@@ -1101,6 +1127,14 @@ isOneToOne: false
 "cobro_pendiente":
 { Args: { "p_hogar": string }; Returns: Json
                            },
+"cobro_transaccion":
+{ Args: { "p_metodo_pago": string,"p_referencia": string,"p_transaccion": string }; Returns: undefined
+                           },
+"cobros_para_debitar":
+{ Args: { "p_hoy": string }; Returns: {
+              "email": string,"fuente_id": number,"household_id": string,"intentos": number,"metodo_pago_id": string,"monto": number,"referencia": string
+            }[]
+                           },
 "consola_accesos":
 { Args: { "p_hogar": string }; Returns: Json
                            },
@@ -1454,6 +1488,9 @@ isOneToOne: false
 "guardar_digitos_cedula":
 { Args: { "p_digitos": string,"p_member": string }; Returns: undefined
                            },
+"guardar_metodo_pago":
+{ Args: { "p_fuente": number,"p_hogar": string,"p_marca": string,"p_tipo": string,"p_titular": string,"p_ultimos4": string,"p_usuario": string,"p_vence": string }; Returns: string
+                           },
 "guardar_presupuesto":
 { Args: { "p_hogar": string,"p_items": Json }; Returns: undefined
                            },
@@ -1493,6 +1530,9 @@ isOneToOne: false
                            },
 "purgar_retencion":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"quitar_metodo_pago":
+{ Args: { "p_hogar": string }; Returns: undefined
                            },
 "registrar_costo_ia":
 { Args: { "p_entrada": number,"p_hogar": string,"p_modelo": string,"p_ms": number,"p_salida": number }; Returns: undefined

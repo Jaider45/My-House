@@ -14,7 +14,7 @@ export type Lectura = { valores: Valores; origen: "consola" | "entorno" } | null
 
 const ENTORNO: Record<Proveedor, Record<string, string>> = {
   resend: { api_key: "RESEND_API_KEY", remitente: "CORREO_REMITENTE" },
-  wompi: { llave_publica: "WOMPI_PUBLIC_KEY", integridad: "WOMPI_INTEGRITY_SECRET", eventos: "WOMPI_EVENTS_SECRET" },
+  wompi: { llave_publica: "WOMPI_PUBLIC_KEY", integridad: "WOMPI_INTEGRITY_SECRET", eventos: "WOMPI_EVENTS_SECRET", privada: "WOMPI_PRIVATE_KEY" },
   whatsapp: { phone_number_id: "WHATSAPP_PHONE_NUMBER_ID", waba_id: "WHATSAPP_WABA_ID", token: "WHATSAPP_TOKEN", app_secret: "WHATSAPP_APP_SECRET", verify_token: "WHATSAPP_VERIFY_TOKEN" },
   anthropic: { api_key: "ANTHROPIC_API_KEY", modelo: "ANTHROPIC_MODEL" },
   openai: { api_key: "OPENAI_API_KEY", modelo: "OPENAI_MODEL" },
@@ -97,7 +97,7 @@ export async function probar(p: Proveedor, v: Valores): Promise<Resultado> {
         const d = await json(r);
         if (!r.ok) return { ok: false, detalle: "Wompi no reconoce la llave pública." };
         const comercio = (d.data as { name?: string } | undefined)?.name ?? "comercio";
-        const avisos = [!/_integrity_/.test(v.integridad) && "el secreto de integridad no parece de Wompi", !/_events_/.test(v.eventos) && "el secreto de eventos no parece de Wompi"].filter(Boolean);
+        const avisos = [!/_integrity_/.test(v.integridad) && "el secreto de integridad no parece de Wompi", !/_events_/.test(v.eventos) && "el secreto de eventos no parece de Wompi", v.privada && !/^prv_(test|prod)_/.test(v.privada) && "la llave privada empieza por prv_"].filter(Boolean);
         return { ok: avisos.length === 0, detalle: `${comercio} · ${base.includes("sandbox") ? "pruebas (sandbox)" : "producción"}${avisos.length ? ` · Revisa: ${avisos.join(", ")}` : ""}` };
       }
       case "whatsapp": {

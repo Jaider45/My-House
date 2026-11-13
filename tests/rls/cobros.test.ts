@@ -184,3 +184,58 @@ describe("cupón de meses gratis, cancelación y reembolso", () => {
     expect(lista.data!.some((c: { id: string }) => c.id === pagado.id)).toBe(true);
   });
 });
+
+describe("pago dentro de la app: tarjeta guardada y débito automático", () => {
+  let h: string, dueno: SupabaseClient, uid: string;
+  // El vencimiento es hoy: «una vez por día» compara con la fecha real del último intento.
+  const vence = hoy;
+
+  beforeAll(async () => {
+    const u = await entorno.usuario("cobros-debito");
+    dueno = u.db;
+    uid = (await dueno.auth.getUser()).data.user!.id;
+    h = await entorno.hogar(dueno, "Hogar débito", "familia");
+    await sr.from("suscripciones").upsert({ household_id: h, plan: "familia", periodo: "mensual", estado: "activa", desde: dia(vence, -30), vence, monto_periodo: 19_900 });
+  });
+
+  it("solo el servidor guarda la tarjeta; el admin la ve y la puede quitar", async () => {
+    const intento = await dueno.rpc("guardar_metodo_pago", { p_hogar: h, p_fuente: 1, p_tipo: "CARD", p_marca: "VISA", p_ultimos4: "4242", p_vence: "12/29", p_titular: "X", p_usuario: uid });
+    expect(intento.error).not.toBeNull();
+    const { error } = await sr.rpc("guardar_metodo_pago", { p_hogar: h, p_fuente: 3891, p_tipo: "CARD", p_marca: "VISA", p_ultimos4: "4242", p_vence: "12/29", p_titular: "ANA", p_usuario: uid });
+    expect(error).toBeNull();
+    const visto = await dueno.from("metodos_pago").select("marca, ultimos4, activo").eq("household_id", h);
+    expect(visto.data).toEqual([{ marca: "VISA", ultimos4: "4242", activo: true }]);
+    expect((await editor.from("metodos_pago").select("id").eq("household_id", h)).data).toEqual([]);
+  });
+
+  it("renovación: se cobra el día del vencimiento, una vez por día; un rechazo deja el cobro pendiente", async () => {
+    await sr.rpc("procesar_vencimientos", { p_hoy: dia(vence, -3) });
+    const antes = await sr.rpc("cobros_para_debitar", { p_hoy: dia(vence, -1) });
+    expect((antes.data ?? []).filter((c: { household_id: string }) => c.household_id === h)).toEqual([]);
+
+    const el = await sr.rpc("cobros_para_debitar", { p_hoy: vence });
+    const mio = (el.data ?? []).find((c: { household_id: string }) => c.household_id === h) as { referencia: string; intentos: number; fuente_id: number; metodo_pago_id: string; email: string };
+    expect(mio).toMatchObject({ intentos: 0, fuente_id: 3891 });
+    expect(mio.email).toContain("@");
+
+    await sr.rpc("cobro_transaccion", { p_referencia: mio.referencia, p_transaccion: "tx-debito-1", p_metodo_pago: mio.metodo_pago_id });
+    const mismoDia = await sr.rpc("cobros_para_debitar", { p_hoy: vence });
+    expect((mismoDia.data ?? []).some((c: { household_id: string }) => c.household_id === h)).toBe(false);
+    expect((await webhook(mio.referencia, "DECLINED", 1_990_000)).resultado).toBe("fallido");
+    const c = (await sr.from("cobros").select("estado, intentos, error").eq("referencia", mio.referencia).single()).data!;
+    expect(c).toMatchObject({ estado: "pendiente", intentos: 1, error: "Pago rechazado" });
+
+    // Día 1 de mora: segundo intento con otra referencia (`.2`), que sí aplica el pago al cobro original.
+    await sr.from("cobros").update({ ultimo_intento: `${dia(vence, -1)}T12:00:00Z` }).eq("referencia", mio.referencia);
+    const reintento = await sr.rpc("cobros_para_debitar", { p_hoy: dia(vence, 1) });
+    expect((reintento.data ?? []).find((x: { household_id: string }) => x.household_id === h)).toMatchObject({ intentos: 1 });
+    expect((await webhook(`${mio.referencia}.2`, "APPROVED", 1_990_000)).resultado).toBe("aplicado");
+    expect((await suscripcion(h)).vence).toBe(masUnMes(vence));
+  });
+
+  it("el admin quita la tarjeta (el editor no)", async () => {
+    expect((await editor.rpc("quitar_metodo_pago", { p_hogar: h })).error).not.toBeNull();
+    expect((await dueno.rpc("quitar_metodo_pago", { p_hogar: h })).error).toBeNull();
+    expect((await dueno.from("metodos_pago").select("activo").eq("household_id", h)).data).toEqual([{ activo: false }]);
+  });
+});
