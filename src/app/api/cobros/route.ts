@@ -1,8 +1,9 @@
 import { revisarAvisosEquipo } from "@/lib/consola/avisos-equipo";
+import { contenidoCampana, destinatarios, variablesHogar, variante, type CampanaEnvio } from "@/lib/correo/campanas";
+import type { Variables } from "@/lib/correo/bloques";
 import { NextResponse, type NextRequest } from "next/server";
 import {
   aceptacionWompi,
-  administradores,
   avisarAdministradores,
   crearClienteServicio,
   crearTransaccion,
@@ -11,7 +12,7 @@ import {
   procesarTransaccion,
 } from "@/lib/pagos/servidor";
 import { referenciaIntento } from "@/lib/pagos/wompi";
-import { correoCampana, correoMora, correoPlanGratis, correoPruebaTermina, correoRenovacion } from "@/lib/correo/correos";
+import { correoMora, correoPlanGratis, correoPruebaTermina, correoRenovacion } from "@/lib/correo/correos";
 import type { Contenido } from "@/lib/correo/plantilla";
 import { enviarCorreo, sitio } from "@/lib/correo/enviar";
 import { formatearCOP } from "@/lib/dinero";
@@ -26,7 +27,6 @@ const CORREOS_POR_SEGUNDO = Math.max(1, Number(process.env.AVISOS_CORREOS_POR_SE
 const LIMITE_CAMPANAS_MS = 240_000;
 const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-type Campana = { id: string; asunto: string; titulo: string; cuerpo: string; boton_texto: string | null; boton_url: string | null };
 
 type Aviso = {
   tipo: "renovacion" | "mora" | "gratis" | "cancelada" | "prueba";
@@ -129,11 +129,13 @@ export async function GET(request: NextRequest) {
   // Una campaña grande se envía por tandas: `campana_reclamar` toma una, se envía mientras quede tiempo y
   // `campana_avance` guarda hasta dónde llegó. La siguiente corrida sigue desde ahí, sin repetir a nadie.
   const campanas = { enviadas: 0, correos: 0, pendientes: 0 };
+  // Legal: la versión que entra en vigencia en ≤ 10 días se vuelve una campaña transaccional (sale aquí mismo).
+  const { data: avisosLegales } = await db.rpc("legal_avisos_pendientes");
   // Máximo 5 campañas por corrida. Ojo: una función SQL que devuelve un registro compuesto responde, cuando no hay
   // nada, un objeto con todos los campos en null (no null): sin el chequeo de `id` el ciclo no terminaba nunca.
   for (let n = 0; n < 5 && Date.now() - arranque < LIMITE_CAMPANAS_MS; n++) {
     const { data: reclamada, error: eReclamar } = await db.rpc("campana_reclamar");
-    const c = reclamada as unknown as Campana | null;
+    const c = reclamada as unknown as CampanaEnvio | null;
     if (eReclamar || !c?.id) break;
     const { data: hogares } = await db.rpc("campana_hogares", { p_campana: c.id });
     const pendientes = (hogares ?? []) as string[];
@@ -142,11 +144,14 @@ export async function GET(request: NextRequest) {
     let cursor: string | null = null;
     for (const h of pendientes) {
       if (Date.now() - arranque > LIMITE_CAMPANAS_MS) break;
-      for (const a of await administradores(db, h)) {
+      const [personas, vars] = await Promise.all([destinatarios(db, h, c.transaccional), c.bloques?.length ? variablesHogar(db, h) : Promise.resolve<Variables>({})]);
+      const v = variante(h, c.prueba_ab_pct);
+      for (const a of personas) {
         const r = await enviarCorreo({
           para: a.email,
-          etiqueta: "campana",
-          contenido: correoCampana({ nombre: a.nombre, asunto: c.asunto, titulo: c.titulo, cuerpo: c.cuerpo, botonTexto: c.boton_texto, botonUrl: c.boton_url, sitio: sitio() }),
+          etiqueta: c.transaccional ? "aviso-legal" : `campana-${c.id}-${v}`,
+          contenido: contenidoCampana(c, { ...vars, nombre: a.nombre, hogar: vars.hogar ?? a.hogar }, v, sitio()),
+          ...(!c.transaccional && { cabeceras: { "List-Unsubscribe": `<${sitio()}/recordatorios>` } }),
         });
         if (r.enviado) enviados++;
         await esperar(Math.ceil(1000 / CORREOS_POR_SEGUNDO));
@@ -166,6 +171,6 @@ export async function GET(request: NextRequest) {
   const { data: purgados } = await db.rpc("purgar_retencion");
   // Ajustes de la plataforma → Avisos para el equipo: tickets urgentes sin respuesta y servicios caídos.
   const avisosEquipo = await revisarAvisosEquipo(db, hoy);
-  console.info("[cobros]", hoy, JSON.stringify({ ...resumen, debitos, campanas, purgados, avisosEquipo }));
-  return NextResponse.json({ hoy, ...resumen, debitos, campanas, purgados, avisosEquipo });
+  console.info("[cobros]", hoy, JSON.stringify({ ...resumen, debitos, campanas, avisosLegales, purgados, avisosEquipo }));
+  return NextResponse.json({ hoy, ...resumen, debitos, campanas, avisosLegales, purgados, avisosEquipo });
 }

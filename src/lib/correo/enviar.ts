@@ -1,5 +1,6 @@
 import "server-only";
-import { envios } from "@/lib/plataforma/config";
+import { envios, leerConfigPlataforma } from "@/lib/plataforma/config";
+import { etiquetaApagada } from "./automaticos";
 import { leerIntegracion } from "@/lib/integraciones/servidor";
 import { crearClienteServicio, hayServicio } from "@/lib/supabase/servicio";
 import { armarCorreo, type Contenido } from "./plantilla";
@@ -48,6 +49,8 @@ export const puedeEnviarCorreo = async () => Boolean((await leerIntegracion("res
 export async function enviarCorreo({ para, contenido, etiqueta, cabeceras, probarCon }: Destino & { probarCon?: { api_key: string; remitente?: string } }): Promise<Resultado> {
   const { asunto, html, texto } = armarCorreo(contenido, sitio());
   const resend = probarCon ?? (await leerIntegracion("resend"))?.valores;
+  // Consola → Correos automáticos: los que el equipo apagó no salen.
+  if (!probarCon && etiquetaApagada(etiqueta, await leerConfigPlataforma<string[]>("correos_apagados", []))) return { enviado: false, via: "ninguno", error: "apagado" };
   // Ajustes de la plataforma → Envíos: remitente y «Responder a» (si están vacíos, lo de la integración).
   const ajustes = probarCon ? null : await envios();
   const remitente = ajustes?.remitente || resend?.remitente || process.env.CORREO_REMITENTE || REMITENTE_POR_DEFECTO;

@@ -317,17 +317,23 @@ isOneToOne: false
                   ]
                 },"campanas": {
                   Row: {
-                    "alcance": number,"asunto": string,"boton_texto": string | null,"boton_url": string | null,"creada_nombre": string,"creada_por": string | null,"created_at": string,"cuerpo": string,"cursor_hogar": string | null,"enviada_en": string | null,"enviados": number,"estado": string,"id": string,"intentos": number,"nombre": string,"programada_para": string | null,"segmento": string,"titulo": string
+                    "alcance": number,"asunto": string,"asunto_b": string | null,"bloques": Json | null,"boton_texto": string | null,"boton_url": string | null,"creada_nombre": string,"creada_por": string | null,"created_at": string,"cuerpo": string,"cursor_hogar": string | null,"enviada_en": string | null,"enviados": number,"estado": string,"id": string,"intentos": number,"nombre": string,"programada_para": string | null,"prueba_ab_pct": number,"segmento": string,"segmento_propio": string | null,"titulo": string,"transaccional": boolean,"vista_previa": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "alcance"?: number,"asunto": string,"boton_texto"?: string | null,"boton_url"?: string | null,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo": string,"cursor_hogar"?: string | null,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"intentos"?: number,"nombre": string,"programada_para"?: string | null,"segmento": string,"titulo": string
+                    "alcance"?: number,"asunto": string,"asunto_b"?: string | null,"bloques"?: Json | null,"boton_texto"?: string | null,"boton_url"?: string | null,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo": string,"cursor_hogar"?: string | null,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"intentos"?: number,"nombre": string,"programada_para"?: string | null,"prueba_ab_pct"?: number,"segmento": string,"segmento_propio"?: string | null,"titulo": string,"transaccional"?: boolean,"vista_previa"?: string | null
                   }
                   Update: {
-                    "alcance"?: number,"asunto"?: string,"boton_texto"?: string | null,"boton_url"?: string | null,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo"?: string,"cursor_hogar"?: string | null,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"intentos"?: number,"nombre"?: string,"programada_para"?: string | null,"segmento"?: string,"titulo"?: string
+                    "alcance"?: number,"asunto"?: string,"asunto_b"?: string | null,"bloques"?: Json | null,"boton_texto"?: string | null,"boton_url"?: string | null,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo"?: string,"cursor_hogar"?: string | null,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"intentos"?: number,"nombre"?: string,"programada_para"?: string | null,"prueba_ab_pct"?: number,"segmento"?: string,"segmento_propio"?: string | null,"titulo"?: string,"transaccional"?: boolean,"vista_previa"?: string | null
                   }
                   Relationships: [
-                    
+                    {
+      foreignKeyName: "campanas_segmento_propio_fkey"
+      columns: ["segmento_propio"]
+isOneToOne: false
+      referencedRelation: "segmentos"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"categorias_base": {
                   Row: {
@@ -1179,6 +1185,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"segmentos": {
+                  Row: {
+                    "actividad": string,"condiciones": (string)[],"creado_por": string | null,"created_at": string,"id": string,"nombre": string,"plan": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actividad"?: string,"condiciones"?: (string)[],"creado_por"?: string | null,"created_at"?: string,"id"?: string,"nombre": string,"plan"?: string
+                  }
+                  Update: {
+                    "actividad"?: string,"condiciones"?: (string)[],"creado_por"?: string | null,"created_at"?: string,"id"?: string,"nombre"?: string,"plan"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"solicitudes_privacidad": {
                   Row: {
                     "atendida_por": string | null,"canal": string,"created_at": string,"detalle": string | null,"estado": string,"exportada_en": string | null,"id": string,"numero": number,"recibida": string,"respuesta": string | null,"resuelta_en": string | null,"suprimida_en": string | null,"tipo": string,"titular_correo": string,"titular_nombre": string | null,"titular_user": string | null,"vence": string
@@ -1451,6 +1471,8 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "alcance": number,
 "asunto": string,
+"asunto_b": string | null,
+"bloques": Json | null,
 "boton_texto": string | null,
 "boton_url": string | null,
 "creada_nombre": string,
@@ -1465,8 +1487,12 @@ isOneToOne: false
 "intentos": number,
 "nombre": string,
 "programada_para": string | null,
+"prueba_ab_pct": number,
 "segmento": string,
-"titulo": string
+"segmento_propio": string | null,
+"titulo": string,
+"transaccional": boolean,
+"vista_previa": string | null
             }
                           SetofOptions: {
         from: "*"
@@ -1536,6 +1562,8 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "alcance": number,
 "asunto": string,
+"asunto_b": string | null,
+"bloques": Json | null,
 "boton_texto": string | null,
 "boton_url": string | null,
 "creada_nombre": string,
@@ -1550,8 +1578,12 @@ isOneToOne: false
 "intentos": number,
 "nombre": string,
 "programada_para": string | null,
+"prueba_ab_pct": number,
 "segmento": string,
-"titulo": string
+"segmento_propio": string | null,
+"titulo": string,
+"transaccional": boolean,
+"vista_previa": string | null
             }[]
                           SetofOptions: {
         from: "*"
@@ -1577,6 +1609,9 @@ isOneToOne: false
             }[]
                            },
 "consola_cobros_resumen":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"consola_comunicaciones":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
 "consola_contadores":
@@ -1658,6 +1693,9 @@ isOneToOne: false
 "consola_guardar_campana":
 { Args: { "p_asunto": string,"p_boton_texto": string,"p_boton_url": string,"p_cuerpo": string,"p_id": string,"p_nombre": string,"p_programada": string,"p_segmento": string,"p_titulo": string }; Returns: string
                            },
+"consola_guardar_campana_editor":
+{ Args: { "p": Json }; Returns: string
+                           },
 "consola_guardar_categoria_base":
 { Args: { "p_activa": boolean,"p_clase": Database["public"]['Enums']["categoria_clase"],"p_esencial": boolean,"p_etiqueta": string,"p_excluir": boolean,"p_id": string,"p_nombre": string,"p_orden": number,"p_padre": string,"p_tipo": Database["public"]['Enums']["categoria_tipo"] }; Returns: string
                            },
@@ -1710,6 +1748,9 @@ isOneToOne: false
 { Args: { "p_borrar"?: boolean,"p_cuerpo": string,"p_id": string,"p_titulo": string }; Returns: undefined
                            },
 "consola_guardar_ruta":
+{ Args: { "p": Json }; Returns: undefined
+                           },
+"consola_guardar_segmento":
 { Args: { "p": Json }; Returns: undefined
                            },
 "consola_guardar_taller":
@@ -1854,6 +1895,9 @@ isOneToOne: false
 { Args: { "p_user": string }; Returns: undefined
                            },
 "consola_segmentos":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"consola_segmentos_todos":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
 "consola_sistema":

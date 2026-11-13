@@ -1,190 +1,297 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Aviso, Chip, Tarjeta, Titulo, type Tono } from "@/components/ui";
+import { Aviso, Chip, Titulo, clasesBoton, cx, type Tono } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
-import { mensajeError } from "@/lib/acciones";
+import { Icono } from "@/components/marca";
 import { obtenerStaff } from "@/lib/consola/sesion";
 import { formatearMomento } from "@/lib/consola/formato";
+import { AUTOMATICOS } from "@/lib/correo/automaticos";
 import { TarjetaTabla } from "../tarjeta-tabla";
 import { cancelarCampana } from "./acciones";
-import { FormularioCampana } from "./campana";
+import { InterruptorAutomatico, VentanasSegmentos, CONDICIONES_SEGMENTO, type SegmentoPropio } from "./segmentos-formulario";
 import { SEGMENTOS, type Segmentos } from "./segmentos";
 
-export const metadata: Metadata = { title: "Comunicaciones" };
-
-const NOMBRES: Record<string, string> = {
-  invitacion: "Invitación al hogar",
-  contador: "Acceso de contador",
-  equipo: "Invitación al equipo",
-  seguridad: "Nuevo inicio de sesión",
-  bienvenida: "Bienvenida",
-  recordatorio: "Recordatorio de pago",
-  vencido: "Pago fijo vencido",
-  resumen: "Resumen semanal",
-  dian: "Aviso Renta DIAN",
-  "pago-recibido": "Pago recibido (plan)",
-  "cobro-renovacion": "Renovación del plan",
-  "cobro-mora": "Pago del plan pendiente",
-  "cobro-gratis": "Pasó al plan Gratis",
-  "cobro-cancelada": "Suscripción cancelada",
-  "cobro-prueba": "Prueba por terminar",
-  campana: "Campañas",
-  "campana-prueba": "Pruebas de campaña",
-  prueba: "Correo de prueba",
-  otro: "Otros",
-};
+export const metadata: Metadata = { title: "Correos y campañas" };
 
 const ESTADO_CAMPANA: Record<string, { texto: string; tono: Tono }> = {
-  borrador: { texto: "Borrador", tono: "neutro" },
+  borrador: { texto: "Borrador", tono: "info" },
   programada: { texto: "Programada", tono: "alerta" },
   enviando: { texto: "Enviando…", tono: "info" },
   enviada: { texto: "Enviada", tono: "ok" },
   cancelada: { texto: "Cancelada", tono: "neutro" },
 };
 
-const pct = (parte: number, total: number) => (total ? `${Math.round((100 * parte) / total)} %` : "—");
+const PESTANAS = [
+  ["campanas", "Campañas"],
+  ["automaticos", "Correos automáticos"],
+  ["segmentos", "Segmentos"],
+] as const;
 
-export default async function ComunicacionesConsola({ searchParams }: PageProps<"/consola/comunicaciones">) {
+const pct = (parte: number, total: number) => (total ? `${Math.round((100 * parte) / total)} %` : "—");
+type Variante = { n: number; abiertos: number; clics: number };
+
+function Kpi({ etiqueta, valor, detalle }: { etiqueta: string; valor: string; detalle: string }) {
+  return (
+    <div className="rounded-2xl border border-borde bg-elevada p-4 md:p-5">
+      <p className="text-[13px] font-semibold text-cuerpo">{etiqueta}</p>
+      <p className="mt-1 text-[26px] leading-8 font-bold">{valor}</p>
+      <p className="text-[13px] text-tenue">{detalle}</p>
+    </div>
+  );
+}
+
+export default async function ComunicacionesConsola({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const staff = await obtenerStaff();
   const puede = staff.puede("campanas");
-  const { campana: editar } = await searchParams;
-  const [correos, campanas, segmentos] = await Promise.all([
+  const pedida = (await searchParams).tab;
+  const tab = PESTANAS.find(([k]) => k === pedida)?.[0] ?? "campanas";
+  const [resumen, correos, campanas, fijos, propios, { data: apagados }] = await Promise.all([
+    staff.supabase.rpc("consola_comunicaciones"),
     staff.supabase.rpc("consola_correos_resumen"),
     puede ? staff.supabase.rpc("consola_campanas") : Promise.resolve({ data: [], error: null }),
     puede ? staff.supabase.rpc("consola_segmentos") : Promise.resolve({ data: {}, error: null }),
+    puede ? staff.supabase.rpc("consola_segmentos_todos") : Promise.resolve({ data: { propios: [] }, error: null }),
+    staff.supabase.from("plataforma_config").select("valor").eq("clave", "correos_apagados").maybeSingle(),
   ]);
-  const lista = campanas.data ?? [];
-  const editando = typeof editar === "string" ? lista.find((c) => c.id === editar && ["borrador", "programada", "cancelada"].includes(c.estado)) : undefined;
-  const conWebhook = (correos.data ?? []).some((c) => c.entregados > 0 || c.abiertos > 0);
+  const r = (resumen.data ?? {}) as { kpis?: { enviados: number; entregados: number; abiertos: number; clics: number }; bajas_30d?: number; campanas?: Record<string, { a: Variante; b: Variante }> };
+  const k = r.kpis ?? { enviados: 0, entregados: 0, abiertos: 0, clics: 0 };
+  const porEtiqueta = new Map((correos.data ?? []).map((c) => [c.etiqueta, c]));
+  const apagadosSet = new Set((apagados?.valor as string[] | null) ?? []);
+  const conteo = (fijos.data ?? {}) as Segmentos;
+  const listaPropios = ((propios.data as { propios?: SegmentoPropio[] } | null)?.propios ?? []) as SegmentoPropio[];
+  const nombrePropio = new Map(listaPropios.map((s) => [s.id, s.nombre]));
 
   return (
     <>
-      <Titulo registrar={false} subtitulo="Correos automáticos y campañas por segmento">
-        Comunicaciones
+      <Titulo
+        registrar={false}
+        subtitulo="Lo que My House envía por correo, y a quién"
+        accion={
+          puede ? (
+            <Link href="/consola/comunicaciones/editor" className={clasesBoton("primario")}>
+              Nueva campaña
+            </Link>
+          ) : undefined
+        }
+      >
+        Correos y campañas
       </Titulo>
-      {(correos.error || campanas.error) && <Aviso>{mensajeError(correos.error ?? campanas.error)}</Aviso>}
+      {resumen.error && <Aviso>No se pudieron cargar las métricas: {resumen.error.message}</Aviso>}
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(340px,1fr)]">
-        <div className="flex min-w-0 flex-col gap-5">
-          <TarjetaTabla
-            titulo="Correos de los últimos 30 días"
-            subtitulo={conWebhook ? "Entregas, aperturas y clics según Resend" : "Aperturas y clics llegan al conectar el webhook de Resend (Integraciones → Correo)"}
+      <section className="mb-5 grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
+        <Kpi etiqueta="Enviados · 30 días" valor={k.enviados.toLocaleString("es-CO")} detalle="automáticos y campañas" />
+        <Kpi etiqueta="Apertura promedio" valor={pct(k.abiertos, k.entregados || k.enviados)} detalle="meta 45 % · según Resend" />
+        <Kpi etiqueta="Clics promedio" valor={pct(k.clics, k.abiertos)} detalle="de los que abren" />
+        <Kpi etiqueta="Bajas" valor={(r.bajas_30d ?? 0).toLocaleString("es-CO")} detalle="personas que retiraron el permiso · 30 días" />
+      </section>
+
+      <nav role="tablist" aria-label="Secciones" className="mb-4 flex gap-1 overflow-x-auto border-b border-divisor">
+        {PESTANAS.map(([key, t]) => (
+          <Link
+            key={key}
+            role="tab"
+            aria-selected={tab === key}
+            href={`/consola/comunicaciones?tab=${key}`}
+            className={cx("h-10 shrink-0 border-b-2 px-3 pt-2 text-sm font-semibold", tab === key ? "border-monte text-tinta" : "border-transparent text-cuerpo hover:text-tinta")}
           >
-            {(correos.data ?? []).length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-tenue md:px-6">Aún no se han enviado correos.</p>
-            ) : (
-              <table className="tabla">
-                <thead>
-                  <tr>
-                    <th className="pl-4! md:pl-6!">Correo</th>
-                    <th className="der">Enviados</th>
-                    <th className="der">Entregados</th>
-                    <th className="der">Abiertos</th>
-                    <th className="der">Clics</th>
-                    <th className="der">Rebotes</th>
-                    <th className="pr-4! md:pr-6!">Último</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {correos.data!.map((c) => (
-                    <tr key={c.etiqueta}>
-                      <td className="pl-4! font-bold md:pl-6!">{NOMBRES[c.etiqueta] ?? c.etiqueta}</td>
-                      <td className="der">{c.enviados}</td>
-                      <td className="der">{pct(c.entregados, c.enviados)}</td>
-                      <td className="der">{pct(c.abiertos, c.enviados)}</td>
-                      <td className="der">{pct(c.clics, c.enviados)}</td>
-                      <td className="der">{c.rebotados || "—"}</td>
-                      <td className="pr-4! text-cuerpo md:pr-6!">{formatearMomento(c.ultimo)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </TarjetaTabla>
+            {t}
+          </Link>
+        ))}
+      </nav>
 
-          <TarjetaTabla titulo="Campañas" subtitulo="Programadas y enviadas · solo a hogares con «Novedades» activo">
-            {lista.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-tenue md:px-6">Aún no hay campañas.</p>
-            ) : (
-              <table className="tabla">
-                <thead>
+      {tab === "campanas" &&
+        (puede ? (
+          <TarjetaTabla titulo="Campañas" subtitulo="Se envían una vez a un segmento · solo a quienes aceptaron novedades (los avisos legales van a todos)">
+            <table className="tabla">
+              <thead>
+                <tr>
+                  <th className="pl-4! md:pl-6!">Campaña</th>
+                  <th>Estado</th>
+                  <th className="der">Audiencia</th>
+                  <th className="der">Apertura</th>
+                  <th className="der">Clics</th>
+                  <th className="pr-4! md:pr-6!">
+                    <span className="sr-only">Acciones</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {(campanas.data ?? []).length === 0 && (
                   <tr>
-                    <th className="pl-4! md:pl-6!">Campaña</th>
-                    <th>Segmento</th>
-                    <th>Envío</th>
-                    <th className="der">Alcance</th>
-                    <th>Estado</th>
-                    <th className="pr-4! md:pr-6!">
-                      <span className="sr-only">Acciones</span>
-                    </th>
+                    <td colSpan={6} className="pl-4! text-tenue md:pl-6!">
+                      Aún no hay campañas.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {lista.map((c) => (
+                )}
+                {(campanas.data ?? []).map((c) => {
+                  const e = ESTADO_CAMPANA[c.estado] ?? { texto: c.estado, tono: "neutro" as Tono };
+                  const res = r.campanas?.[c.id];
+                  const n = (res?.a.n ?? 0) + (res?.b.n ?? 0);
+                  const ab = (res?.a.abiertos ?? 0) + (res?.b.abiertos ?? 0);
+                  const cl = (res?.a.clics ?? 0) + (res?.b.clics ?? 0);
+                  const editable = ["borrador", "programada", "cancelada"].includes(c.estado) && !c.transaccional;
+                  const audiencia = c.segmento === "propio" ? (nombrePropio.get(c.segmento_propio ?? "") ?? "Segmento propio") : SEGMENTOS.find((s) => s.valor === c.segmento)?.texto;
+                  return (
                     <tr key={c.id}>
                       <td className="pl-4! md:pl-6!">
-                        <span className="flex flex-col leading-[18px]">
-                          <b>{c.nombre}</b>
-                          <small className="text-xs text-tenue">{c.asunto}</small>
+                        <span className="flex items-center gap-3">
+                          <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-mosaico">
+                            <Icono nombre={c.transaccional ? "certificados" : "servicios"} tamano={18} />
+                          </span>
+                          <span className="flex flex-col whitespace-normal">
+                            <b>{c.nombre}</b>
+                            <small className="text-[13px] text-tenue">
+                              {audiencia} · {c.programada_para ? formatearMomento(c.programada_para) : "sin fecha"}
+                              {c.asunto_b ? ` · A/B ${c.prueba_ab_pct} %` : ""}
+                            </small>
+                          </span>
                         </span>
                       </td>
-                      <td className="text-cuerpo">{SEGMENTOS.find((s) => s.valor === c.segmento)?.texto ?? c.segmento}</td>
-                      <td className="text-cuerpo">{c.estado === "enviada" ? formatearMomento(c.enviada_en) : c.programada_para ? formatearMomento(c.programada_para) : "—"}</td>
-                      <td className="der">{c.estado === "enviada" ? `${c.enviados} correos · ${c.alcance} hogares` : "—"}</td>
                       <td>
-                        <Chip tono={ESTADO_CAMPANA[c.estado]?.tono}>{ESTADO_CAMPANA[c.estado]?.texto ?? c.estado}</Chip>
+                        <Chip tono={e.tono}>{e.texto}</Chip>
                       </td>
-                      <td className="pr-4! md:pr-6!">
-                        {puede && ["borrador", "programada", "cancelada"].includes(c.estado) && (
-                          <span className="inline-flex items-center gap-2">
-                            <Link href={`/consola/comunicaciones?campana=${c.id}#campana`} className="text-sm font-semibold underline-offset-4 hover:underline">
-                              Editar
-                            </Link>
-                            {c.estado !== "cancelada" && (
-                              <FormularioAccion accion={cancelarCampana} className="inline-flex">
-                                <input type="hidden" name="id" value={c.id} />
-                                <BotonEnviar variante="fantasma" className="h-8 px-2 text-sm" pendiente="…">
-                                  Cancelar
-                                </BotonEnviar>
-                              </FormularioAccion>
-                            )}
-                          </span>
+                      <td className="der">{c.alcance ? `${c.alcance.toLocaleString("es-CO")} hogares` : "—"}</td>
+                      <td className="der" title={res && c.asunto_b ? `A: ${pct(res.a.abiertos, res.a.n)} · B: ${pct(res.b.abiertos, res.b.n)}` : undefined}>
+                        {n ? pct(ab, n) : "—"}
+                        {res && c.asunto_b && res.b.n > 0 && (
+                          <small className="block text-[12px] text-tenue">
+                            A {pct(res.a.abiertos, res.a.n)} · B {pct(res.b.abiertos, res.b.n)}
+                          </small>
                         )}
                       </td>
+                      <td className="der">{n ? pct(cl, ab) : "—"}</td>
+                      <td className="pr-4! md:pr-6!">
+                        <span className="flex justify-end gap-1">
+                          {editable && (
+                            <Link href={`/consola/comunicaciones/editor?id=${c.id}`} className={clasesBoton("fantasma", "h-8 px-3 text-sm")}>
+                              {c.estado === "borrador" ? "Seguir editando" : "Editar"}
+                            </Link>
+                          )}
+                          {c.estado === "programada" && (
+                            <FormularioAccion accion={cancelarCampana} className="inline-flex">
+                              <input type="hidden" name="id" value={c.id} />
+                              <BotonEnviar variante="fantasma" className="h-8 px-3 text-sm" pendiente="…">
+                                Cancelar
+                              </BotonEnviar>
+                            </FormularioAccion>
+                          )}
+                        </span>
+                      </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  );
+                })}
+              </tbody>
+            </table>
           </TarjetaTabla>
-        </div>
+        ) : (
+          <Aviso tipo="info">Las campañas son del rol Contenido o un superadmin.</Aviso>
+        ))}
 
-        <div className="flex min-w-0 flex-col gap-5">
-          {puede ? (
-            <Tarjeta
-              id="campana"
-              titulo={editando ? `Editar «${editando.nombre}»` : "Nueva campaña"}
-              accion={
-                editando ? (
-                  <Link href="/consola/comunicaciones#campana" className="text-sm font-semibold">
-                    Nueva
-                  </Link>
-                ) : undefined
-              }
-            >
-              <FormularioCampana campana={editando} segmentos={(segmentos.data ?? {}) as Segmentos} />
-            </Tarjeta>
-          ) : (
-            <Aviso tipo="info">Crear campañas es del rol Contenido o un superadmin.</Aviso>
-          )}
-          <Tarjeta titulo="WhatsApp">
-            <p className="text-sm text-cuerpo">
-              Las campañas por WhatsApp llegan cuando Meta apruebe las plantillas (Integraciones → WhatsApp). Por ahora las campañas salen por correo.
-            </p>
-          </Tarjeta>
-        </div>
-      </div>
+      {tab === "automaticos" && (
+        <TarjetaTabla titulo="Correos automáticos" subtitulo={`Se envían solos cuando pasa algo en la app · ${AUTOMATICOS.length} plantillas`}>
+          <table className="tabla">
+            <thead>
+              <tr>
+                <th className="pl-4! md:pl-6!">Correo automático</th>
+                <th>Se envía</th>
+                <th className="der">Enviados · 30 d</th>
+                <th className="der">Apertura</th>
+                <th>Estado</th>
+                <th className="pr-4! md:pr-6!">
+                  <span className="sr-only">Ver</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {AUTOMATICOS.map((a) => {
+                const filas = a.etiquetas.map((e) => porEtiqueta.get(e)).filter((x) => !!x);
+                const enviados = filas.reduce((s, f) => s + f!.enviados, 0);
+                const abiertos = filas.reduce((s, f) => s + f!.abiertos, 0);
+                const entregados = filas.reduce((s, f) => s + f!.entregados, 0);
+                const activo = !apagadosSet.has(a.clave);
+                return (
+                  <tr key={a.clave}>
+                    <td className="pl-4! font-semibold md:pl-6!">{a.nombre}</td>
+                    <td className="text-cuerpo whitespace-normal!">{a.cuando}</td>
+                    <td className="der">{a.envia === "supabase" ? <span className="text-tenue">Supabase</span> : enviados.toLocaleString("es-CO")}</td>
+                    <td className="der">{a.envia === "supabase" ? "—" : pct(abiertos, entregados || enviados)}</td>
+                    <td>{a.apagable && puede ? <InterruptorAutomatico clave={a.clave} activo={activo} /> : <Chip tono={activo ? "ok" : "neutro"}>{activo ? "Activo" : "Apagado"}</Chip>}</td>
+                    <td className="pr-4! md:pr-6!">
+                      <Link href={`/consola/comunicaciones/correo/${a.muestra}`} className={clasesBoton("fantasma", "h-8 px-3 text-sm")}>
+                        Ver
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </TarjetaTabla>
+      )}
+
+      {tab === "segmentos" &&
+        (puede ? (
+          <TarjetaTabla
+            titulo="Segmentos"
+            subtitulo="Grupos de hogares para tus campañas"
+            accion={
+              <Link href="?tab=segmentos&nuevo=segmento" scroll={false} className={clasesBoton("secundario", "h-9 px-3 text-sm")}>
+                Nuevo segmento
+              </Link>
+            }
+          >
+            <table className="tabla">
+              <thead>
+                <tr>
+                  <th className="pl-4! md:pl-6!">Segmento</th>
+                  <th>Regla</th>
+                  <th className="der">Hogares</th>
+                  <th className="der">Con permiso</th>
+                  <th className="pr-4! md:pr-6!">
+                    <span className="sr-only">Editar</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {listaPropios.map((s) => (
+                  <tr key={s.id}>
+                    <td className="pl-4! font-semibold md:pl-6!">{s.nombre}</td>
+                    <td className="text-cuerpo whitespace-normal!">
+                      {[
+                        s.plan === "todos" ? null : `Plan ${s.plan}`,
+                        s.actividad === "activos" ? "registró algo en 30 días" : s.actividad === "inactivos" ? "sin movimientos en 30 días" : null,
+                        ...s.condiciones.map((c) => CONDICIONES_SEGMENTO.find(([k]) => k === c)?.[1].toLowerCase()),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "Todos los hogares"}
+                    </td>
+                    <td className="der">{s.hogares.toLocaleString("es-CO")}</td>
+                    <td className="der">{s.con_permiso.toLocaleString("es-CO")}</td>
+                    <td className="pr-4! md:pr-6!">
+                      <Link href={`?tab=segmentos&nuevo=segmento-${s.id}`} scroll={false} className={clasesBoton("fantasma", "h-8 px-3 text-sm")}>
+                        Editar
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+                {SEGMENTOS.map((s) => (
+                  <tr key={s.valor}>
+                    <td className="pl-4! font-semibold md:pl-6!">{s.texto}</td>
+                    <td className="text-tenue">Fijo</td>
+                    <td className="der">{(conteo[s.valor]?.hogares ?? 0).toLocaleString("es-CO")}</td>
+                    <td className="der">{(conteo[s.valor]?.con_permiso ?? 0).toLocaleString("es-CO")}</td>
+                    <td className="pr-4! md:pr-6!" />
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TarjetaTabla>
+        ) : (
+          <Aviso tipo="info">Los segmentos son del rol Contenido o un superadmin.</Aviso>
+        ))}
+
+      {puede && <VentanasSegmentos segmentos={listaPropios} />}
     </>
   );
 }

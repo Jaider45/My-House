@@ -5,6 +5,8 @@
  */
 
 /** Texto que va tal cual, sin escapar: variables de las plantillas de Supabase (`{{ .Token }}`). */
+import type { BloqueCorreo } from "./bloques";
+
 export type Crudo = { crudo: string };
 export type Texto = string | Crudo | Texto[];
 export const crudo = (t: string): Crudo => ({ crudo: t });
@@ -33,6 +35,8 @@ export type Contenido = {
   despedida?: string;
   porque: Texto;
   enlacesPie?: { texto: string; url: Texto }[];
+  /** Campañas del editor: bloques libres después de la introducción (ya con las variables reemplazadas). */
+  bloques?: BloqueCorreo[];
 };
 
 const C = {
@@ -73,6 +77,42 @@ function htmlBotones(botones: NonNullable<Contenido["botones"]>) {
   return `<table class="mh-botones" role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${celdas.join("")}</tr></table>`;
 }
 
+/** Un bloque del editor de campañas como fila de la tabla del correo. */
+function htmlBloque(b: BloqueCorreo, sitio: string): string | null {
+  const url = (u: string) => (u.startsWith("/") && !u.startsWith("//") ? `${sitio}${u}` : /^https:\/\//.test(u) ? u : null);
+  switch (b.tipo) {
+    case "titulo":
+      return bloque(`<h2 style="margin:0;font-family:${FUENTE};font-size:22px;line-height:1.25;font-weight:700;color:${C.monte}">${escapar(b.texto)}</h2>`, 12);
+    case "texto":
+      return bloque(p(`font-size:16px;line-height:25px;color:${C.cuerpo}`, html(b.texto)), 16);
+    case "boton": {
+      const u = url(b.url);
+      if (!u) return null;
+      const alinear = b.alinear === "centro" ? "center" : "left";
+      if (b.estilo === "texto") return bloque(`<p style="margin:0;text-align:${alinear}"><a href="${escapar(u)}" style="color:${C.monte};font-weight:700;font-size:16px">${escapar(b.texto)}</a></p>`, 16);
+      const estilo = b.estilo === "secundario" ? `background:${C.elevada};color:${C.monte};border:1px solid ${C.cuerpo}` : `background:${C.monte};color:${C.arena};border:1px solid ${C.monte}`;
+      const ancho = b.alinear === "ancho" ? "display:block;text-align:center;" : "display:inline-block;";
+      return bloque(`<div style="text-align:${alinear}"><a href="${escapar(u)}" style="${ancho}${estilo};font-family:${FUENTE};font-size:16px;line-height:20px;font-weight:700;text-decoration:none;padding:14px 24px;border-radius:10px">${escapar(b.texto)}</a></div>`, 16);
+    }
+    case "imagen": {
+      const u = url(b.url);
+      return u ? bloque(`<img src="${escapar(u)}" alt="${escapar(b.alt)}" width="520" style="display:block;width:100%;max-width:520px;height:auto;border:0;border-radius:12px">`, 16) : null;
+    }
+    case "cifra":
+      return bloque(tabla(`<tr><td style="background:${C.seleccion};border-radius:12px;padding:16px">${tabla(`<tr><td style="font-size:15px;color:${C.cuerpo}">${escapar(b.etiqueta)}</td><td align="right" style="font-size:20px;font-weight:700;color:${C.monte};font-variant-numeric:tabular-nums">${escapar(b.valor)}</td></tr>`)}</td></tr>`), 16);
+    case "leccion": {
+      const u = url(b.url);
+      return u
+        ? bloque(tabla(`<tr><td style="background:${C.mosaico};border-radius:12px;padding:16px"><p style="margin:0;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${C.cuerpo}">Academia My House</p><a href="${escapar(u)}" style="font-size:17px;font-weight:700;color:${C.monte};text-decoration:none">${escapar(b.titulo)} →</a></td></tr>`), 16)
+        : null;
+    }
+    case "cupon":
+      return bloque(tabla(`<tr><td style="border:2px dashed ${C.monte};border-radius:12px;padding:16px;text-align:center"><p style="margin:0;font-size:24px;font-weight:700;letter-spacing:0.12em;color:${C.monte}">${escapar(b.codigo)}</p><p style="margin:6px 0 0;font-size:14px;color:${C.cuerpo}">${escapar(b.texto)}</p></td></tr>`), 16);
+    case "separador":
+      return bloque(`<div style="border-top:1px solid ${C.divisor}"></div>`, 16);
+  }
+}
+
 /** Arma el correo completo. `sitio`: URL base para las imágenes (en Supabase, `{{ .SiteURL }}`). */
 export function armarCorreo(c: Contenido, sitio: Texto): { asunto: string; html: string; texto: string } {
   const base = html(sitio);
@@ -83,7 +123,11 @@ export function armarCorreo(c: Contenido, sitio: Texto): { asunto: string; html:
     filas.push(bloque(`<img src="${img(`${c.icono.nombre}-${c.icono.tono}.png`)}" width="56" height="56" alt="" style="display:block;border:0;border-radius:16px">`));
   }
   filas.push(bloque(`<h1 class="mh-titulo" style="margin:0;font-family:${FUENTE};font-size:28px;line-height:1.2;font-weight:700;color:${C.monte}">${html(c.titulo)}</h1>`));
-  filas.push(bloque(p(`font-size:16px;line-height:26px;color:${C.cuerpo}`, html(c.intro))));
+  if (plano(c.intro)) filas.push(bloque(p(`font-size:16px;line-height:26px;color:${C.cuerpo}`, html(c.intro))));
+  for (const b of c.bloques ?? []) {
+    const fila = htmlBloque(b, base);
+    if (fila) filas.push(fila);
+  }
 
   if (c.codigo) {
     filas.push(
@@ -228,6 +272,14 @@ a{color:${C.monte}}
 /** Versión text/plain: mejora la entrega (filtros de spam) y se lee en relojes y clientes sin HTML. */
 function textoPlano(c: Contenido): string {
   const l: string[] = [plano(c.titulo).toUpperCase(), "", plano(c.intro)];
+  for (const b of c.bloques ?? []) {
+    if (b.tipo === "titulo") l.push("", b.texto.toUpperCase());
+    else if (b.tipo === "texto") l.push("", b.texto);
+    else if (b.tipo === "boton") l.push("", `${b.texto}: ${b.url}`);
+    else if (b.tipo === "cifra") l.push("", `${b.etiqueta}: ${b.valor}`);
+    else if (b.tipo === "leccion") l.push("", `Academia: ${b.titulo} (${b.url})`);
+    else if (b.tipo === "cupon") l.push("", `Cupón ${b.codigo}: ${b.texto}`);
+  }
   if (c.codigo) l.push("", `Tu código: ${plano(c.codigo.valor)}`, plano(c.codigo.nota));
   if (c.tarjeta) l.push("", ...c.tarjeta.filas.map((f) => `${plano(f.k)}: ${plano(f.v)}`));
   if (c.cifras?.length) l.push("", ...c.cifras.map((s) => `${s.k}: ${s.v} (${s.d})`));
