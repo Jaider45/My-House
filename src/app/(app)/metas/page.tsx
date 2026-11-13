@@ -73,7 +73,7 @@ async function Contenido() {
     <>
       {conMetas && (
         <Ventana titulo="Nueva meta de ahorro" subtitulo="Algo para lo que la casa quiere ahorrar, con fecha." guia="form-meta">
-          <FormularioMeta />
+          <FormularioMeta cuentas={cuentas ?? []} hoy={fecha} />
         </Ventana>
       )}
       {puedeAportar &&

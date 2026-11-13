@@ -31,7 +31,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
   const [{ data: cuentas }, { data: saldos }, { data: miembros }, { data: deudas }, { data: abonos }] = await Promise.all([
     ctx.supabase
       .from("accounts")
-      .select("id, tipo, nombre, entidad, ultimos4, saldo_inicial, cupo, dia_corte, dia_pago, titular_member_id, archivada")
+      .select("id, tipo, subtipo, nombre, entidad, ultimos4, saldo_inicial, cupo, dia_corte, dia_pago, titular_member_id, archivada")
       .order("archivada")
       .order("created_at"),
     ctx.supabase.from("account_balances").select("account_id, saldo"),
@@ -172,7 +172,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
       {ctx.puedeEditar && (
         <>
           <Ventana titulo="Agregar cuenta o tarjeta" subtitulo="Solo nombre y últimos 4 dígitos. Nunca te pedimos claves." guia="form-cuenta">
-            <FormularioCuenta titulares={miembros ?? []} />
+            <FormularioCuenta titulares={miembros ?? []} cuentasPago={(cuentas ?? []).filter((c) => !c.archivada && c.tipo !== "tarjeta").map((c) => ({ id: c.id, nombre: c.nombre }))} />
           </Ventana>
           {todas.map((c) => (
             <Ventana key={c.id} valor={`editar-${c.id}`} titulo={`Editar ${c.nombre}`} guia="form-cuenta-editar">

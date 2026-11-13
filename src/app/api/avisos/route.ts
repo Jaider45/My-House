@@ -1,5 +1,5 @@
 import { after, NextResponse, type NextRequest } from "next/server";
-import { DIAS_PLAZO_DIAN, planificarAvisos, type Aviso, type DatosHogar } from "@/lib/avisos";
+import { DIAS_ANTES_PAGO_FIJO, DIAS_PLAZO_DIAN, planificarAvisos, type Aviso, type DatosHogar } from "@/lib/avisos";
 import { enviarCorreo, sitio } from "@/lib/correo/enviar";
 import { hoy as hoyBogota, sumarDias } from "@/lib/fechas";
 import { leerConfigHogar } from "@/lib/hogar";
@@ -71,10 +71,10 @@ export async function GET(request: NextRequest) {
   const { data: calendario } = await db.from("calendario_tributario").select("pais, digitos, fecha").eq("anio_gravable", anio - 1).in("fecha", fechasPlazo);
   const plazoDe = (pais: string, digitos: string | null) => (digitos ? calendario?.find((c) => c.pais === pais && c.digitos === Number(digitos))?.fecha : undefined);
 
-  const [miembros, recordatorios, vencidos, conCedula] = ids.length
+  const [miembros, recordatorios, vencidos, conCedula, proximos] = ids.length
     ? await Promise.all([
         db.from("members").select("household_id, nombre, user_id, rol").in("household_id", ids).not("user_id", "is", null).in("rol", ["admin", "editor"]),
-        db.from("reminders").select("id, household_id, nombre, fecha, monto, repetir, avisos, canales, activo").in("household_id", ids).eq("activo", true).contains("canales", ["correo"]),
+        db.from("reminders").select("id, household_id, nombre, fecha, monto, repetir, avisos, canales, activo, avisar_todos, creado_por").in("household_id", ids).eq("activo", true).contains("canales", ["correo"]),
         db
           .from("transactions")
           .select("id, household_id, comercio, monto, fecha, accounts!transactions_account_id_household_id_fkey(nombre), categories(nombre), recurring_rules(recordar)")
@@ -85,9 +85,18 @@ export async function GET(request: NextRequest) {
         calendario?.length
           ? db.from("members").select("id, household_id, nombre, nit_digitos").in("household_id", ids).not("nit_digitos", "is", null)
           : Promise.resolve({ data: [] as { id: string; household_id: string; nombre: string; nit_digitos: string | null }[], error: null }),
+        // Pagos fijos que caen en 3 días («Recordarme 3 días antes»).
+        db
+          .from("transactions")
+          .select("id, household_id, comercio, monto, fecha, accounts!transactions_account_id_household_id_fkey(nombre), categories(nombre), recurring_rules(recordar)")
+          .in("household_id", ids)
+          .eq("estado", "programado")
+          .eq("tipo", "gasto")
+          .not("recurring_rule_id", "is", null)
+          .eq("fecha", sumarDias(hoy, DIAS_ANTES_PAGO_FIJO)),
       ])
     : [];
-  const fallo = [miembros, recordatorios, vencidos, conCedula].find((r) => r?.error)?.error;
+  const fallo = [miembros, recordatorios, vencidos, conCedula, proximos].find((r) => r?.error)?.error;
   if (fallo) return NextResponse.json({ error: fallo.message }, { status: 500 });
 
   // Correos de Auth solo de esas personas, en una llamada (antes: toda la lista de usuarios).
@@ -106,7 +115,7 @@ export async function GET(request: NextRequest) {
     const config = leerConfigHogar(h.config);
     const personas = (miembros?.data ?? [])
       .filter((m) => m.household_id === h.id && correos.has(m.user_id!))
-      .map((m) => ({ email: correos.get(m.user_id!)!, nombre: m.nombre }));
+      .map((m) => ({ email: correos.get(m.user_id!)!, nombre: m.nombre, userId: m.user_id! }));
     if (!personas.length) return [];
     resumen.hogares++;
 
@@ -116,6 +125,9 @@ export async function GET(request: NextRequest) {
       recordatorios: (recordatorios?.data ?? []).filter((r) => r.household_id === h.id),
       vencidos: (vencidos?.data ?? [])
         .filter((t) => t.household_id === h.id && t.recurring_rules?.recordar !== false)
+        .map((t) => ({ id: t.id, nombre: t.comercio ?? t.categories?.nombre ?? "Pago fijo", monto: t.monto, fecha: t.fecha, cuenta: t.accounts?.nombre ?? null })),
+      proximos: (proximos?.data ?? [])
+        .filter((t) => t.household_id === h.id && t.recurring_rules?.recordar === true)
         .map((t) => ({ id: t.id, nombre: t.comercio ?? t.categories?.nombre ?? "Pago fijo", monto: t.monto, fecha: t.fecha, cuenta: t.accounts?.nombre ?? null })),
     };
     const resumenSemanal =

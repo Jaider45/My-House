@@ -10,27 +10,49 @@ import { enviarCorreo, sitio } from "@/lib/correo/enviar";
 import { correoContador, correoInvitacion } from "@/lib/correo/correos";
 import type { Json } from "@/lib/supabase/database.types";
 
-const rol = z.enum(["admin", "editor", "contador"]);
+const rol = z.enum(["admin", "editor", "familiar", "contador"]);
 
-export async function invitarMiembro(_: Estado, datos: FormData): Promise<Estado & { enlace?: string }> {
-  const r = z
-    .object({ email: z.string().trim().toLowerCase().pipe(z.email("Escribe un correo válido.")), rol })
-    .safeParse(Object.fromEntries(datos));
+/** «Correo o celular» (diseño «Invitar»): un correo, o un celular colombiano (10 dígitos que empiezan por 3). */
+const destino = z
+  .string()
+  .trim()
+  .min(1, "Escribe el correo o el celular de la persona.")
+  .transform((v, c) => {
+    if (v.includes("@")) {
+      const e = z.email().safeParse(v.toLowerCase());
+      if (e.success) return { email: e.data, telefono: null };
+      c.addIssue({ code: "custom", message: "Escribe un correo válido." });
+      return z.NEVER;
+    }
+    const d = v.replace(/\D/g, "").replace(/^57(?=3\d{9}$)/, "");
+    if (/^3\d{9}$/.test(d)) return { email: null, telefono: d };
+    c.addIssue({ code: "custom", message: "Escribe un correo o un celular de 10 dígitos." });
+    return z.NEVER;
+  });
+
+export async function invitarMiembro(_: Estado, datos: FormData): Promise<Estado & { enlace?: string; whatsapp?: string }> {
+  const r = z.object({ destino, rol }).safeParse({ destino: datos.get("destino") ?? datos.get("email"), rol: datos.get("rol") });
   if (!r.success) return { error: r.error.issues[0].message };
   const ctx = await obtenerContexto();
   if (!ctx.esAdmin) return { error: "Solo un administrador puede invitar." };
+  const { email, telefono } = r.data.destino;
   const { data, error } = await ctx.supabase
     .from("invitations")
-    .insert({ household_id: ctx.hogar.id, email: r.data.email, rol: r.data.rol })
+    .insert({ household_id: ctx.hogar.id, email, telefono, rol: r.data.rol })
     .select("token, expira_en")
     .single();
   if (error) return { error: mensajeError(error) };
   revalidatePath("/ajustes/miembros");
+  revalidatePath("/ajustes");
   const enlace = `${sitio()}/invitacion/${data.token}`;
+  const texto = `${ctx.miembro.nombre.split(/\s+/)[0]} te invitó a ${ctx.hogar.nombre} en My House. Entra con este enlace (vence en 7 días): ${enlace}`;
+  const whatsapp = `https://wa.me/${telefono ? `57${telefono}` : ""}?text=${encodeURIComponent(texto)}`;
+  if (!email) return { ok: "Invitación creada. Envíale el enlace por WhatsApp (vence en 7 días):", enlace, whatsapp };
+
   const vence = formatearFechaLarga(hoy(new Date(data.expira_en)));
   const datosCorreo = { quien: ctx.miembro.nombre, hogar: ctx.hogar.nombre, url: enlace, vence };
   const { enviado } = await enviarCorreo({
-    para: r.data.email,
+    para: email,
     etiqueta: r.data.rol === "contador" ? "contador" : "invitacion",
     contenido:
       r.data.rol === "contador"
@@ -38,10 +60,9 @@ export async function invitarMiembro(_: Estado, datos: FormData): Promise<Estado
         : correoInvitacion({ ...datosCorreo, rol: r.data.rol }),
   });
   return {
-    ok: enviado
-      ? `Le enviamos la invitación a ${r.data.email}. También puedes compartirle este enlace (vence en 7 días):`
-      : "Invitación creada. Comparte este enlace (vence en 7 días):",
+    ok: enviado ? `Le enviamos la invitación a ${email}. También puedes compartirle este enlace (vence en 7 días):` : "Invitación creada. Comparte este enlace (vence en 7 días):",
     enlace,
+    whatsapp,
   };
 }
 

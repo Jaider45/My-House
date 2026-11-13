@@ -19,3 +19,13 @@ export const PARENTESCOS = {
   otro: "Otro familiar",
 } as const;
 export type Parentesco = keyof typeof PARENTESCOS;
+
+/** Roles de las personas del hogar: nombre, lo que pueden hacer y tono del chip (diseño «Configuración»). */
+export const ROLES_HOGAR = {
+  admin: { nombre: "Administrador", puede: "Todo, incluida la configuración", tono: "info" },
+  editor: { nombre: "Pareja", puede: "Registra, edita y aprueba pagos", tono: "ok" },
+  familiar: { nombre: "Familiar", puede: "Solo registra gastos", tono: "neutro" },
+  contador: { nombre: "Contador · solo lectura", puede: "Ve movimientos, Renta DIAN y soportes", tono: "alerta" },
+} as const;
+export type RolHogar = keyof typeof ROLES_HOGAR;
+export const nombreRol = (r: RolHogar) => ROLES_HOGAR[r]?.nombre ?? r;

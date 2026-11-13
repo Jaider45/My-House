@@ -59,7 +59,9 @@ export async function guardarMovimiento(_: Estado, datos: FormData): Promise<Est
 /** Registro rápido: guarda y se queda en la pantalla para el siguiente. */
 export async function registrarRapido(_: Estado, datos: FormData): Promise<Estado> {
   const ctx = await obtenerContexto();
-  if (!ctx.puedeEditar) return { error: "Tu rol es de solo lectura." };
+  if (!ctx.puedeRegistrar) return { error: "Tu rol es de solo lectura." };
+  // El rol Familiar solo registra gastos (la base también lo exige).
+  if (!ctx.puedeEditar && datos.get("tipo") !== "gasto") return { error: "Tu rol solo registra gastos." };
   datos.set("member_id", ctx.miembro.id);
   const r = movimientoDesdeFormulario(datos);
   if (!r.ok) return { error: r.error };

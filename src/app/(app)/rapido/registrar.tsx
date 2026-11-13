@@ -13,7 +13,7 @@ import { RegistroRapido, type Sugerencia } from "./registro-rapido";
 import type { Categoria } from "@/lib/categorias";
 import type { CuentaOpcion } from "@/lib/catalogos";
 
-export type DatosEscribir = { cuentas: CuentaOpcion[]; categorias: Categoria[]; frecuentes: string[]; sugerencias: Sugerencia[]; hoy: string };
+export type DatosEscribir = { cuentas: CuentaOpcion[]; categorias: Categoria[]; frecuentes: string[]; sugerencias: Sugerencia[]; hoy: string; soloGasto?: boolean };
 
 export type Modo = "escribir" | "foto" | "whatsapp";
 

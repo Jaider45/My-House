@@ -3,6 +3,7 @@
 import { useActionState, useState, type ReactNode } from "react";
 import { Chip, CuadroIcono, Explicacion, claseControl, cx } from "@/components/ui";
 import { PieVentana } from "@/components/ui/ventana";
+import { Interruptor } from "@/components/ui/interruptor";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { MensajeEstado } from "@/components/ui/estado";
 import { digitosAMonto, formatearCOP, formatearMiles } from "@/lib/dinero";
@@ -173,9 +174,10 @@ export function FormularioAgregarPresupuesto({ categorias, mes, totalActual }: {
       )}
       <div data-guia="quedaria">
       <Explicacion>
-        Tu presupuesto del mes quedaría en <b>{formatearCOP(quedaria)}</b>. Se repite cada mes; puedes ajustarlo cuando quieras.
+        Tu presupuesto del mes quedaría en <b>{formatearCOP(quedaria)}</b>.
       </Explicacion>
       </div>
+      <Interruptor name="repetir" titulo="Repetir cada mes" texto="Puedes ajustarlo cuando quieras. Apagado, solo cuenta este mes." defaultChecked />
       <MensajeEstado estado={estado} />
       <PieVentana>Guardar presupuesto</PieVentana>
     </form>

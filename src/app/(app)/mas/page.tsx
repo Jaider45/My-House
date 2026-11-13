@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { nombreRol } from "@/lib/hogar/constantes";
 import { Titulo } from "@/components/ui";
 import { Icono, type NombreIcono } from "@/components/marca";
 import { obtenerContexto } from "@/lib/sesion";
@@ -21,7 +22,6 @@ const HERRAMIENTAS: [string, NombreIcono, string, string][] = [
   ["/ajustes", "configuracion", "Hogar y ajustes", "Miembros, categorías, plan"],
 ];
 
-const ROLES = { admin: "Administrador", editor: "Editor", contador: "Contador" } as const;
 
 /** Menú «Más» del celular (diseño «Menú Más»): lo que no cabe en la barra inferior. */
 export default async function Mas() {
@@ -54,7 +54,7 @@ export default async function Mas() {
           <span className="min-w-0 flex-1">
             <b className="block truncate">{ctx.hogar.nombre}</b>
             <span className="text-[13px] text-tenue">
-              {ctx.miembro.nombre.split(/\s+/)[0]} · {ROLES[ctx.miembro.rol]}
+              {ctx.miembro.nombre.split(/\s+/)[0]} · {nombreRol(ctx.miembro.rol)}
             </span>
           </span>
           <span className="px-3 text-sm font-semibold">Ver</span>

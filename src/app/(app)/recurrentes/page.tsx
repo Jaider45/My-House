@@ -9,7 +9,8 @@ import { raizDe } from "@/lib/categorias";
 import { iconoCategoria } from "@/lib/categorias/iconos";
 import { ETIQUETA_FRECUENCIA, fechasEnRango, montoMensual } from "@/lib/recurrentes";
 import { confirmarMovimiento } from "../movimientos/acciones";
-import { cambiarEstadoRegla, eliminarRegla } from "./acciones";
+import { cambiarEstadoRegla, eliminarRegla, generarPagosMes } from "./acciones";
+import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { FormularioRegla } from "./formulario";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { BotonGuia } from "@/components/guia/boton-guia";
@@ -37,7 +38,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
     cargarCatalogos(ctx),
     ctx.supabase
       .from("recurring_rules")
-      .select("id, descripcion, monto, tipo, account_id, category_id, frecuencia, fecha_inicio, proxima_fecha, ocurrencias, activa")
+      .select("id, descripcion, monto, tipo, account_id, cuenta_destino_id, category_id, frecuencia, fecha_inicio, proxima_fecha, ocurrencias, ocurrencias_max, activa, recordar, debt_id, goal_id")
       .order("activa", { ascending: false })
       .order("proxima_fecha"),
     ctx.supabase
@@ -106,6 +107,13 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
           <>
             <SelectorMes etiqueta={formatearMes(mes).replace(" de ", " ")} anterior={`/recurrentes?mes=${sumarMeses(mes, -1)}`} siguiente={`/recurrentes?mes=${sumarMeses(mes, 1)}`} />
             <BotonGuia id="pago_fijo" />
+            {ctx.puedeEditar && mes === mesDe(fecha) && (
+              <FormularioAccion accion={generarPagosMes} className="hidden md:flex">
+                <BotonEnviar variante="secundario" pendiente="Generando…">
+                  Generar pagos del mes
+                </BotonEnviar>
+              </FormularioAccion>
+            )}
             {ctx.puedeEditar && (
               <AccionPrincipal href={`/recurrentes?${mes !== mesDe(fecha) ? `mes=${mes}&` : ""}nuevo=1`} guia="nuevo-pago-fijo">
                 Nuevo pago fijo
@@ -244,7 +252,10 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
                         <span className="flex min-w-0 flex-1 flex-col">
                           <span className="truncate text-[15px] font-semibold">{r.descripcion}</span>
                           <span className="truncate text-[13px] text-cuerpo">
-                            {ETIQUETA_FRECUENCIA[r.frecuencia]} · {categorias.get(r.category_id)?.nombre} · {nombreCuenta.get(r.account_id) ?? "cuenta archivada"}
+                            {ETIQUETA_FRECUENCIA[r.frecuencia]} ·{" "}
+                            {r.category_id ? categorias.get(r.category_id)?.nombre : `Transferencia a ${nombreCuenta.get(r.cuenta_destino_id ?? "") ?? "otra cuenta"}`} ·{" "}
+                            {nombreCuenta.get(r.account_id) ?? "cuenta archivada"}
+                            {r.ocurrencias_max ? ` · cuota ${Math.min(r.ocurrencias + 1, r.ocurrencias_max)} de ${r.ocurrencias_max}` : ""}
                           </span>
                         </span>
                         <span className="flex flex-col items-end gap-1">
@@ -254,7 +265,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
                       </summary>
                       {ctx.puedeEditar && (
                         <div className="mt-3 flex flex-col gap-3 rounded-xl bg-mosaico p-4">
-                          <FormularioRegla regla={r} cuentas={catalogos.cuentas} categorias={catalogos.categorias} hoy={fecha} />
+                          {r.tipo !== "transferencia" && <FormularioRegla regla={r} cuentas={catalogos.cuentas} categorias={catalogos.categorias} hoy={fecha} />}
                           <div className="flex flex-wrap gap-3">
                             <FormularioAccion accion={cambiarEstadoRegla}>
                               <input type="hidden" name="id" value={r.id} />

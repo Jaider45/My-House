@@ -6,6 +6,7 @@ import { PieVentana, useCerrarAlGuardar } from "@/components/ui/ventana";
 import { CampoMonto } from "@/components/ui/campo-monto";
 import { MensajeEstado } from "@/components/ui/estado";
 import { textoAviso } from "@/lib/recordatorios";
+import { Interruptor } from "@/components/ui/interruptor";
 import { guardarRecordatorio } from "./acciones";
 
 const pildora =
@@ -20,7 +21,8 @@ function Opcion({ name, value, texto, tipo = "checkbox", marcada }: { name: stri
   );
 }
 
-export function FormularioRecordatorio() {
+/** `otros`: nombres de quienes también reciben los avisos del hogar (vacío = vive solo). */
+export function FormularioRecordatorio({ otros = "" }: { otros?: string }) {
   const [estado, accion] = useActionState(guardarRecordatorio, null);
   useCerrarAlGuardar(estado);
   return (
@@ -54,6 +56,11 @@ export function FormularioRecordatorio() {
           <Opcion name="canales" value="notificacion" texto="Notificación" marcada />
         </div>
       </fieldset>
+      {otros ? (
+        <Interruptor name="avisar_todos" titulo={`Avisar también a ${otros}`} texto="Por los mismos canales" defaultChecked />
+      ) : (
+        <input type="hidden" name="avisar_todos" value="1" />
+      )}
       <MensajeEstado estado={estado} />
       <PieVentana>Guardar recordatorio</PieVentana>
     </form>

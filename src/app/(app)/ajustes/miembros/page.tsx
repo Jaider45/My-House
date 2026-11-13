@@ -4,6 +4,7 @@ import { Ventana } from "@/components/ui/ventana";
 import { obtenerContexto } from "@/lib/sesion";
 import { formatearFecha, hoy } from "@/lib/fechas";
 import { edad, PARENTESCOS, type Parentesco } from "@/lib/hogar";
+import { nombreRol, ROLES_HOGAR, type RolHogar } from "@/lib/hogar/constantes";
 import { jurisdiccion } from "@/lib/impuestos/registro";
 import { cambiarRol, quitarMiembro, revocarInvitacion } from "../acciones";
 import { CopiarEnlace, FormularioInvitar, FormularioPersona } from "./formularios";
@@ -13,7 +14,6 @@ import { BotonGuia } from "@/components/guia/boton-guia";
 
 export const metadata = { title: "Miembros" };
 
-const ROLES = { admin: "Administrador", editor: "Editor", contador: "Contador" } as const;
 
 export default function Miembros() {
   return <Contenido />;
@@ -28,8 +28,8 @@ async function Contenido() {
       .select("id, nombre, rol, user_id, es_dependiente, parentesco, fecha_nacimiento, a_cargo_de, nota, dependiente_dian")
       .order("created_at"),
     ctx.esAdmin
-      ? ctx.supabase.from("invitations").select("id, email, rol, token, expira_en").is("aceptada_en", null).order("created_at")
-      : Promise.resolve({ data: [] as { id: string; email: string; rol: keyof typeof ROLES; token: string; expira_en: string }[] }),
+      ? ctx.supabase.from("invitations").select("id, email, telefono, rol, token, expira_en").is("aceptada_en", null).order("created_at")
+      : Promise.resolve({ data: [] as { id: string; email: string | null; telefono: string | null; rol: RolHogar; token: string; expira_en: string }[] }),
   ]);
   const todos = miembros ?? [];
   const adultos = todos.filter((m) => !m.es_dependiente);
@@ -74,7 +74,7 @@ async function Contenido() {
                       {m.nombre}
                       {m.user_id === ctx.userId && <span className="font-normal text-tenue"> (tú)</span>}
                     </b>
-                    <Chip tono={m.rol === "admin" ? "info" : m.rol === "contador" ? "alerta" : m.rol ? "ok" : "neutro"}>{m.rol ? ROLES[m.rol] : "Sin acceso"}</Chip>
+                    <Chip tono={m.rol ? ROLES_HOGAR[m.rol].tono : "neutro"}>{m.rol ? nombreRol(m.rol) : "Sin acceso"}</Chip>
                   </span>
                 </span>
                 {ctx.esAdmin && m.user_id !== ctx.userId && (
@@ -83,9 +83,9 @@ async function Contenido() {
                       <FormularioAccion accion={cambiarRol} className="flex gap-1">
                         <input type="hidden" name="id" value={m.id} />
                         <select name="rol" aria-label={`Rol de ${m.nombre}`} defaultValue={m.rol ?? "editor"} className="rounded-lg border border-control bg-transparent px-2 text-sm">
-                          {Object.entries(ROLES).map(([v, t]) => (
+                          {Object.entries(ROLES_HOGAR).map(([v, t]) => (
                             <option key={v} value={v}>
-                              {t}
+                              {t.nombre}
                             </option>
                           ))}
                         </select>
@@ -126,7 +126,7 @@ async function Contenido() {
                   {invitaciones.map((i) => (
                     <li key={i.id} className="space-y-2">
                       <p className="text-sm">
-                        <strong>{i.email}</strong> · {ROLES[i.rol]} · vence {formatearFecha(i.expira_en.slice(0, 10))}
+                        <strong>{i.email ?? i.telefono}</strong> · {nombreRol(i.rol)} · vence {formatearFecha(i.expira_en.slice(0, 10))}
                       </p>
                       <CopiarEnlace enlace={`${process.env.NEXT_PUBLIC_SITE_URL}/invitacion/${i.token}`} />
                       <FormularioAccion accion={revocarInvitacion}>

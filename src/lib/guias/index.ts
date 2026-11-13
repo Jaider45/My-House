@@ -826,7 +826,9 @@ export const GUIAS: readonly Guia[] = [
 
 export const guiaPorId = (id: string): Guia | undefined => GUIAS.find((g) => g.id === id);
 
-export function guiasPara(rol: "admin" | "editor" | "contador"): Guia[] {
+export function guiasPara(rol: "admin" | "editor" | "contador" | "familiar"): Guia[] {
+  // El rol Familiar solo registra gastos: ve las guías de todos y la de registrar un gasto.
+  if (rol === "familiar") return GUIAS.filter((g) => g.para === "todos" || g.id === "gasto");
   return GUIAS.filter((g) => g.para === "todos" || (g.para === "editores" ? rol !== "contador" : rol === "admin"));
 }
 

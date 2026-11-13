@@ -15,6 +15,10 @@ const esquema = z.object({
   repetir: z.enum(["una_vez", "mensual", "anual"]),
   avisos: z.array(z.coerce.number().int().refine((n) => [0, 1, 3, 7, 14, 30].includes(n))).min(1, "Elige cuándo avisar."),
   canales: z.array(z.enum(["whatsapp", "correo", "notificacion"])).min(1, "Elige por dónde avisar."),
+  avisar_todos: z
+    .enum(["1", "0"])
+    .optional()
+    .transform((v) => v !== "0"),
 });
 
 export async function guardarRecordatorio(_: Estado, datos: FormData): Promise<Estado> {

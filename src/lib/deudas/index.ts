@@ -30,3 +30,31 @@ export function avanceDeuda(d: Deuda): AvanceDeuda {
     mesesRestantes: d.cuota ? Math.ceil(pendiente / d.cuota) : null,
   };
 }
+
+/** Próxima fecha (≥ hoy) con el día del mes indicado; si el mes no lo tiene, el último día. "YYYY-MM-DD". */
+export function proximoDia(dia: number, hoy: string): string {
+  const a = Number(hoy.slice(0, 4));
+  const m = Number(hoy.slice(5, 7));
+  const fecha = (anio: number, mes: number) => {
+    const ultimo = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
+    return `${anio}-${String(mes).padStart(2, "0")}-${String(Math.min(dia, ultimo)).padStart(2, "0")}`;
+  };
+  const este = fecha(a, m);
+  return este >= hoy ? este : m === 12 ? fecha(a + 1, 1) : fecha(a, m + 1);
+}
+
+export type PlanCuota = { primera: string; cuotas: number; ultima: string };
+
+/**
+ * Pago fijo de la cuota de una deuda (diseño «Nueva deuda»): cuántas cuotas faltan —las acordadas menos las que
+ * cubre lo ya pagado, o lo pendiente entre la cuota— y en qué fecha cae la última.
+ */
+export function planCuota(d: { monto: number; pagado_inicial: number; cuota: number; cuotas_total: number | null; dia_pago: number; hoy: string }): PlanCuota | null {
+  if (d.cuota <= 0 || d.monto <= d.pagado_inicial) return null;
+  const pendientes = Math.ceil((d.monto - d.pagado_inicial) / d.cuota);
+  const cuotas = d.cuotas_total ? Math.max(1, Math.min(pendientes, d.cuotas_total - Math.floor(d.pagado_inicial / d.cuota))) : pendientes;
+  const primera = proximoDia(d.dia_pago, d.hoy);
+  const t = Number(primera.slice(0, 4)) * 12 + Number(primera.slice(5, 7)) - 1 + (cuotas - 1);
+  const ultima = proximoDia(d.dia_pago, `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}-01`);
+  return { primera, cuotas, ultima };
+}

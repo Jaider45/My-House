@@ -17,6 +17,8 @@ export type DatosNavegacion = {
   persona: string;
   rol: string;
   puedeEditar: boolean;
+  /** Familiar: no edita, pero registra gastos (botón flotante «Registrar»). */
+  puedeRegistrar?: boolean;
 };
 
 const GRUPOS: Grupo[] = [
@@ -64,8 +66,9 @@ const INFERIOR: Enlace[] = [
  * fijos, «Deuda» en Deudas…). Fuera de esas secciones registra un movimiento. `null` = sin botón (pantallas que ya
  * tienen su propia acción principal o en las que tapa algo).
  */
-function botonFlotante(ruta: string | null, puedeEditar: boolean): { texto: string; href: string } | null {
-  if (!ruta || !puedeEditar) return null;
+function botonFlotante(ruta: string | null, puedeEditar: boolean, puedeRegistrar = puedeEditar): { texto: string; href: string } | null {
+  if (!ruta || !puedeRegistrar) return null;
+  if (!puedeEditar) return ruta === "/rapido" ? null : { texto: "Registrar", href: "/rapido" };
   const propio: [string, string][] = [
     ["/recurrentes", "Pago fijo"],
     ["/deudas", "Deuda"],
@@ -167,7 +170,7 @@ export function Navegacion({ extras, datos }: { extras?: Enlace[]; datos?: Datos
  */
 export function BarraNavegacion({ ruta, extras, datos }: { ruta: string | null; extras?: Enlace[]; datos?: DatosNavegacion }) {
   const grupos: Grupo[] = extras?.length ? [{ enlaces: [GRUPOS[0].enlaces[0], ...extras, ...GRUPOS[0].enlaces.slice(1)] }, ...GRUPOS.slice(1)] : GRUPOS;
-  const flotante = botonFlotante(ruta, datos?.puedeEditar ?? false);
+  const flotante = botonFlotante(ruta, datos?.puedeEditar ?? false, datos?.puedeRegistrar ?? datos?.puedeEditar ?? false);
   const enMas = ruta !== null && !INFERIOR.some((e) => esActivo(ruta, e));
   return (
     <>

@@ -29,11 +29,14 @@ const diaSemana = new Intl.DateTimeFormat("es-CO", { weekday: "long", day: "nume
 async function Contenido() {
   const ctx = await obtenerContexto(); // antes de hoy(): marca el render como dinámico
   const fecha = hoy();
-  const [{ data: recordatorios }, { data: reglas }, { data: hogar }] = await Promise.all([
+  const [{ data: recordatorios }, { data: reglas }, { data: hogar }, { data: personas }] = await Promise.all([
     ctx.supabase.from("reminders").select("id, nombre, fecha, monto, repetir, avisos, canales, activo"),
     ctx.supabase.from("recurring_rules").select("id, descripcion, monto, frecuencia, proxima_fecha, recordar").eq("activa", true).eq("tipo", "gasto"),
     ctx.supabase.from("households").select("config").eq("id", ctx.hogar.id).single(),
+    // Quienes también reciben los avisos: admin y editores con cuenta (el contador no).
+    ctx.supabase.from("members").select("nombre").not("user_id", "is", null).in("rol", ["admin", "editor"]).neq("id", ctx.miembro.id),
   ]);
+  const otros = (personas ?? []).map((p) => p.nombre.split(/\s+/)[0]).join(" y ");
   const { resumen_semanal: resumenSemanal, novedades } = leerConfigHogar(hogar?.config).correo;
   const items: Item[] = [
     ...(recordatorios ?? []).map((r) => ({
@@ -188,7 +191,7 @@ async function Contenido() {
     </div>
     {ctx.puedeEditar && (
       <Ventana titulo="Nuevo recordatorio" subtitulo="Una fecha de pago que no se te puede pasar." guia="form-recordatorio">
-        <FormularioRecordatorio />
+        <FormularioRecordatorio otros={otros} />
       </Ventana>
     )}
     </>

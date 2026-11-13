@@ -265,7 +265,7 @@ async function Contenido() {
       {ctx.puedeEditar && (
         <>
           <Ventana titulo="Nueva deuda" subtitulo="Un crédito, una tarjeta o un préstamo con alguien." guia="form-deuda">
-            <FormularioDeuda />
+            <FormularioDeuda cuentas={cuentas ?? []} hoy={fecha} />
           </Ventana>
           {conAbono &&
             filas

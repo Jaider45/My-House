@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { nombreRol } from "@/lib/hogar/constantes";
 import { Cargando } from "@/components/ui";
 import { ColaSinConexion } from "@/components/cola-sin-conexion";
 import { AvisoSuspendido } from "@/components/aviso-suspendido";
@@ -37,7 +38,6 @@ export default function LayoutApp({ children, modal }: { children: React.ReactNo
   );
 }
 
-const ROLES = { admin: "Administrador", editor: "Editor", contador: "Contador" } as const;
 
 /**
  * La barra suma «Clientes» para quien es contador de algún hogar y muestra los contadores del diseño: comprobantes
@@ -59,8 +59,9 @@ async function NavegacionConDatos() {
         vencidos: vencidos ?? 0,
         hogar: ctx.hogar.nombre,
         persona: ctx.miembro.nombre.split(/\s+/)[0] ?? "",
-        rol: ROLES[ctx.miembro.rol],
+        rol: nombreRol(ctx.miembro.rol),
         puedeEditar: ctx.puedeEditar,
+        puedeRegistrar: ctx.puedeRegistrar,
       }}
     />
   );

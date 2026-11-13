@@ -30,6 +30,8 @@ type Props = {
   hoy: string;
   /** Cierra la ventana tras «Guardar» (con «Guardar y otro» se queda). */
   alGuardar?: () => void;
+  /** Rol Familiar: solo registra gastos (sin selector de tipo). */
+  soloGasto?: boolean;
 };
 
 const chip = (activo: boolean, conIcono = false) =>
@@ -44,7 +46,7 @@ const seg = (activo: boolean) =>
  * Registrar → «Escribirlo» (diseño «Registrar movimiento»): monto grande, concepto en texto libre y la categoría y la
  * cuenta que sugiere lo último registrado con ese concepto. «Cambiar» abre las categorías más usadas y las cuentas.
  */
-export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, hoy, alGuardar }: Props) {
+export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, hoy, alGuardar, soloGasto }: Props) {
   const [tipo, setTipo] = useState<"gasto" | "ingreso">("gasto");
   const [cuenta, setCuenta] = useState(cuentas[0]?.id ?? "");
   const [concepto, setConcepto] = useState("");
@@ -119,14 +121,16 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, h
       <input type="hidden" name="category_id" value={categoria} />
       <input type="hidden" name="estado" value={pagado ? "confirmado" : "programado"} />
 
-      <SelectorTipo
-        tipo={tipo}
-        incluirTransferencia={false}
-        onCambio={(t) => {
-          setTipo(t as "gasto" | "ingreso");
-          setElegida("");
-        }}
-      />
+      {!soloGasto && (
+        <SelectorTipo
+          tipo={tipo}
+          incluirTransferencia={false}
+          onCambio={(t) => {
+            setTipo(t as "gasto" | "ingreso");
+            setElegida("");
+          }}
+        />
+      )}
 
       <CampoMonto key={reinicio} etiqueta="¿Cuánto?" name="monto" grande autoFocus enterKeyHint="next" />
 

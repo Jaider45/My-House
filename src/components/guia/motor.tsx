@@ -60,7 +60,7 @@ const mismaVista = (a: Vista, b: Vista) =>
  * (lo hace `BotonGuia`) y recuerda el paso en sessionStorage para seguir tras cambiar de pantalla o recargar.
  * A quien nunca vio la bienvenida le ofrece el recorrido una vez.
  */
-export function MotorGuia({ vistas, nombre, rol }: { vistas: IdGuia[]; nombre: string; rol: "admin" | "editor" | "contador" }) {
+export function MotorGuia({ vistas, nombre, rol }: { vistas: IdGuia[]; nombre: string; rol: "admin" | "editor" | "contador" | "familiar" }) {
   const [enCurso, setEnCurso] = useState<GuiaEnCurso | null>(null);
   const [oferta, setOferta] = useState(false);
   const [sinPermiso, setSinPermiso] = useState(false);

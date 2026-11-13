@@ -31,9 +31,12 @@ export async function guardarPresupuesto(_: Estado, datos: FormData): Promise<Es
       .map(([k, v]) => ({ category_id: k.slice("adicional:".length), monto: digitosAMonto(String(v)) })),
   });
   if (!r.success) return { error: "Datos de presupuesto inválidos. Recarga la página e intenta de nuevo." };
+  // «Repetir cada mes» apagado: el presupuesto solo aplica al mes que se está viendo.
+  const soloEsteMes = datos.get("repetir") === "0" && r.data.mes ? `${r.data.mes}-01` : null;
 
   if (r.data.items.length) {
-    const { error } = await ctx.supabase.rpc("guardar_presupuesto", { p_hogar: ctx.hogar.id, p_items: r.data.items });
+    const items = r.data.items.map((i) => ({ ...i, mes: soloEsteMes }));
+    const { error } = await ctx.supabase.rpc("guardar_presupuesto", { p_hogar: ctx.hogar.id, p_items: items });
     if (error) return { error: mensajeError(error) };
   }
   revalidatePath("/presupuesto");

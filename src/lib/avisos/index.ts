@@ -11,14 +11,28 @@ import type { ResultadoTope } from "@/lib/impuestos/tipos";
  * (tabla avisos_enviados).
  */
 
-export type Persona = { email: string; nombre: string };
+export type Persona = { email: string; nombre: string; /** Para los recordatorios que solo son de quien los creó. */ userId?: string };
 export type DatosHogar = {
   hogar: { id: string; nombre: string; resumenSemanal: boolean };
   /** Adultos con acceso que escriben (admin y editor): los contadores no reciben avisos de pagos. */
   personas: Persona[];
-  recordatorios: { id: string; nombre: string; fecha: string; monto: number | null; repetir: Repeticion; avisos: number[]; canales: string[]; activo: boolean }[];
+  recordatorios: {
+    id: string;
+    nombre: string;
+    fecha: string;
+    monto: number | null;
+    repetir: Repeticion;
+    avisos: number[];
+    canales: string[];
+    activo: boolean;
+    /** false = solo a quien lo creó («Avisar también a…» apagado). */
+    avisar_todos?: boolean;
+    creado_por?: string | null;
+  }[];
   /** Pagos programados que vencieron ayer y siguen sin confirmar. */
   vencidos: { id: string; nombre: string; monto: number; fecha: string; cuenta: string | null }[];
+  /** Pagos fijos programados con «Recordarme 3 días antes» (los que caen dentro de DIAS_ANTES_PAGO_FIJO días). */
+  proximos?: { id: string; nombre: string; monto: number; fecha: string; cuenta: string | null }[];
   /** Solo los lunes y si el hogar activó el resumen. */
   semana?: {
     movimientos: { tipo: "ingreso" | "gasto"; monto: number; fecha: string; categoria: string | null }[];
@@ -29,7 +43,10 @@ export type DatosHogar = {
   /** Fecha para declarar el año gravable anterior de quienes deben hacerlo (calendario por los dígitos de la cédula). */
   plazos?: { anio: number; personas: { member_id: string; nombre: string; digitos: string; fecha: string }[] };
 };
-export type Aviso = { clave: string; tipo: "recordatorio" | "vencido" | "resumen" | "dian"; envios: { para: string; contenido: Contenido }[] };
+export type Aviso = { clave: string; tipo: "recordatorio" | "proximo" | "vencido" | "resumen" | "dian"; envios: { para: string; contenido: Contenido }[] };
+
+/** «Recordarme 3 días antes» de los pagos fijos. */
+export const DIAS_ANTES_PAGO_FIJO = 3;
 
 /** Días antes de la fecha de declarar en que sale el aviso. */
 export const DIAS_PLAZO_DIAN = [60, 30, 7];
@@ -49,9 +66,12 @@ export function planificarAvisos(d: DatosHogar, hoy: string, sitio: string): Avi
   const avisos: Aviso[] = [];
   const paraTodos = (crear: (p: Persona) => Contenido) => d.personas.map((p) => ({ para: p.email, contenido: crear(p) }));
 
-  // Recordatorios con el canal «correo»: en cada día de anticipación elegido.
+  // Recordatorios con el canal «correo»: en cada día de anticipación elegido. A todos, o solo a quien lo creó.
   for (const r of d.recordatorios) {
     if (!r.activo || !r.canales.includes("correo")) continue;
+    const destino = r.avisar_todos === false && r.creado_por ? d.personas.filter((p) => p.userId === r.creado_por) : d.personas;
+    if (!destino.length) continue;
+    const paraDestino = (crear: (p: Persona) => Contenido) => destino.map((p) => ({ para: p.email, contenido: crear(p) }));
     const proxima = proximaFecha(r.fecha, r.repetir, hoy);
     for (const dias of r.avisos) {
       if (sumarDias(hoy, dias) !== proxima) continue;
@@ -59,7 +79,7 @@ export function planificarAvisos(d: DatosHogar, hoy: string, sitio: string): Avi
       avisos.push({
         clave: `recordatorio:${r.id}:${proxima}:${dias}`,
         tipo: "recordatorio",
-        envios: paraTodos((p) =>
+        envios: paraDestino((p) =>
           correoRecordatorio({
             nombre: p.nombre,
             hogar: d.hogar.nombre,
@@ -74,6 +94,28 @@ export function planificarAvisos(d: DatosHogar, hoy: string, sitio: string): Avi
         ),
       });
     }
+  }
+
+  // Pagos fijos con «Recordarme 3 días antes»: el aviso sale exactamente 3 días antes.
+  for (const x of d.proximos ?? []) {
+    if (x.fecha !== sumarDias(hoy, DIAS_ANTES_PAGO_FIJO)) continue;
+    avisos.push({
+      clave: `proximo:${x.id}`,
+      tipo: "proximo",
+      envios: paraTodos((p) =>
+        correoRecordatorio({
+          nombre: p.nombre,
+          hogar: d.hogar.nombre,
+          pago: x.nombre,
+          monto: formatearCOP(x.monto),
+          fecha: MAYUS(formatearFechaLarga(x.fecha)),
+          cuando: cuandoVence(x.fecha, hoy),
+          detalle: x.cuenta ? `Pago fijo · se paga desde ${x.cuenta}` : "Pago fijo",
+          urlVer: `${sitio}/recurrentes`,
+          sitio,
+        }),
+      ),
+    });
   }
 
   // Pagos fijos que vencieron ayer sin confirmarse.

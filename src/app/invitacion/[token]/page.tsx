@@ -8,7 +8,7 @@ import { FormularioAceptar } from "./formulario";
 
 export const metadata = { title: "Invitación" };
 
-const ROLES = { admin: "administrador", editor: "editor", contador: "contador (solo lectura)" } as const;
+const ROLES = { admin: "administrador", editor: "pareja (registra y edita)", familiar: "familiar (registra gastos)", contador: "contador (solo lectura)" } as const;
 
 export default function Invitacion({ params }: PageProps<"/invitacion/[token]">) {
   return (

@@ -16,6 +16,11 @@ const esquema = z.object({
   category_id: z.uuid("Elige una categoría."),
   frecuencia: z.enum(FRECUENCIAS),
   fecha_inicio: z.string().transform((v, c) => parsearFecha(v) ?? (c.addIssue({ code: "custom", message: "Fecha no válida." }), "")),
+  /** «Recordarme 3 días antes» (correo a quienes registran; WhatsApp cuando esté conectado). */
+  recordar: z
+    .enum(["1", "0"])
+    .optional()
+    .transform((v) => v !== "0"),
 });
 
 type Ctx = Awaited<ReturnType<typeof obtenerContexto>>;
@@ -95,4 +100,14 @@ export async function eliminarRegla(_: Estado, datos: FormData): Promise<Estado>
   if (!data.length) return { error: NO_ENCONTRADO };
   refrescar();
   return { ok: "Pago fijo eliminado." };
+}
+
+/** «Generar pagos del mes»: programa ya todos los pagos fijos que faltan del mes (sin esperar a los 7 días antes). */
+export async function generarPagosMes(): Promise<Estado> {
+  const ctx = await obtenerContexto();
+  if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
+  const { data, error } = await ctx.supabase.rpc("generar_pagos_mes", { p_household: ctx.hogar.id });
+  if (error) return { error: mensajeError(error) };
+  refrescar();
+  return { ok: data ? `Listo: programamos ${data} ${data === 1 ? "pago" : "pagos"} del mes.` : "Ya estaban todos los pagos del mes." };
 }

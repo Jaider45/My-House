@@ -111,3 +111,26 @@ describe("plazo para declarar", () => {
     expect(planificarAvisos(base({ plazos }), "2027-08-04", SITIO)).toEqual([]);
   });
 });
+
+describe("recordatorios por persona y pagos fijos 3 días antes", () => {
+  it("un recordatorio con «Avisar también a…» apagado solo le llega a quien lo creó", () => {
+    const d = base({
+      personas: [
+        { email: "andres@x.co", nombre: "Andrés", userId: "u1" },
+        { email: "camila@x.co", nombre: "Camila", userId: "u2" },
+      ],
+      recordatorios: [{ id: "r9", nombre: "Seguro", fecha: "2026-11-20", monto: null, repetir: "una_vez", avisos: [0], canales: ["correo"], activo: true, avisar_todos: false, creado_por: "u2" }],
+    });
+    const a = planificarAvisos(d, "2026-11-20", SITIO);
+    expect(a[0].envios.map((e) => e.para)).toEqual(["camila@x.co"]);
+  });
+
+  it("pago fijo con recordar: sale 3 días antes, una vez", () => {
+    const d = base({ proximos: [{ id: "t1", nombre: "Internet", monto: 159_900, fecha: "2026-11-23", cuenta: "Nequi" }] });
+    expect(planificarAvisos(d, "2026-11-19", SITIO)).toEqual([]);
+    const a = planificarAvisos(d, "2026-11-20", SITIO);
+    expect(a).toHaveLength(1);
+    expect(a[0]).toMatchObject({ clave: "proximo:t1", tipo: "proximo" });
+    expect(a[0].envios).toHaveLength(2);
+  });
+});

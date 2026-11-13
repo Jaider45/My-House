@@ -25,10 +25,15 @@ export async function cargarPlan(ctx: Ctx, mes: string, hoy: string): Promise<{ 
       .from("recurring_rules")
       .select("id, descripcion, monto, tipo, account_id, category_id, frecuencia, fecha_inicio, ocurrencias")
       .eq("activa", true)
+      // Pagar la tarjeta desde el banco es una transferencia: no es gasto (decisión 9).
+      .neq("tipo", "transferencia")
       .order("monto", { ascending: false }),
-    ctx.supabase.from("budgets_goals").select("category_id, monto").eq("tipo", "presupuesto"),
+    ctx.supabase.from("budgets_goals").select("category_id, monto, mes").eq("tipo", "presupuesto"),
   ]);
   const lista = (reglas ?? []) as ReglaActiva[];
-  const montos = (presupuestos ?? []).filter((p): p is { category_id: string; monto: number } => !!p.category_id);
+  // Un presupuesto con `mes` («Repetir cada mes» apagado) solo cuenta en ese mes.
+  const montos = (presupuestos ?? [])
+    .filter((p): p is { category_id: string; monto: number; mes: string | null } => !!p.category_id && (!p.mes || p.mes.slice(0, 7) === mes))
+    .map(({ category_id, monto }) => ({ category_id, monto }));
   return { plan: armarPlan({ mes, hoy, hasta: rangoMes(mes).hasta, reglas: lista, presupuestos: montos }), reglas: lista, presupuestos: montos };
 }

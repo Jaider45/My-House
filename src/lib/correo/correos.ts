@@ -130,10 +130,11 @@ export function correoBienvenida(d: {
 
 const ROLES = {
   admin: { rol: "Administrador", puede: "Todo, incluso invitar y quitar miembros" },
-  editor: { rol: "Editor", puede: "Registrar y editar gastos, pagos y metas" },
+  editor: { rol: "Pareja", puede: "Registrar y editar gastos, pagos y metas" },
+  familiar: { rol: "Familiar", puede: "Registrar gastos" },
 } as const;
 
-export function correoInvitacion(d: { quien: string; hogar: string; rol: "admin" | "editor"; url: string; vence: string }): Contenido {
+export function correoInvitacion(d: { quien: string; hogar: string; rol: "admin" | "editor" | "familiar"; url: string; vence: string }): Contenido {
   return {
     asunto: `${d.quien} te invitó a ${d.hogar}`,
     vistaPrevia: "Acepta para registrar gastos y ver las cuentas de la casa.",

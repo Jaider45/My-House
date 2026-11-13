@@ -12,6 +12,8 @@ export type Contexto = {
   miembro: { id: string; nombre: string; rol: Rol };
   hogar: { id: string; nombre: string; pais: string; moneda: string; cuotaImprevistosPct: number };
   puedeEditar: boolean;
+  /** Puede registrar gastos: editores y el rol Familiar (que no edita nada más). */
+  puedeRegistrar: boolean;
   esAdmin: boolean;
 };
 
@@ -57,6 +59,7 @@ const armar = (userId: string, email: string, h: ClaimHogar): Contexto => ({
   miembro: { id: h.miembro_id, nombre: h.miembro_nombre, rol: h.rol },
   hogar: { id: h.hogar_id, nombre: h.hogar_nombre, pais: h.pais, moneda: h.moneda, cuotaImprevistosPct: h.cuota_imprevistos_pct ?? 10 },
   puedeEditar: h.rol === "admin" || h.rol === "editor",
+  puedeRegistrar: h.rol === "admin" || h.rol === "editor" || h.rol === "familiar",
   esAdmin: h.rol === "admin",
 });
 

@@ -9,9 +9,10 @@ import { PARENTESCOS } from "@/lib/hogar/constantes";
 import { guardarPersonaACargo, invitarMiembro } from "../acciones";
 
 const ROLES_INVITACION = [
-  { valor: "editor", titulo: "Pareja o familiar", texto: "Registra, edita y aprueba pagos" },
+  { valor: "editor", titulo: "Pareja", texto: "Registra, edita y aprueba pagos" },
+  { valor: "contador", titulo: "Contador · solo lectura", texto: "Ve movimientos, Renta DIAN y soportes. No edita ni ve la configuración." },
+  { valor: "familiar", titulo: "Familiar", texto: "Solo registra gastos" },
   { valor: "admin", titulo: "Administrador", texto: "Además invita y quita personas y cambia la configuración" },
-  { valor: "contador", titulo: "Contador · solo lectura", texto: "Ve movimientos, Renta DIAN y soportes. No edita." },
 ] as const;
 
 /**
@@ -23,7 +24,7 @@ export function FormularioInvitar() {
   const [rol, setRol] = useState<string>("editor");
   return (
     <form action={accion} className="flex flex-col gap-4">
-      <Campo etiqueta="Correo de la persona" name="email" type="email" placeholder="nombre@correo.com" required />
+      <Campo etiqueta="Correo o celular" name="destino" placeholder="nombre@correo.com o 300 123 4567" autoComplete="off" required />
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1.5 text-[13px] leading-[18px] font-semibold text-cuerpo">Rol</legend>
         {ROLES_INVITACION.map((r) => (
@@ -41,6 +42,16 @@ export function FormularioInvitar() {
       </fieldset>
       <MensajeEstado estado={estado} />
       {estado?.enlace && <CopiarEnlace enlace={estado.enlace} />}
+      {estado?.whatsapp && (
+        <a
+          href={estado.whatsapp}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex h-11 items-center justify-center self-start rounded-[10px] border border-cuerpo px-4 text-[15px] font-semibold hover:bg-mosaico"
+        >
+          Enviar el enlace por WhatsApp
+        </a>
+      )}
       <PieVentana pendiente="Creando…">{estado?.enlace ? "Crear otra invitación" : "Enviar invitación"}</PieVentana>
     </form>
   );

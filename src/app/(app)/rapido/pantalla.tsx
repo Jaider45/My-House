@@ -31,7 +31,9 @@ function conceptos(filas: { comercio: string | null; tipo: string; category_id: 
 /** Registrar movimiento: la ventana con sus datos (la usan la ruta /rapido y su versión interceptada). */
 export async function PantallaRegistrar({ sobrePantalla }: { sobrePantalla: boolean }) {
   const ctx = await obtenerContexto(); // antes de hoy(): marca el render como dinámico
-  if (!ctx.puedeEditar) return <VentanaRegistrar datos={null} iaLista={false} sobrePantalla={sobrePantalla} />;
+  if (!ctx.puedeRegistrar) return <VentanaRegistrar datos={null} iaLista={false} sobrePantalla={sobrePantalla} />;
+  // Familiar: solo gastos escritos a mano (el asistente y los ingresos son de quienes editan).
+  const familiar = !ctx.puedeEditar;
   const fecha = hoy();
   const [catalogos, { data: recientes }, ia] = await Promise.all([
     cargarCatalogos(ctx),
@@ -43,11 +45,11 @@ export async function PantallaRegistrar({ sobrePantalla }: { sobrePantalla: bool
       .neq("origen", "recurrente")
       .order("fecha", { ascending: false })
       .limit(2000),
-    iaDelHogar(ctx),
+    familiar ? Promise.resolve(null) : iaDelHogar(ctx),
   ]);
   return (
     <VentanaRegistrar
-      datos={{ cuentas: catalogos.cuentas, categorias: catalogos.categorias, frecuentes: masUsadas(recientes ?? []), sugerencias: conceptos(recientes ?? []), hoy: fecha }}
+      datos={{ cuentas: catalogos.cuentas, categorias: catalogos.categorias, frecuentes: masUsadas(recientes ?? []), sugerencias: conceptos(recientes ?? []), hoy: fecha, soloGasto: familiar }}
       sinCuentas={!catalogos.cuentas.length}
       iaLista={ia !== null}
       sobrePantalla={sobrePantalla}
