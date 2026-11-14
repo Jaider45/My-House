@@ -9,8 +9,8 @@ import { formatearMomento } from "@/lib/consola/formato";
 import { AUTOMATICOS } from "@/lib/correo/automaticos";
 import { TarjetaTabla } from "../tarjeta-tabla";
 import { cancelarCampana } from "./acciones";
-import { InterruptorAutomatico, VentanasSegmentos, CONDICIONES_SEGMENTO, type SegmentoPropio } from "./segmentos-formulario";
-import { SEGMENTOS, type Segmentos } from "./segmentos";
+import { InterruptorAutomatico, VentanasSegmentos, type SegmentoPropio } from "./segmentos-formulario";
+import { CONDICIONES_SEGMENTO, SEGMENTOS, type Segmentos } from "./segmentos";
 
 export const metadata: Metadata = { title: "Correos y campañas" };
 

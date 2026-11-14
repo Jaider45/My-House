@@ -7,7 +7,8 @@ import { GUIAS } from "@/lib/guias";
 import { hoy } from "@/lib/fechas";
 import { TarjetaTabla } from "../tarjeta-tabla";
 import { EditorLeccion, ListaLecciones, type LeccionConsola } from "./editor";
-import { ActivarRegla, CONDICIONES, LUGARES, VentanasAcademia, type Recomendacion, type RutaConsola, type TallerConsola } from "./formularios";
+import { CONDICIONES, LUGARES } from "./constantes";
+import { ActivarRegla, VentanasAcademia, type Recomendacion, type RutaConsola, type TallerConsola } from "./formularios";
 
 export const metadata: Metadata = { title: "Academia" };
 

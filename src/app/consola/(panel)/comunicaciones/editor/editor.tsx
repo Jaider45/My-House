@@ -331,7 +331,7 @@ export function EditorCampana({ inicial, segmentos, programada }: { inicial: Dat
                         const tipo = e.dataTransfer.getData("text/bloque") as TipoBloque;
                         if (tipo) agregar(tipo, i);
                       }}
-                      className={cx("relative rounded-lg p-2 outline-2 outline-offset-2", sel === i ? "outline outline-monte" : "hover:outline hover:outline-control")}
+                      className={cx("relative rounded-lg p-2", sel === i ? "outline-2 outline-offset-2 outline-monte" : "hover:outline-1 hover:outline-offset-2 hover:outline-control")}
                     >
                       {sel === i && (
                         <span className="absolute -top-3 right-2 z-10 flex gap-1 rounded-md bg-monte px-1.5 py-0.5 text-xs text-arena">

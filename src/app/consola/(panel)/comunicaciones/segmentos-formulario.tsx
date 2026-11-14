@@ -6,18 +6,9 @@ import { MensajeEstado } from "@/components/ui/estado";
 import { Conmutador } from "@/components/ui/interruptor";
 import { PieVentana, Ventana, useCerrarAlGuardar } from "@/components/ui/ventana";
 import { cambiarAutomatico, guardarSegmento } from "./editor-acciones";
+import { CONDICIONES_SEGMENTO } from "./segmentos";
 
 export type SegmentoPropio = { id: string; nombre: string; plan: string; condiciones: string[]; actividad: string; hogares: number; con_permiso: number; personas: number };
-
-export const CONDICIONES_SEGMENTO: [string, string][] = [
-  ["tope_dian", "Alguien del hogar pasó un tope DIAN"],
-  ["presupuesto_excedido", "Una categoría pasó su presupuesto este mes"],
-  ["fondo_atrasado", "El fondo de emergencia va atrasado"],
-  ["sin_fondo", "No tiene fondo de emergencia"],
-  ["varias_deudas", "Tiene más de una deuda"],
-  ["un_miembro_14d", "Un solo miembro hace 14 días (sin pareja invitada)"],
-  ["sin_registro_7d", "No registra nada en 7 días"],
-];
 
 function FormSegmento({ s }: { s?: SegmentoPropio }) {
   const [estado, enviar] = useActionState(guardarSegmento, null);

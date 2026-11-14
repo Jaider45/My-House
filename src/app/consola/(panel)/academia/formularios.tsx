@@ -7,28 +7,12 @@ import { Conmutador, Interruptor } from "@/components/ui/interruptor";
 import { PieVentana, Ventana, useCerrarAlGuardar } from "@/components/ui/ventana";
 import { TEMAS } from "@/lib/academia";
 import { guardarRecomendacion, guardarRuta, guardarTaller } from "./acciones";
+import { CONDICIONES, LUGARES } from "./constantes";
 
 export type RutaConsola = { slug: string; titulo: string; portada: string; descripcion: string; tema: string; icono: string; color: string; publicada: boolean };
 export type Recomendacion = { id: string; condicion: string; ruta: string; leccion: string | null; lugares: string[]; activa: boolean; clics: number };
 export type TallerConsola = { id: string; titulo: string; descripcion: string; fecha: string; enlace: string | null; cupos: number; publicado: boolean; inscritos: number };
 
-export const CONDICIONES: [string, string][] = [
-  ["presupuesto_excedido", "Una categoría pasa su presupuesto"],
-  ["tope_dian", "Alguien pasa un tope DIAN"],
-  ["fondo_atrasado", "El fondo de emergencia va atrasado"],
-  ["sin_fondo", "No tiene fondo de emergencia"],
-  ["varias_deudas", "Tiene más de una deuda"],
-  ["un_miembro_14d", "Hogar con un solo miembro por 14 días"],
-  ["sin_registro_7d", "No registra nada en 7 días"],
-  ["siempre", "Siempre (para empezar)"],
-];
-export const LUGARES: [string, string][] = [
-  ["academia", "Academia"],
-  ["inicio", "Inicio"],
-  ["presupuesto", "Presupuesto"],
-  ["renta", "Renta DIAN"],
-  ["metas", "Metas"],
-];
 const ICONOS = ["resumen", "casa", "familia", "ahorro", "declaracion-renta", "deducciones", "egresos", "meta", "educacion", "cuentas"];
 
 function FormRuta({ r }: { r?: RutaConsola }) {

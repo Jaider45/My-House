@@ -17,7 +17,7 @@ export async function AvisoLegal() {
   const pendientes = await pendientesLegales(ctx.supabase);
   if (!pendientes.length) return null;
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-tinta/40 p-0 md:items-center md:p-6">
+    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-tinta/40 p-0 md:items-center md:p-6">
       <section
         role="dialog"
         aria-modal="true"

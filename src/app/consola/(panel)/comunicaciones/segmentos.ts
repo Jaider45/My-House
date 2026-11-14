@@ -13,3 +13,13 @@ export const SEGMENTOS: { valor: string; texto: string }[] = [
   { valor: "mora", texto: "Con el pago pendiente" },
   { valor: "inactivos", texto: "Sin movimientos hace 30 días" },
 ];
+
+export const CONDICIONES_SEGMENTO: [string, string][] = [
+  ["tope_dian", "Alguien del hogar pasó un tope DIAN"],
+  ["presupuesto_excedido", "Una categoría pasó su presupuesto este mes"],
+  ["fondo_atrasado", "El fondo de emergencia va atrasado"],
+  ["sin_fondo", "No tiene fondo de emergencia"],
+  ["varias_deudas", "Tiene más de una deuda"],
+  ["un_miembro_14d", "Un solo miembro hace 14 días (sin pareja invitada)"],
+  ["sin_registro_7d", "No registra nada en 7 días"],
+];
