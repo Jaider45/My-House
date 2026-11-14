@@ -20,5 +20,8 @@ export default async function IngresarConsola({ searchParams }: PageProps<"/cons
 
   if (!claims) return <IngresoClave siguiente={siguiente} inactividad={sp.motivo === "inactividad"} />;
   if (!claims.staff) return <FueraDelEquipo email={claims.email ?? ""} />;
-  return <IngresoCodigo email={claims.email ?? ""} siguiente={siguiente} />;
+  const { data: factores } = await supabase.auth.mfa.listFactors();
+  const conApp = Boolean(factores?.totp.some((f) => f.status === "verified"));
+  const llave = factores?.all.find((f) => f.factor_type === "webauthn" && f.status === "verified")?.id ?? null;
+  return <IngresoCodigo email={claims.email ?? ""} siguiente={siguiente} conApp={conApp} llave={llave} />;
 }

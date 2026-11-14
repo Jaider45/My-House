@@ -18,6 +18,8 @@ import { enviarCorreo, sitio } from "@/lib/correo/enviar";
 import { formatearCOP } from "@/lib/dinero";
 import { hoy as hoyBogota } from "@/lib/fechas";
 import { formatearFechaCorta } from "@/lib/consola/formato";
+import { enviarWhatsapp, whatsappAdministradores } from "@/lib/whatsapp/enviar";
+import type { UsoWhatsapp } from "@/lib/whatsapp/usos";
 
 export const maxDuration = 300;
 
@@ -69,7 +71,7 @@ export async function GET(request: NextRequest) {
   // Hogares con tarjeta guardada: el aviso de renovación dice que se cobra solo.
   const { data: tarjetas } = await db.from("metodos_pago").select("household_id, marca, ultimos4").eq("activo", true).in("household_id", avisos.filter((a) => a.tipo === "renovacion").map((a) => a.hogar));
   const tarjetaDe = new Map((tarjetas ?? []).map((t) => [t.household_id, `${t.marca ?? "Tarjeta"} ···${t.ultimos4 ?? ""}`]));
-  const resumen = { avisos: avisos.length, correos: 0, repetidos: 0 };
+  const resumen = { avisos: avisos.length, correos: 0, repetidos: 0, whatsapp: 0 };
 
   for (const a of avisos) {
     const clave = `cobro:${a.tipo}:${a.vence ?? a.hasta?.slice(0, 10) ?? hoy}${a.dia ? `:${a.dia}` : ""}`;
@@ -97,6 +99,16 @@ export async function GET(request: NextRequest) {
     };
     const enviados = await avisarAdministradores(db, a.hogar, `cobro-${a.tipo}`, armar);
     resumen.correos += enviados;
+    // WhatsApp (si hay plantilla asignada en Ajustes de la plataforma y la persona lo autorizó).
+    const uso: UsoWhatsapp | null = a.tipo === "mora" ? "cobro_mora" : a.tipo === "renovacion" ? "cobro_renovacion" : a.tipo === "gratis" || a.tipo === "cancelada" ? "cobro_gratis" : null;
+    if (uso)
+      resumen.whatsapp += await whatsappAdministradores(
+        db,
+        a.hogar,
+        uso,
+        { plan: nombrePlan, monto: a.monto ? formatearCOP(a.monto) : undefined, baja: fecha(a.baja), vence: fecha(a.vence) },
+        clave,
+      );
     await db.from("avisos_enviados").update({ destinatarios: enviados }).eq("household_id", a.hogar).eq("clave", clave);
   }
 
@@ -138,14 +150,31 @@ export async function GET(request: NextRequest) {
     const c = reclamada as unknown as CampanaEnvio | null;
     if (eReclamar || !c?.id) break;
     const { data: hogares } = await db.rpc("campana_hogares", { p_campana: c.id });
+    // Canal WhatsApp: la plantilla aprobada de la campaña, a quienes autorizaron WhatsApp.
+    const plantilla = c.canal === "whatsapp" && c.plantilla_whatsapp ? (await db.from("plantillas_whatsapp").select("nombre").eq("id", c.plantilla_whatsapp).maybeSingle()).data?.nombre : null;
     const pendientes = (hogares ?? []) as string[];
     let enviados = 0;
     let alcance = 0;
     let cursor: string | null = null;
     for (const h of pendientes) {
       if (Date.now() - arranque > LIMITE_CAMPANAS_MS) break;
-      const [personas, vars] = await Promise.all([destinatarios(db, h, c.transaccional), c.bloques?.length ? variablesHogar(db, h) : Promise.resolve<Variables>({})]);
+      const [personas, vars] = await Promise.all([destinatarios(db, h, c.transaccional), c.bloques?.length || plantilla ? variablesHogar(db, h) : Promise.resolve<Variables>({})]);
       const v = variante(h, c.prueba_ab_pct);
+      if (c.canal === "whatsapp") {
+        if (plantilla && personas.length) {
+          const { data: tels } = await db.rpc("telefonos_whatsapp", { p_ids: personas.map((p) => p.user_id) });
+          for (const t of tels ?? []) {
+            const a = personas.find((p) => p.user_id === t.user_id)!;
+            const datos: Variables = { ...vars, nombre: a.nombre, hogar: vars.hogar ?? a.hogar };
+            const r = await enviarWhatsapp(db, { telefono: t.telefono, plantilla, parametros: (c.whatsapp_vars ?? []).map((k) => String((datos as Record<string, string | undefined>)[k] ?? "")), tipo: "campana", referencia: c.id });
+            if (r.enviado) enviados++;
+            await esperar(100);
+          }
+        }
+        cursor = h;
+        alcance++;
+        continue;
+      }
       for (const a of personas) {
         const r = await enviarCorreo({
           para: a.email,

@@ -19,6 +19,9 @@ export type CampanaEnvio = {
   boton_texto: string | null;
   boton_url: string | null;
   transaccional: boolean;
+  canal?: "correo" | "whatsapp";
+  plantilla_whatsapp?: string | null;
+  whatsapp_vars?: string[];
 };
 
 /** Quién recibe en un hogar: los administradores (novedades) o todas las personas con cuenta (avisos legales). */
@@ -31,7 +34,7 @@ export async function destinatarios(db: Servicio, hogar: string, transaccional: 
   const porId = new Map((correos ?? []).map((c) => [c.id, c.email]));
   return (miembros ?? [])
     .filter((m) => porId.get(m.user_id!))
-    .map((m) => ({ nombre: m.nombre.split(/\s+/)[0], email: porId.get(m.user_id!)!, hogar: m.households?.nombre ?? "tu hogar" }));
+    .map((m) => ({ nombre: m.nombre.split(/\s+/)[0], email: porId.get(m.user_id!)!, hogar: m.households?.nombre ?? "tu hogar", user_id: m.user_id! }));
 }
 
 /** {hogar}, {plan}, {fecha_pago} y {minimo} (pagos fijos del mes + cuota de imprevistos, como en la bienvenida). */

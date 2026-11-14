@@ -6,6 +6,7 @@ import type { BloqueCorreo } from "@/lib/correo/bloques";
 import { SEGMENTOS, type Segmentos } from "../segmentos";
 import { EditorCampana, type OpcionSegmento } from "./editor";
 import type { DatosCampana } from "../editor-acciones";
+import { CanalCampana, type PlantillaCampana } from "./canal";
 
 export const metadata: Metadata = { title: "Editor de campaña" };
 
@@ -23,11 +24,13 @@ export default async function EditorCorreo({ searchParams }: { searchParams: Pro
       </>
     );
   }
-  const [{ data: campanas }, { data: fijos }, { data: propios }] = await Promise.all([
+  const [{ data: campanas }, { data: fijos }, { data: propios }, { data: plantillas }] = await Promise.all([
     staff.supabase.rpc("consola_campanas"),
     staff.supabase.rpc("consola_segmentos"),
     staff.supabase.rpc("consola_segmentos_todos"),
+    staff.supabase.rpc("consola_plantillas_whatsapp"),
   ]);
+  const aprobadas = ((plantillas ?? []) as (PlantillaCampana & { estado: string })[]).filter((p) => p.estado === "aprobada");
   const c = id ? (campanas ?? []).find((x) => x.id === id) : undefined;
   const conteo = (fijos ?? {}) as Segmentos;
   const segmentos: OpcionSegmento[] = [
@@ -72,7 +75,14 @@ export default async function EditorCorreo({ searchParams }: { searchParams: Pro
       {bloqueada ? (
         <Aviso tipo="info">Esta campaña ya salió: puedes ver sus resultados en Correos y campañas.</Aviso>
       ) : (
-        <EditorCampana inicial={inicial} segmentos={segmentos} programada={c?.estado === "programada"} />
+        <>
+          <EditorCampana inicial={inicial} segmentos={segmentos} programada={c?.estado === "programada"} />
+          {c && (
+            <div className="mt-5 max-w-[640px]">
+              <CanalCampana id={c.id} canal={c.canal} plantilla={c.plantilla_whatsapp} vars={c.whatsapp_vars} plantillas={aprobadas} />
+            </div>
+          )}
+        </>
       )}
     </>
   );

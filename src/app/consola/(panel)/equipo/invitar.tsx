@@ -8,19 +8,17 @@ import { ROLES_STAFF } from "@/lib/consola/permisos";
 import { invitarPersona } from "./acciones";
 
 /** Invitar persona: correo, nombre y rol. Muestra el enlace para compartirlo aunque el correo no salga. */
-export function FormularioInvitar() {
+export function FormularioInvitar({ propios = [] }: { propios?: { id: string; nombre: string }[] }) {
   const [estado, enviar] = useActionState(invitarPersona, null);
+  const [rolNombre, setRolNombre] = useState("");
   return (
     <form action={enviar} className="flex flex-col gap-3.5" key={estado?.enlace}>
       <Campo etiqueta="Correo" name="email" type="email" autoComplete="off" required />
       <Campo etiqueta="Nombre" name="nombre" autoComplete="off" required maxLength={80} />
-      <Selector etiqueta="Rol" name="rol" defaultValue="soporte" required>
-        {ROLES_STAFF.map((r) => (
-          <option key={r.valor} value={r.valor}>
-            {r.nombre}
-          </option>
-        ))}
+      <Selector etiqueta="Rol" name="rol" defaultValue="soporte" required onChange={(e) => setRolNombre(e.target.selectedOptions[0]?.dataset.propio ?? "")}>
+        <OpcionesRol propios={propios} />
       </Selector>
+      <input type="hidden" name="rol_nombre" value={rolNombre} />
       <MensajeEstado estado={estado} />
       {estado?.enlace && <CopiarEnlace key={estado.enlace} enlace={estado.enlace} />}
       <BotonEnviar pendiente="Invitando…">Invitar persona</BotonEnviar>
@@ -37,5 +35,27 @@ function CopiarEnlace({ enlace }: { enlace: string }) {
         {copiado ? "Copiado" : "Copiar"}
       </Boton>
     </div>
+  );
+}
+
+/** Roles fijos y propios para un selector (los propios van como «propio:<id>»). */
+export function OpcionesRol({ propios }: { propios: { id: string; nombre: string }[] }) {
+  return (
+    <>
+      {ROLES_STAFF.map((r) => (
+        <option key={r.valor} value={r.valor}>
+          {r.nombre}
+        </option>
+      ))}
+      {propios.length > 0 && (
+        <optgroup label="Roles propios">
+          {propios.map((r) => (
+            <option key={r.id} value={`propio:${r.id}`} data-propio={r.nombre}>
+              {r.nombre}
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </>
   );
 }

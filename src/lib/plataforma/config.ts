@@ -9,8 +9,8 @@ const cache = new Map<string, { valor: unknown; hasta: number }>();
 const TTL = 60_000;
 
 export type Envios = { remitente: string; responder_a: string; wa_desde: string; wa_hasta: string; wa_sin_marketing_domingo: boolean };
-export type LimitesApp = { comprobante_mb: number; exigir_2fa_admins: boolean; intentos_bloqueo: number };
-export type AvisoEquipo = { roles: string[]; activo: boolean };
+export type LimitesApp = { comprobante_mb: number; exigir_2fa_admins: boolean; intentos_bloqueo: number; sesion_dias: number };
+export type AvisoEquipo = { roles: string[]; activo: boolean; whatsapp?: boolean };
 export type Factura = { proveedor: string; resolucion: string; prefijo: string; desde: number | null; hasta: number | null; enviar_correo: boolean };
 
 export async function leerConfigPlataforma<T>(clave: string, porDefecto: T): Promise<T> {
@@ -37,6 +37,6 @@ export function olvidarConfig(clave?: string) {
   else cache.clear();
 }
 
-export const limitesApp = () => leerConfigPlataforma<LimitesApp>("limites_app", { comprobante_mb: 10, exigir_2fa_admins: false, intentos_bloqueo: 5 });
+export const limitesApp = () => leerConfigPlataforma<LimitesApp>("limites_app", { comprobante_mb: 10, exigir_2fa_admins: false, intentos_bloqueo: 5, sesion_dias: 0 });
 export const envios = () =>
   leerConfigPlataforma<Envios>("envios", { remitente: "", responder_a: "", wa_desde: "07:00", wa_hasta: "20:00", wa_sin_marketing_domingo: true });

@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { Boton, Cargando } from "@/components/ui";
 import { obtenerStaff } from "@/lib/consola/sesion";
-import { nombreRol } from "@/lib/consola/permisos";
 import { salirConsola } from "../(acceso)/ingresar/acciones";
 import { BarraConsola, NavegacionConsola, type Insignias } from "./barra";
 
@@ -63,7 +62,7 @@ async function QuienEsta() {
           {iniciales}
         </span>
         <span>
-          {staff.nombre} · {nombreRol(staff.rol)}
+          {staff.nombre} · {staff.rolNombre}
         </span>
       </span>
       <form action={salirConsola}>

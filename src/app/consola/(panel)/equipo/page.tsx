@@ -7,9 +7,13 @@ import { FormularioAccion } from "@/components/ui/formulario-accion";
 import { mensajeError } from "@/lib/acciones";
 import { obtenerStaff } from "@/lib/consola/sesion";
 import { formatearFechaCorta, formatearMomento } from "@/lib/consola/formato";
+import Link from "next/link";
+import { Ventana } from "@/components/ui/ventana";
 import { MATRIZ, MINUTOS_INACTIVIDAD, nombreRol, PERMISOS, ROLES_STAFF } from "@/lib/consola/permisos";
 import { activarPersona, cambiarRolPersona, cancelarInvitacion } from "./acciones";
-import { FormularioInvitar } from "./invitar";
+import { FormularioInvitar, OpcionesRol } from "./invitar";
+import { FormularioInactividad, FormularioMiCelular, FormularioRol, type RolPropio } from "./formularios";
+import { MisLlaves } from "../../llave";
 import { TarjetaTabla } from "../tarjeta-tabla";
 
 export const metadata: Metadata = { title: "Equipo y permisos" };
@@ -46,10 +50,17 @@ export default async function EquipoConsola() {
   const ips = ((filaIps?.valor ?? { activo: false, ips: [] }) as { activo: boolean; ips: string[] });
   const miIp = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "";
   const gestiona = staff.puede("equipo");
-  const [equipo, invitaciones] = await Promise.all([
+  const [equipo, invitaciones, roles, factores, contacto, sesion] = await Promise.all([
     staff.supabase.rpc("consola_equipo"),
     gestiona ? staff.supabase.rpc("consola_invitaciones") : Promise.resolve({ data: [], error: null }),
+    staff.supabase.rpc("consola_roles"),
+    staff.supabase.auth.mfa.listFactors(),
+    staff.supabase.from("contactos").select("telefono, whatsapp").eq("user_id", staff.userId).maybeSingle(),
+    staff.supabase.from("plataforma_config").select("valor").eq("clave", "consola_sesion").maybeSingle(),
   ]);
+  const propios = (roles.data ?? []) as RolPropio[];
+  const llaves = (factores.data?.all ?? []).filter((f) => f.factor_type === "webauthn" && f.status === "verified").map((f) => ({ id: f.id, nombre: f.friendly_name ?? null }));
+  const minutos = Number((sesion.data?.valor as { minutos?: number } | null)?.minutos ?? MINUTOS_INACTIVIDAD);
   const error = equipo.error ?? invitaciones.error;
   const personas = equipo.data ?? [];
   const activas = personas.filter((p) => p.activo).length;
@@ -95,12 +106,8 @@ export default async function EquipoConsola() {
                           {gestiona && !yo && p.activo ? (
                             <FormularioAccion accion={cambiarRolPersona} className="flex items-center gap-2">
                               <input type="hidden" name="usuario" value={p.user_id} />
-                              <select name="rol" defaultValue={p.rol} aria-label={`Rol de ${p.nombre}`} className="h-9 rounded-lg border border-control bg-elevada px-2 text-sm">
-                                {ROLES_STAFF.map((r) => (
-                                  <option key={r.valor} value={r.valor}>
-                                    {r.nombre}
-                                  </option>
-                                ))}
+                              <select name="rol" defaultValue={p.rol_personal ? `propio:${p.rol_personal}` : p.rol} aria-label={`Rol de ${p.nombre}`} className="h-9 rounded-lg border border-control bg-elevada px-2 text-sm">
+                                <OpcionesRol propios={propios} />
                               </select>
                               <BotonEnviar variante="secundario" className="h-9 px-3 text-sm" pendiente="…">
                                 Guardar
@@ -108,7 +115,7 @@ export default async function EquipoConsola() {
                             </FormularioAccion>
                           ) : (
                             <Chip tono={p.rol === "superadmin" ? "info" : "neutro"} plano>
-                              {nombreRol(p.rol)}
+                              {p.rol_nombre ?? nombreRol(p.rol)}
                             </Chip>
                           )}
                         </td>
@@ -166,7 +173,7 @@ export default async function EquipoConsola() {
                           </span>
                         </td>
                         <td>
-                          <Chip plano>{nombreRol(i.rol)}</Chip>
+                          <Chip plano>{i.rol_nombre ?? nombreRol(i.rol)}</Chip>
                         </td>
                         <td className="text-cuerpo">{i.creada_por ?? "—"}</td>
                         <td className="text-cuerpo">{new Date(i.vence) < new Date() ? <Chip tono="error">Vencida</Chip> : formatearFechaCorta(i.vence)}</td>
@@ -190,14 +197,14 @@ export default async function EquipoConsola() {
         <div className="flex min-w-0 flex-col gap-5">
           {gestiona && (
             <Tarjeta titulo="Invitar persona" subtitulo="Le llega un enlace; al entrar activa la verificación en dos pasos.">
-              <FormularioInvitar />
+              <FormularioInvitar propios={propios.map((r) => ({ id: r.id, nombre: r.nombre }))} />
             </Tarjeta>
           )}
           <Tarjeta titulo="Políticas de acceso">
             <dl className="flex flex-col text-sm">
               {[
                 ["Verificación en dos pasos", "Obligatoria"],
-                ["Cerrar sesión por inactividad", `${MINUTOS_INACTIVIDAD} min`],
+                ...(gestiona ? [] : [["Cerrar sesión por inactividad", `${minutos} min`]]),
                 ["Correos de otras personas", "Enmascarados"],
                 ["Acciones del equipo", "Quedan en la auditoría"],
               ].map(([k, v]) => (
@@ -207,7 +214,21 @@ export default async function EquipoConsola() {
                 </div>
               ))}
             </dl>
+            {gestiona && <FormularioInactividad minutos={minutos} />}
             <IpsPermitidas activo={ips.activo} ips={ips.ips} miIp={miIp} puede={staff.puede("equipo")} />
+          </Tarjeta>
+          <Tarjeta titulo="Tu verificación y avisos" subtitulo="Llave de seguridad y celular para los avisos del equipo">
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-2">
+                <h3 className="text-xs font-semibold tracking-wide text-tenue uppercase">Llaves de seguridad</h3>
+                <p className="text-[13px] text-tenue">Una llave física (YubiKey) o la huella o el rostro de tu equipo. Con ella entras sin escribir el código.</p>
+                <MisLlaves llaves={llaves} />
+              </div>
+              <div className="flex flex-col gap-2 border-t border-divisor pt-4">
+                <h3 className="text-xs font-semibold tracking-wide text-tenue uppercase">Celular</h3>
+                <FormularioMiCelular telefono={contacto.data?.telefono ?? null} whatsapp={contacto.data?.whatsapp ?? false} />
+              </div>
+            </div>
           </Tarjeta>
         </div>
       </div>
@@ -216,6 +237,13 @@ export default async function EquipoConsola() {
         titulo="Roles y permisos"
         subtitulo="Nadie del equipo ve los datos financieros de un hogar sin el permiso de su administrador"
         className="mt-5"
+        accion={
+          gestiona ? (
+            <Link href="/consola/equipo?nuevo=rol" scroll={false} className="inline-flex h-9 items-center rounded-lg border border-cuerpo px-3 text-sm font-semibold hover:bg-mosaico">
+              Nuevo rol
+            </Link>
+          ) : undefined
+        }
       >
         <div className="overflow-x-auto">
           <table className="tabla">
@@ -225,6 +253,17 @@ export default async function EquipoConsola() {
                 {ROLES_STAFF.map((r) => (
                   <th key={r.valor} className="text-center!">
                     {r.nombre}
+                  </th>
+                ))}
+                {propios.map((r) => (
+                  <th key={r.id} className="text-center!">
+                    {gestiona ? (
+                      <Link href={`/consola/equipo?nuevo=rol-${r.id}`} scroll={false} className="underline-offset-4 hover:underline" title={r.descripcion || "Editar rol"}>
+                        {r.nombre}
+                      </Link>
+                    ) : (
+                      r.nombre
+                    )}
                   </th>
                 ))}
               </tr>
@@ -238,12 +277,29 @@ export default async function EquipoConsola() {
                       {MATRIZ[r.valor].includes(p.valor) ? <Si /> : <span className="text-tenue">—</span>}
                     </td>
                   ))}
+                  {propios.map((r) => (
+                    <td key={r.id} className="text-center">
+                      {r.permisos.includes(p.valor) ? <Si /> : <span className="text-tenue">—</span>}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </TarjetaTabla>
+      {gestiona && (
+        <>
+          <Ventana titulo="Nuevo rol" subtitulo="Elige qué puede hacer en la consola" valor="rol" ancho={600}>
+            <FormularioRol />
+          </Ventana>
+          {propios.map((r) => (
+            <Ventana key={r.id} titulo={`Rol ${r.nombre}`} subtitulo="Qué puede hacer en la consola" valor={`rol-${r.id}`} ancho={600}>
+              <FormularioRol rol={r} />
+            </Ventana>
+          ))}
+        </>
+      )}
     </>
   );
 }

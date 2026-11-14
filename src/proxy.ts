@@ -76,10 +76,26 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Ajustes de la plataforma → «Pedir 2FA a todos los administradores de hogar» (claim del hook): sin verificación
-  // activa, el administrador solo puede entrar a Seguridad para activarla.
-  const { exigir_2fa, mfa_activa } = data.claims as { exigir_2fa?: boolean; mfa_activa?: boolean };
-  if (exigir_2fa && mfa_activa === false && !ruta.startsWith("/ajustes/seguridad") && ruta !== "/mfa" && ruta !== "/salir" && !ruta.startsWith("/api/") && !esRutaPublica(ruta)) {
+  // Ajustes de la plataforma → «Cerrar la sesión tras N días sin usar la app» (0 = nunca). La cookie guarda la
+  // última visita; se reescribe a lo sumo cada hora para no mandar una cookie en cada respuesta.
+  const limites = await configPublica("limites_app", { exigir_2fa_admins: false, sesion_dias: 0 });
+  const visita = Number(request.cookies.get(COOKIE_VISITA)?.value);
+  if (limites.sesion_dias > 0 && visita && Date.now() - visita > limites.sesion_dias * 86_400_000 && ruta !== "/salir") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/salir";
+    url.search = "?motivo=inactividad";
+    return NextResponse.redirect(url);
+  }
+  if (!visita || Date.now() - visita > 3_600_000) {
+    respuesta.cookies.set(COOKIE_VISITA, String(Date.now()), { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 120, secure: process.env.NODE_ENV === "production" });
+  }
+
+  // Ajustes de la plataforma → «Pedir 2FA a todos los administradores de hogar»: sin verificación activa, el
+  // administrador solo puede entrar a Seguridad para activarla. Se mira el ajuste (caché de 1 min) además del claim
+  // del hook, para que aplique en un minuto y no hasta que se renueve el token.
+  const { exigir_2fa, mfa_activa, hogar } = data.claims as { exigir_2fa?: boolean; mfa_activa?: boolean; hogar?: { rol?: string } };
+  const pedir2fa = exigir_2fa || (limites.exigir_2fa_admins && hogar?.rol === "admin");
+  if (pedir2fa && mfa_activa === false && !ruta.startsWith("/ajustes/seguridad") && ruta !== "/mfa" && ruta !== "/salir" && !ruta.startsWith("/api/") && !esRutaPublica(ruta)) {
     const url = request.nextUrl.clone();
     url.pathname = "/ajustes/seguridad";
     url.search = "?exigida=1";
@@ -96,23 +112,30 @@ export async function proxy(request: NextRequest) {
 
 type Claims = { staff?: ClaimStaff; aal?: string; mfa_activa?: boolean };
 
-/** Lista de IP permitidas (plataforma_config, lectura pública) con caché de 60 s por instancia. */
-let cacheIps: { hasta: number; valor: { activo: boolean; ips: string[] } } | null = null;
-async function ipsConsola(): Promise<{ activo: boolean; ips: string[] }> {
-  if (cacheIps && cacheIps.hasta > Date.now()) return cacheIps.valor;
-  let valor = { activo: false, ips: [] as string[] };
+/** Última visita a la app (cierre de sesión por inactividad de Ajustes de la plataforma → Límites). */
+const COOKIE_VISITA = "mh_visita";
+
+/**
+ * Ajustes de `plataforma_config` (lectura pública) que mira el proxy, con caché de 60 s por instancia. Si la base no
+ * responde se usa el valor por defecto: no se bloquea a nadie (la base sigue exigiendo AAL2 y permisos).
+ */
+const cacheConfig = new Map<string, { hasta: number; valor: unknown }>();
+async function configPublica<T extends object>(clave: string, porDefecto: T): Promise<T> {
+  const c = cacheConfig.get(clave);
+  if (c && c.hasta > Date.now()) return c.valor as T;
+  let valor = porDefecto;
   try {
-    const r = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/plataforma_config?clave=eq.consola_ips&select=valor`, {
+    const r = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/plataforma_config?clave=eq.${clave}&select=valor`, {
       headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "" },
       signal: AbortSignal.timeout(3000),
       cache: "no-store",
     });
-    const filas = r.ok ? ((await r.json()) as { valor: { activo: boolean; ips: string[] } }[]) : [];
-    if (filas[0]?.valor) valor = filas[0].valor;
+    const filas = r.ok ? ((await r.json()) as { valor: Partial<T> }[]) : [];
+    if (filas[0]?.valor) valor = { ...porDefecto, ...filas[0].valor };
   } catch {
-    // Si la base no responde, no se bloquea a nadie (la base sigue exigiendo AAL2 y permisos).
+    // valor por defecto
   }
-  cacheIps = { hasta: Date.now() + 60_000, valor };
+  cacheConfig.set(clave, { hasta: Date.now() + 60_000, valor });
   return valor;
 }
 
@@ -121,7 +144,7 @@ async function ipsConsola(): Promise<{ activo: boolean; ips: string[] }> {
  * - Sin sesión: solo el ingreso, la invitación y salir.
  * - Con sesión pero fuera del equipo: solo el ingreso (que lo explica) y la invitación.
  * - Del equipo sin AAL2: al código (si tiene 2FA) o a activarla (si no). La 2FA es obligatoria para el equipo.
- * - Con AAL2: adentro, con cierre de sesión tras MINUTOS_INACTIVIDAD sin abrir ninguna pantalla de la consola.
+ * - Con AAL2: adentro, con cierre de sesión tras los minutos de «Cerrar sesión por inactividad» (Equipo y permisos).
  */
 async function consola(request: NextRequest, respuesta: NextResponse, redirigir: (destino: string, conSiguiente?: boolean) => NextResponse, claims?: Claims) {
   const ruta = request.nextUrl.pathname;
@@ -137,7 +160,10 @@ async function consola(request: NextRequest, respuesta: NextResponse, redirigir:
   if (ruta === "/consola/ingresar" || ruta === "/consola/dos-pasos") return redirigir("/consola");
 
   // Equipo y permisos → «Ingreso solo desde IP permitidas».
-  const ips = await ipsConsola();
+  const [ips, sesion] = await Promise.all([
+    configPublica("consola_ips", { activo: false, ips: [] as string[] }),
+    configPublica("consola_sesion", { minutos: MINUTOS_INACTIVIDAD }),
+  ]);
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "";
   if (ips.activo && !ipPermitida(ip, ips.ips)) {
     return new NextResponse(`Tu conexión (${ip || "IP desconocida"}) no está en las IP permitidas de la consola. Pide a un superadmin que la agregue.`, {
@@ -147,7 +173,7 @@ async function consola(request: NextRequest, respuesta: NextResponse, redirigir:
   }
 
   const ultima = Number(request.cookies.get(COOKIE_ACTIVIDAD)?.value);
-  if (ultima && Date.now() - ultima > MINUTOS_INACTIVIDAD * 60_000) {
+  if (ultima && Date.now() - ultima > Math.max(5, sesion.minutos) * 60_000) {
     const url = request.nextUrl.clone();
     url.pathname = "/consola/salir";
     url.search = "?motivo=inactividad";

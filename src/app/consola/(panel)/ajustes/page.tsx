@@ -10,6 +10,8 @@ import { leerIntegracion } from "@/lib/integraciones/servidor";
 import type { AvisoEquipo, Envios, Factura, LimitesApp } from "@/lib/plataforma/config";
 import type { Empresa } from "@/lib/legal/empresa";
 import { guardarAjuste } from "./acciones";
+import { UsosWhatsapp, type PlantillaAprobada } from "./usos-whatsapp";
+import { USOS_POR_DEFECTO, type UsosWhatsapp as Usos } from "@/lib/whatsapp/usos";
 
 export const metadata: Metadata = { title: "Ajustes de la plataforma" };
 
@@ -130,11 +132,15 @@ export default async function AjustesPlataforma({ searchParams }: { searchParams
   const pedida = (await searchParams).tab;
   const tab = (PESTANAS.find(([k]) => k === pedida)?.[0] ?? "empresa") as Pestana;
   const puede = staff.puede("sistema");
-  const [{ data: filas }, { data: integraciones }, { data: familia }] = await Promise.all([
+  const [{ data: filas }, { data: integraciones }, { data: familia }, { data: plantillas }, { data: rolesPropios }] = await Promise.all([
     staff.supabase.from("plataforma_config").select("clave, valor"),
     puede ? staff.supabase.rpc("consola_integraciones") : Promise.resolve({ data: null }),
     staff.supabase.from("planes").select("limites").eq("codigo", "familia").maybeSingle(),
+    tab === "envios" ? staff.supabase.rpc("consola_plantillas_whatsapp") : Promise.resolve({ data: null }),
+    tab === "avisos" ? staff.supabase.rpc("consola_roles") : Promise.resolve({ data: null }),
   ]);
+  const aprobadas = ((plantillas ?? []) as (PlantillaAprobada & { estado: string })[]).filter((p) => p.estado === "aprobada");
+  const roles: (readonly [string, string])[] = [...ROLES, ...((rolesPropios ?? []) as { id: string; nombre: string }[]).map((r) => [r.id, r.nombre] as const)];
   const cfg = Object.fromEntries((filas ?? []).map((f) => [f.clave, f.valor])) as Record<string, unknown>;
   const empresa = (cfg.empresa ?? {}) as Empresa;
   const env = (cfg.envios ?? {}) as Envios;
@@ -268,6 +274,11 @@ export default async function AjustesPlataforma({ searchParams }: { searchParams
               <Link href="/consola/whatsapp" className="font-semibold underline">Plantillas de WhatsApp</Link>.
             </p>
           </Panel>
+          <div className="xl:col-span-2">
+            <Panel titulo="Plantillas por uso" subtitulo="Qué plantilla aprobada sale en cada aviso automático. Solo la reciben quienes autorizaron WhatsApp con su celular." clave="whatsapp_usos" puede={puede}>
+              <UsosWhatsapp usos={{ ...USOS_POR_DEFECTO, ...((cfg.whatsapp_usos ?? {}) as Partial<Usos>) }} plantillas={aprobadas} puede={puede} />
+            </Panel>
+          </div>
         </div>
       )}
 
@@ -325,13 +336,14 @@ export default async function AjustesPlataforma({ searchParams }: { searchParams
 
       {tab === "avisos" && (
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <Panel titulo="Avisos para el equipo" subtitulo="Quién se entera de qué · por correo (el superadmin recibe todos los activos)" clave="avisos_equipo" puede={puede}>
+          <Panel titulo="Avisos para el equipo" subtitulo="Quién se entera de qué · por correo y, si lo activas, por WhatsApp a quien dejó su celular (el superadmin recibe todos los activos)" clave="avisos_equipo" puede={puede}>
             <div className="overflow-x-auto">
               <table className="tabla">
                 <thead>
                   <tr>
                     <th>Cuando pase esto</th>
                     <th>Avisar a</th>
+                    <th>WhatsApp</th>
                     <th>Activo</th>
                   </tr>
                 </thead>
@@ -343,13 +355,16 @@ export default async function AjustesPlataforma({ searchParams }: { searchParams
                         <td className="font-semibold whitespace-normal!">{e.texto}</td>
                         <td>
                           <span className="flex flex-wrap gap-x-3 gap-y-1">
-                            {ROLES.map(([r, t]) => (
+                            {roles.map(([r, t]) => (
                               <label key={r} className="inline-flex items-center gap-1.5 text-[13px]">
-                                <input type="checkbox" name={`${e.clave}_${r}`} defaultChecked={a.roles.includes(r)} className="size-4 accent-monte" />
+                                <input type="checkbox" name={`${e.clave}_rol`} value={r} defaultChecked={a.roles.includes(r)} className="size-4 accent-monte" />
                                 {t}
                               </label>
                             ))}
                           </span>
+                        </td>
+                        <td>
+                          <Conmutador name={`${e.clave}_whatsapp`} defaultChecked={a.whatsapp ?? false} etiqueta={`Avisar también por WhatsApp: ${e.texto}`} />
                         </td>
                         <td>
                           <Conmutador name={`${e.clave}_activo`} defaultChecked={a.activo} etiqueta={`Aviso activo: ${e.texto}`} />
@@ -376,10 +391,10 @@ export default async function AjustesPlataforma({ searchParams }: { searchParams
             <Fila etiqueta="Bloquear el ingreso 15 min tras intentos fallidos">
               <Entrada name="intentos_bloqueo" type="number" min={3} max={20} valor={limites.intentos_bloqueo} ancho="w-[100px]" />
             </Fila>
-            <p className="pt-2 text-[13px] text-tenue">
-              La duración de la sesión de los usuarios se configura en Supabase Auth (Sessions). La 2FA obligatoria aplica cuando la persona renueva su sesión
-              (máximo 1 hora).
-            </p>
+            <Fila etiqueta="Cerrar la sesión tras estos días sin usar la app (0 = nunca)">
+              <Entrada name="sesion_dias" type="number" min={0} max={90} valor={limites.sesion_dias ?? 0} ancho="w-[100px]" />
+            </Fila>
+            <p className="pt-2 text-[13px] text-tenue">Los cambios aplican en máximo un minuto, también la 2FA obligatoria.</p>
           </Panel>
         </div>
       )}

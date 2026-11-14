@@ -27,6 +27,22 @@ type Metricas = {
   meses: { mes: string; cobrado: number }[];
 };
 type ResumenCobros = { en_mora: number; mora_monto: number; fallidos_30d: number };
+type Periodo = {
+  dias: number;
+  activos: number;
+  nuevos: number;
+  cancelaciones: number;
+  churn_pct: number | null;
+  cobrado: number;
+  serie: { etiqueta: string; nuevos: number }[];
+  mrr_historia: { mes: string; mrr: number }[];
+};
+
+const PERIODOS = [
+  [7, "7 d", "7 días"],
+  [30, "30 d", "30 días"],
+  [365, "12 m", "12 meses"],
+] as const;
 
 const MES_CORTO = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -40,17 +56,22 @@ function Indicador({ etiqueta, valor, detalle }: { etiqueta: string; valor: stri
   );
 }
 
-export default async function PanelConsola() {
+export default async function PanelConsola({ searchParams }: { searchParams: Promise<{ periodo?: string }> }) {
   const staff = await obtenerStaff();
+  const pedido = Number((await searchParams).periodo);
+  const dias = PERIODOS.find(([d]) => d === pedido)?.[0] ?? 30;
+  const textoPeriodo = PERIODOS.find(([d]) => d === dias)![2];
   const anioSiguiente = Number(hoy().slice(0, 4)) + 1;
-  const [metricas, cobros, actividad, uvt, integraciones, insignias] = await Promise.all([
+  const [metricas, cobros, actividad, uvt, integraciones, insignias, periodo] = await Promise.all([
     staff.supabase.rpc("consola_metricas"),
     staff.supabase.rpc("consola_cobros_resumen"),
     staff.puede("auditoria") ? staff.supabase.rpc("consola_auditoria", { p_limite: 8 }) : Promise.resolve({ data: null, error: null }),
     staff.supabase.from("tax_params").select("anio").eq("pais", "CO").eq("anio", anioSiguiente).maybeSingle(),
     staff.puede("sistema") ? staff.supabase.rpc("consola_integraciones") : Promise.resolve({ data: null, error: null }),
     staff.supabase.rpc("consola_insignias"),
+    staff.supabase.rpc("consola_metricas_periodo", { p_dias: dias }),
   ]);
+  const p = (periodo.data ?? {}) as Partial<Periodo>;
   const ins = (insignias.data ?? {}) as { contadores?: number; soporte?: number; legal?: number };
   const m = (metricas.data ?? {}) as Metricas;
   const r = (cobros.data ?? {}) as ResumenCobros;
@@ -78,18 +99,35 @@ export default async function PanelConsola() {
         Panel general
       </Titulo>
       {metricas.error && <Aviso>No se pudieron cargar las métricas: {metricas.error.message}</Aviso>}
+      <nav aria-label="Periodo" className="mb-4 flex gap-1.5">
+        {PERIODOS.map(([d, corto, largo]) => (
+          <Link
+            key={d}
+            href={d === 30 ? "/consola" : `/consola?periodo=${d}`}
+            aria-current={d === dias ? "page" : undefined}
+            aria-label={`Últimos ${largo}`}
+            className={cx("inline-flex h-8 items-center rounded-full border px-3 text-sm font-semibold", d === dias ? "border-monte bg-monte text-arena" : "border-control bg-elevada text-tinta hover:bg-mosaico")}
+          >
+            {corto}
+          </Link>
+        ))}
+      </nav>
 
       <section className="mb-5 grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-3">
         <Indicador etiqueta="MRR" valor={formatearCOP(m.mrr ?? 0)} detalle={`ingreso recurrente mensual · ARPU ${formatearCOP(m.arpu ?? 0)}`} />
-        <Indicador etiqueta="Hogares activos · 30 días" valor={(m.activos_30d ?? 0).toLocaleString("es-CO")} detalle={`de ${(m.registrados ?? 0).toLocaleString("es-CO")} registrados`} />
+        <Indicador etiqueta={`Hogares activos · ${textoPeriodo}`} valor={(p.activos ?? 0).toLocaleString("es-CO")} detalle={`de ${(m.registrados ?? 0).toLocaleString("es-CO")} registrados`} />
         <Indicador
           etiqueta="Hogares pagando"
           valor={(m.pagando ?? 0).toLocaleString("es-CO")}
           detalle={`${m.pagando_familia ?? 0} Familia · ${m.pagando_contador ?? 0} Contador`}
         />
         <Indicador etiqueta="Conversión a pago" valor={m.conversion_pct == null ? "—" : `${m.conversion_pct.toLocaleString("es-CO")} %`} detalle="meta 18 %" />
-        <Indicador etiqueta="Churn · 30 días" valor={m.churn_pct == null ? "—" : `${m.churn_pct.toLocaleString("es-CO")} %`} detalle="cancelaciones sobre pagando" />
-        <Indicador etiqueta="Hogares nuevos · 30 días" valor={(m.nuevos_30d ?? 0).toLocaleString("es-CO")} detalle={`${m.en_prueba ?? 0} probando Familia`} />
+        <Indicador
+          etiqueta={`Churn · ${textoPeriodo}`}
+          valor={p.churn_pct == null ? "—" : `${p.churn_pct.toLocaleString("es-CO")} %`}
+          detalle={`${p.cancelaciones ?? 0} ${p.cancelaciones === 1 ? "cancelación" : "cancelaciones"} sobre pagando`}
+        />
+        <Indicador etiqueta={`Hogares nuevos · ${textoPeriodo}`} valor={(p.nuevos ?? 0).toLocaleString("es-CO")} detalle={`${m.en_prueba ?? 0} probando Familia · cobrado ${formatearCOP(p.cobrado ?? 0)}`} />
       </section>
 
       <div className="grid items-start gap-5 xl:grid-cols-3">
@@ -142,8 +180,25 @@ export default async function PanelConsola() {
             ]}
           />
         </Tarjeta>
-        <Tarjeta titulo="Nuevos hogares por semana" subtitulo="Últimas 6 semanas">
-          <Barras alto={170} datos={(m.semanas ?? []).map((s) => ({ etiqueta: s.semana.slice(5), valor: s.n, detalle: `Semana del ${s.semana}` }))} />
+        <Tarjeta titulo="Nuevos hogares" subtitulo={dias === 365 ? "Por mes, últimos 12 meses" : `Por día, últimos ${textoPeriodo}`}>
+          <Barras
+            alto={170}
+            datos={(p.serie ?? []).map((x, i, todos) => ({
+              etiqueta: dias === 365 ? MES_CORTO[Number(x.etiqueta.slice(5, 7)) - 1] : dias === 7 || i % 5 === 0 || i === todos.length - 1 ? x.etiqueta.slice(8) : "",
+              valor: x.nuevos,
+              detalle: x.etiqueta,
+            }))}
+          />
+        </Tarjeta>
+      </div>
+
+      <div className="mt-5">
+        <Tarjeta titulo="MRR por mes" subtitulo="Ingreso recurrente mensual al cierre de cada mes, estimado con los cobros pagados (el anual cuenta 1/12)">
+          <Barras
+            alto={200}
+            formato={formatearCOP}
+            datos={(p.mrr_historia ?? []).map((x, i, todos) => ({ etiqueta: MES_CORTO[Number(x.mes.slice(5, 7)) - 1], valor: x.mrr, detalle: x.mes, destacar: i === todos.length - 1 }))}
+          />
         </Tarjeta>
       </div>
 
@@ -177,7 +232,7 @@ export default async function PanelConsola() {
         </div>
       )}
       <p className="mt-5 text-[13px] text-tenue">
-        Cobrado por mes = pagos recibidos ese mes (no el MRR histórico). Activos = hogares que registraron movimientos en los últimos 30 días.
+        Cobrado por mes = pagos recibidos ese mes. MRR por mes = suscripciones cubiertas por un cobro pagado al cierre de cada mes. Activos = hogares que registraron movimientos en el periodo elegido.
       </p>
     </>
   );

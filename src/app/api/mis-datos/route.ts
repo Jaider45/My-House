@@ -23,9 +23,10 @@ export async function GET() {
     return filas;
   }
 
-  const [usuario, consentimientos, solicitudes, hogar, miembros, cuentas, categorias, reglas, metas, deudas, recordatorios, movimientos, soportes] = await Promise.all([
+  const [usuario, consentimientos, contacto, solicitudes, hogar, miembros, cuentas, categorias, reglas, metas, deudas, recordatorios, movimientos, soportes] = await Promise.all([
     db.auth.getUser(),
     db.from("consentimientos").select("tipo, version, aceptado, origen, created_at").order("created_at"),
+    db.from("contactos").select("telefono, whatsapp, whatsapp_desde").maybeSingle(),
     db.from("solicitudes_privacidad").select("numero, tipo, estado, recibida, vence, detalle, respuesta").order("created_at"),
     db.from("households").select("nombre, ciudad, pais, moneda, plan, created_at").eq("id", h).single(),
     db.from("members").select("nombre, rol, es_dependiente, parentesco, fecha_nacimiento, created_at").eq("household_id", h),
@@ -45,6 +46,7 @@ export async function GET() {
     nota: "Copia de tus datos en My House (Ley 1581 de 2012). Si quieres corregir o borrar algo, escríbenos desde Ayuda.",
     cuenta: u ? { correo: u.email, creada: u.created_at, ultimo_ingreso: u.last_sign_in_at } : null,
     consentimientos: consentimientos.data ?? [],
+    celular: contacto.data ?? null,
     solicitudes_privacidad: solicitudes.data ?? [],
     hogar: { ...(hogar.data ?? {}), tu_rol: ctx.miembro.rol },
     miembros: miembros.data ?? [],

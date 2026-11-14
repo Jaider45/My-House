@@ -3,7 +3,7 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { MATRIZ, type Permiso, type RolStaff } from "./permisos";
+import { MATRIZ, nombreRol, type Permiso, type RolStaff } from "./permisos";
 
 /**
  * Cliente de Supabase para la consola: además de la sesión, manda la IP y el navegador de quien la usa
@@ -22,6 +22,8 @@ export type Staff = {
   email: string;
   nombre: string;
   rol: RolStaff;
+  /** Nombre del rol para mostrar: el fijo o el rol propio («Nuevo rol» en Equipo y permisos). */
+  rolNombre: string;
   puede: (p: Permiso) => boolean;
 };
 
@@ -37,8 +39,17 @@ export const obtenerStaff = cache(async (): Promise<Staff> => {
   if (!claims?.sub) redirect("/consola/ingresar");
   if (claims.aal !== "aal2") redirect("/consola/ingresar");
 
-  const { data: fila } = await supabase.from("platform_staff").select("nombre, rol, activo").eq("user_id", claims.sub).maybeSingle();
+  const { data: fila } = await supabase.from("platform_staff").select("nombre, rol, activo, rol_personal").eq("user_id", claims.sub).maybeSingle();
   if (!fila?.activo) redirect("/");
+  // Rol propio: sus permisos están en la base (roles_staff); los fijos, en la matriz replicada.
+  let permisos: Permiso[] = MATRIZ[fila.rol];
+  let rolNombre = nombreRol(fila.rol);
+  if (fila.rol_personal) {
+    const { data: propio } = await supabase.rpc("mis_permisos_staff");
+    const p = propio as { permisos?: Permiso[]; rol_nombre?: string | null } | null;
+    permisos = p?.permisos ?? [];
+    rolNombre = p?.rol_nombre ?? rolNombre;
+  }
 
   return {
     supabase,
@@ -46,6 +57,7 @@ export const obtenerStaff = cache(async (): Promise<Staff> => {
     email: (claims.email as string | undefined) ?? "",
     nombre: fila.nombre,
     rol: fila.rol,
-    puede: (p) => MATRIZ[fila.rol].includes(p),
+    rolNombre,
+    puede: (p) => permisos.includes(p),
   };
 });

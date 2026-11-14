@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
   after(async () => {
     await registrarEvento("whatsapp");
     await estadosDePlantillas(cuerpo);
+    await estadosDeMensajes(cuerpo);
   });
   return NextResponse.json({ recibido: true });
 }
@@ -64,5 +65,43 @@ async function estadosDePlantillas(cuerpo: string) {
         texto: `Motivo: ${c.value.reason ?? "sin detalle"}. Corrígela y envíala de nuevo.`,
         ruta: "/consola/whatsapp",
       });
+  }
+}
+
+type Mensajes = {
+  entry?: {
+    changes?: {
+      field?: string;
+      value?: {
+        statuses?: { id?: string; status?: string; errors?: { title?: string; message?: string }[] }[];
+        messages?: { from?: string; type?: string; text?: { body?: string }; button?: { text?: string } }[];
+      };
+    }[];
+  }[];
+};
+
+const ESTADOS: Record<string, string> = { sent: "enviado", delivered: "entregado", read: "leido", failed: "fallido" };
+/** «BAJA», «STOP», «Cancelar»…: quien responde así deja de recibir WhatsApp de My House. */
+const pideBaja = (t: string) => /^\s*(baja|stop|parar|cancelar|no m[aá]s|darme de baja)\s*[.!]*\s*$/i.test(t);
+
+/** Estados de los mensajes enviados (entregado, leído, fallido) y bajas por respuesta. */
+async function estadosDeMensajes(cuerpo: string) {
+  if (!hayServicio()) return;
+  let datos: Mensajes;
+  try {
+    datos = JSON.parse(cuerpo);
+  } catch {
+    return;
+  }
+  const db = crearClienteServicio();
+  for (const v of (datos.entry ?? []).flatMap((e) => e.changes ?? []).filter((c) => c.field === "messages").map((c) => c.value ?? {})) {
+    for (const st of v.statuses ?? []) {
+      const estado = ESTADOS[st.status ?? ""];
+      if (st.id && estado) await db.rpc("mensaje_whatsapp_estado", { p_wamid: st.id, p_estado: estado, p_error: st.errors?.[0]?.message ?? st.errors?.[0]?.title ?? null } as never);
+    }
+    for (const m of v.messages ?? []) {
+      const texto = m.text?.body ?? m.button?.text ?? "";
+      if (m.from && pideBaja(texto)) await db.from("contactos").update({ whatsapp: false, updated_at: new Date().toISOString() }).eq("telefono", `+${m.from.replace(/\D/g, "")}`);
+    }
   }
 }

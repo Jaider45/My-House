@@ -4,6 +4,7 @@ import { etiquetaApagada } from "./automaticos";
 import { leerIntegracion } from "@/lib/integraciones/servidor";
 import { crearClienteServicio, hayServicio } from "@/lib/supabase/servicio";
 import { armarCorreo, type Contenido } from "./plantilla";
+import { aplicarTextos, type TextosCorreo } from "./textos";
 
 /**
  * Envío de los correos propios de la app (los de acceso los envía Supabase). Orden:
@@ -46,7 +47,10 @@ export const puedeEnviarCorreo = async () => Boolean((await leerIntegracion("res
  * Envía con Resend (o Mailpit en local). `probarCon`: llave y remitente aún sin guardar, para el botón «Enviar correo de
  * prueba» de la consola (así se confirma una llave de solo envío, que no puede listar nada en Resend).
  */
-export async function enviarCorreo({ para, contenido, etiqueta, cabeceras, probarCon }: Destino & { probarCon?: { api_key: string; remitente?: string } }): Promise<Resultado> {
+export async function enviarCorreo({ para, contenido: original, etiqueta, cabeceras, probarCon }: Destino & { probarCon?: { api_key: string; remitente?: string } }): Promise<Resultado> {
+  // Consola → Correos automáticos: textos que el equipo reescribió (con variables) para este tipo de correo.
+  const clave = original.plantilla ?? etiqueta;
+  const contenido = clave && original.variables ? aplicarTextos(original, (await leerConfigPlataforma<Record<string, TextosCorreo>>("correos_textos", {}))[clave]) : original;
   const { asunto, html, texto } = armarCorreo(contenido, sitio());
   const resend = probarCon ?? (await leerIntegracion("resend"))?.valores;
   // Consola → Correos automáticos: los que el equipo apagó no salen.

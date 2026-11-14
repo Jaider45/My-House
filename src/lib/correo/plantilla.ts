@@ -37,6 +37,10 @@ export type Contenido = {
   enlacesPie?: { texto: string; url: Texto }[];
   /** Campañas del editor: bloques libres después de la introducción (ya con las variables reemplazadas). */
   bloques?: BloqueCorreo[];
+  /** Correos automáticos: datos para los textos que el equipo edita en la consola ({nombre}, {monto}…). */
+  variables?: Record<string, string>;
+  /** Clave de textos editables cuando no basta la etiqueta de envío (p. ej. «plazo» sale con la etiqueta «dian»). */
+  plantilla?: string;
 };
 
 const C = {

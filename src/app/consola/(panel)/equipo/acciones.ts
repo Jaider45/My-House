@@ -17,7 +17,12 @@ import { formatearFechaLarga, hoy, sumarDias } from "@/lib/fechas";
  */
 
 const SIN_PERMISO = "Solo quien gestiona el equipo puede hacer esto.";
-const rol = z.enum(ROLES_STAFF.map((r) => r.valor) as [RolStaff, ...RolStaff[]], "Elige un rol.");
+const FIJOS = ROLES_STAFF.map((r) => r.valor) as string[];
+/** El selector de rol manda un rol fijo («soporte») o uno propio («propio:<uuid>»). */
+const rol = z
+  .string("Elige un rol.")
+  .refine((v) => FIJOS.includes(v) || /^propio:[0-9a-f-]{36}$/.test(v), "Elige un rol.")
+  .transform((v) => (v.startsWith("propio:") ? { p_rol: "soporte" as RolStaff, p_rol_personal: v.slice(7) } : { p_rol: v as RolStaff, p_rol_personal: undefined }));
 const uuid = z.uuid("Persona no válida.");
 
 async function conPermiso() {
@@ -39,7 +44,7 @@ export async function invitarPersona(_: EstadoInvitacion, datos: FormData): Prom
     .safeParse(Object.fromEntries(datos));
   if (!r.success) return { error: r.error.issues[0].message };
 
-  const { data: token, error } = await staff.supabase.rpc("consola_invitar", { p_email: r.data.email, p_nombre: r.data.nombre, p_rol: r.data.rol });
+  const { data: token, error } = await staff.supabase.rpc("consola_invitar", { p_email: r.data.email, p_nombre: r.data.nombre, ...r.data.rol });
   if (error) return { error: mensajeError(error) };
   revalidatePath("/consola/equipo");
 
@@ -47,7 +52,7 @@ export async function invitarPersona(_: EstadoInvitacion, datos: FormData): Prom
   const { enviado } = await enviarCorreo({
     para: r.data.email,
     etiqueta: "equipo",
-    contenido: correoEquipo({ quien: staff.nombre, nombre: r.data.nombre, rol: nombreRol(r.data.rol), url: enlace, vence: formatearFechaLarga(sumarDias(hoy(), 7)) }),
+    contenido: correoEquipo({ quien: staff.nombre, nombre: r.data.nombre, rol: String(datos.get("rol_nombre") || nombreRol(r.data.rol.p_rol)), url: enlace, vence: formatearFechaLarga(sumarDias(hoy(), 7)) }),
   });
   return {
     ok: enviado ? `Enviamos la invitación a ${r.data.email}. También puedes compartir el enlace.` : "Invitación creada. Comparte el enlace (no hay correo configurado).",
@@ -60,7 +65,7 @@ export async function cambiarRolPersona(_: Estado, datos: FormData): Promise<Est
   if (!staff) return { error: SIN_PERMISO };
   const r = z.object({ usuario: uuid, rol }).safeParse(Object.fromEntries(datos));
   if (!r.success) return { error: r.error.issues[0].message };
-  const { error } = await staff.supabase.rpc("consola_cambiar_rol", { p_user: r.data.usuario, p_rol: r.data.rol });
+  const { error } = await staff.supabase.rpc("consola_cambiar_rol", { p_user: r.data.usuario, ...r.data.rol });
   if (error) return { error: mensajeError(error) };
   revalidatePath("/consola/equipo");
   return { ok: "Rol actualizado." };
@@ -104,4 +109,44 @@ export async function guardarIps(_: Estado, datos: FormData): Promise<Estado> {
   if (error) return { error: mensajeError(error) };
   revalidatePath("/consola/equipo");
   return { ok: "Guardado. Aplica en máximo un minuto." };
+}
+
+/** «Nuevo rol» / editar o borrar un rol propio: nombre, descripción y permisos de la matriz. */
+export async function guardarRol(_: Estado, datos: FormData): Promise<Estado> {
+  const staff = await conPermiso();
+  if (!staff) return { error: SIN_PERMISO };
+  const id = String(datos.get("id") ?? "");
+  if (id && !uuid.safeParse(id).success) return { error: "Rol no válido." };
+  const borrar = datos.get("borrar") === "1";
+  const nombre = String(datos.get("nombre") ?? "").trim();
+  const permisos = datos.getAll("permisos").map(String);
+  if (!borrar && (nombre.length < 2 || nombre.length > 40)) return { error: "El nombre del rol va de 2 a 40 caracteres." };
+  if (!borrar && !permisos.length) return { error: "Elige al menos un permiso." };
+  const { error } = await staff.supabase.rpc("consola_guardar_rol", {
+    p: { id: id || null, nombre, descripcion: String(datos.get("descripcion") ?? "").trim().slice(0, 200), permisos, borrar },
+  });
+  if (error) return { error: mensajeError(error) };
+  revalidatePath("/consola/equipo");
+  return { ok: borrar ? "Rol borrado." : id ? "Rol actualizado." : "Rol creado. Ya puedes asignarlo o invitar con él." };
+}
+
+/** «Cerrar sesión por inactividad» de la consola (minutos). El proxy lo lee con caché de un minuto. */
+export async function guardarInactividad(_: Estado, datos: FormData): Promise<Estado> {
+  const staff = await conPermiso();
+  if (!staff) return { error: SIN_PERMISO };
+  const minutos = Number(datos.get("minutos"));
+  if (!Number.isInteger(minutos) || minutos < 5 || minutos > 240) return { error: "Elige entre 5 y 240 minutos." };
+  const { error } = await staff.supabase.rpc("consola_guardar_ajuste", { p_clave: "consola_sesion", p_valor: { minutos } });
+  if (error) return { error: mensajeError(error) };
+  revalidatePath("/consola/equipo");
+  return { ok: "Guardado. Aplica en máximo un minuto." };
+}
+
+/** Celular propio para recibir los avisos del equipo por WhatsApp. */
+export async function guardarMiCelular(_: Estado, datos: FormData): Promise<Estado> {
+  const staff = await obtenerStaff();
+  const { error } = await staff.supabase.rpc("guardar_contacto", { p_telefono: String(datos.get("telefono") ?? ""), p_whatsapp: datos.get("whatsapp") === "1" });
+  if (error) return { error: mensajeError(error) };
+  revalidatePath("/consola/equipo");
+  return { ok: "Guardado." };
 }

@@ -49,7 +49,7 @@ export async function consultarTransaccion(id: string, llavePublica: string): Pr
 }
 
 /** Administradores del hogar con su correo (para los avisos de cobro). */
-export async function administradores(db: Servicio, hogar: string): Promise<{ nombre: string; email: string; hogar: string }[]> {
+export async function administradores(db: Servicio, hogar: string): Promise<{ nombre: string; email: string; hogar: string; user_id: string }[]> {
   const { data: miembros } = await db.from("members").select("nombre, user_id, households(nombre)").eq("household_id", hogar).eq("rol", "admin");
   const ids = (miembros ?? []).map((m) => m.user_id).filter((x): x is string => Boolean(x));
   if (!ids.length) return [];
@@ -57,7 +57,7 @@ export async function administradores(db: Servicio, hogar: string): Promise<{ no
   const porId = new Map((correos ?? []).map((c) => [c.id, c.email]));
   return (miembros ?? [])
     .filter((m) => m.user_id && porId.get(m.user_id))
-    .map((m) => ({ nombre: m.nombre.split(/\s+/)[0], email: porId.get(m.user_id!)!, hogar: m.households?.nombre ?? "tu hogar" }));
+    .map((m) => ({ nombre: m.nombre.split(/\s+/)[0], email: porId.get(m.user_id!)!, hogar: m.households?.nombre ?? "tu hogar", user_id: m.user_id! }));
 }
 
 /** Envía un correo a cada administrador. Devuelve cuántos salieron. Nunca lanza. */

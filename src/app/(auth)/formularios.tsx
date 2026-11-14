@@ -106,6 +106,7 @@ export function FormularioIngreso() {
   return (
     <div className="space-y-4">
       {aviso && <Aviso>{aviso}</Aviso>}
+      {params.get("motivo") === "inactividad" && <Aviso tipo="info">Cerramos tu sesión porque llevabas varios días sin entrar. Ingresa de nuevo.</Aviso>}
       {modo === "clave" ? (
         <IngresoConClave email={email} setEmail={setEmail} siguiente={siguiente} />
       ) : (

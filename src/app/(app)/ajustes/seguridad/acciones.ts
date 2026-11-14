@@ -1,6 +1,7 @@
 "use server";
 
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 import { mensajeError } from "@/lib/acciones";
 
 /*
@@ -35,4 +36,14 @@ export async function desactivarDosPasos(factorId: string): Promise<{ error?: st
   const supabase = await crearClienteServidor();
   const { error } = await supabase.auth.mfa.unenroll({ factorId });
   return error ? { error: mensajeError(error) } : {};
+}
+
+/** Celular de la persona y si autoriza avisos de My House por WhatsApp (Meta exige el consentimiento). */
+export async function guardarCelular(_: { ok?: string; error?: string } | null, datos: FormData): Promise<{ ok?: string; error?: string }> {
+  const supabase = await crearClienteServidor();
+  const whatsapp = datos.get("whatsapp") === "1";
+  const { error } = await supabase.rpc("guardar_contacto", { p_telefono: String(datos.get("telefono") ?? ""), p_whatsapp: whatsapp });
+  if (error) return { error: mensajeError(error) };
+  revalidatePath("/ajustes/seguridad");
+  return { ok: whatsapp ? "Listo: te avisaremos también por WhatsApp. Responde BAJA cuando quieras dejar de recibirlos." : "Guardado." };
 }

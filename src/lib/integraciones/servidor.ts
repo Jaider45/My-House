@@ -181,7 +181,8 @@ export async function enviarPlantillaWhatsapp(numero: string, plantilla: string,
     });
     const d = await json(r);
     if (!r.ok) return { ok: false, detalle: (d.error as { message?: string })?.message ?? `Meta respondió ${r.status}.` };
-    return { ok: true, detalle: "Mensaje enviado." };
+    // `extra` = id del mensaje (wamid): el webhook lo usa para subir el estado (entregado, leído, fallido).
+    return { ok: true, detalle: "Mensaje enviado.", extra: (d.messages as { id?: string }[] | undefined)?.[0]?.id };
   } catch (e) {
     return { ok: false, detalle: `No se pudo enviar: ${e instanceof Error ? e.message : String(e)}` };
   }

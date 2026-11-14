@@ -317,17 +317,23 @@ isOneToOne: false
                   ]
                 },"campanas": {
                   Row: {
-                    "alcance": number,"asunto": string,"asunto_b": string | null,"bloques": Json | null,"boton_texto": string | null,"boton_url": string | null,"creada_nombre": string,"creada_por": string | null,"created_at": string,"cuerpo": string,"cursor_hogar": string | null,"enviada_en": string | null,"enviados": number,"estado": string,"id": string,"intentos": number,"nombre": string,"programada_para": string | null,"prueba_ab_pct": number,"segmento": string,"segmento_propio": string | null,"titulo": string,"transaccional": boolean,"vista_previa": string | null
+                    "alcance": number,"asunto": string,"asunto_b": string | null,"bloques": Json | null,"boton_texto": string | null,"boton_url": string | null,"canal": string,"creada_nombre": string,"creada_por": string | null,"created_at": string,"cuerpo": string,"cursor_hogar": string | null,"enviada_en": string | null,"enviados": number,"estado": string,"id": string,"intentos": number,"nombre": string,"plantilla_whatsapp": string | null,"programada_para": string | null,"prueba_ab_pct": number,"segmento": string,"segmento_propio": string | null,"titulo": string,"transaccional": boolean,"vista_previa": string | null,"whatsapp_vars": (string)[]
                   }
                   ComputedFields: never
                   Insert: {
-                    "alcance"?: number,"asunto": string,"asunto_b"?: string | null,"bloques"?: Json | null,"boton_texto"?: string | null,"boton_url"?: string | null,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo": string,"cursor_hogar"?: string | null,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"intentos"?: number,"nombre": string,"programada_para"?: string | null,"prueba_ab_pct"?: number,"segmento": string,"segmento_propio"?: string | null,"titulo": string,"transaccional"?: boolean,"vista_previa"?: string | null
+                    "alcance"?: number,"asunto": string,"asunto_b"?: string | null,"bloques"?: Json | null,"boton_texto"?: string | null,"boton_url"?: string | null,"canal"?: string,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo": string,"cursor_hogar"?: string | null,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"intentos"?: number,"nombre": string,"plantilla_whatsapp"?: string | null,"programada_para"?: string | null,"prueba_ab_pct"?: number,"segmento": string,"segmento_propio"?: string | null,"titulo": string,"transaccional"?: boolean,"vista_previa"?: string | null,"whatsapp_vars"?: (string)[]
                   }
                   Update: {
-                    "alcance"?: number,"asunto"?: string,"asunto_b"?: string | null,"bloques"?: Json | null,"boton_texto"?: string | null,"boton_url"?: string | null,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo"?: string,"cursor_hogar"?: string | null,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"intentos"?: number,"nombre"?: string,"programada_para"?: string | null,"prueba_ab_pct"?: number,"segmento"?: string,"segmento_propio"?: string | null,"titulo"?: string,"transaccional"?: boolean,"vista_previa"?: string | null
+                    "alcance"?: number,"asunto"?: string,"asunto_b"?: string | null,"bloques"?: Json | null,"boton_texto"?: string | null,"boton_url"?: string | null,"canal"?: string,"creada_nombre"?: string,"creada_por"?: string | null,"created_at"?: string,"cuerpo"?: string,"cursor_hogar"?: string | null,"enviada_en"?: string | null,"enviados"?: number,"estado"?: string,"id"?: string,"intentos"?: number,"nombre"?: string,"plantilla_whatsapp"?: string | null,"programada_para"?: string | null,"prueba_ab_pct"?: number,"segmento"?: string,"segmento_propio"?: string | null,"titulo"?: string,"transaccional"?: boolean,"vista_previa"?: string | null,"whatsapp_vars"?: (string)[]
                   }
                   Relationships: [
                     {
+      foreignKeyName: "campanas_plantilla_whatsapp_fkey"
+      columns: ["plantilla_whatsapp"]
+isOneToOne: false
+      referencedRelation: "plantillas_whatsapp"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "campanas_segmento_propio_fkey"
       columns: ["segmento_propio"]
 isOneToOne: false
@@ -443,6 +449,20 @@ isOneToOne: false
                   }
                   Update: {
                     "aceptado"?: boolean,"agente"?: string | null,"created_at"?: string,"id"?: never,"ip"?: string | null,"origen"?: string,"tipo"?: string,"user_id"?: string,"version"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"contactos": {
+                  Row: {
+                    "telefono": string | null,"updated_at": string,"user_id": string,"whatsapp": boolean,"whatsapp_desde": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "telefono"?: string | null,"updated_at"?: string,"user_id"?: string,"whatsapp"?: boolean,"whatsapp_desde"?: string | null
+                  }
+                  Update: {
+                    "telefono"?: string | null,"updated_at"?: string,"user_id"?: string,"whatsapp"?: boolean,"whatsapp_desde"?: string | null
                   }
                   Relationships: [
                     
@@ -875,6 +895,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"mensajes_whatsapp": {
+                  Row: {
+                    "actualizado": string,"creado": string,"error": string | null,"estado": string,"id": number,"para": string,"plantilla": string,"referencia": string | null,"tipo": string,"wamid": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actualizado"?: string,"creado"?: string,"error"?: string | null,"estado"?: string,"id"?: never,"para": string,"plantilla": string,"referencia"?: string | null,"tipo": string,"wamid"?: string | null
+                  }
+                  Update: {
+                    "actualizado"?: string,"creado"?: string,"error"?: string | null,"estado"?: string,"id"?: never,"para"?: string,"plantilla"?: string,"referencia"?: string | null,"tipo"?: string,"wamid"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"merchant_rules": {
                   Row: {
                     "activa": boolean,"ambito": Database["public"]['Enums']["ambito"] | null,"category_id": string,"created_at": string,"household_id": string,"id": string,"patron": string
@@ -999,17 +1033,23 @@ isOneToOne: false
                   ]
                 },"platform_staff": {
                   Row: {
-                    "activo": boolean,"created_at": string,"invitado_por": string | null,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"updated_at": string,"user_id": string
+                    "activo": boolean,"created_at": string,"invitado_por": string | null,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"rol_personal": string | null,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "activo"?: boolean,"created_at"?: string,"invitado_por"?: string | null,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"updated_at"?: string,"user_id": string
+                    "activo"?: boolean,"created_at"?: string,"invitado_por"?: string | null,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"rol_personal"?: string | null,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "activo"?: boolean,"created_at"?: string,"invitado_por"?: string | null,"nombre"?: string,"rol"?: Database["public"]['Enums']["rol_staff"],"updated_at"?: string,"user_id"?: string
+                    "activo"?: boolean,"created_at"?: string,"invitado_por"?: string | null,"nombre"?: string,"rol"?: Database["public"]['Enums']["rol_staff"],"rol_personal"?: string | null,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
-                    
+                    {
+      foreignKeyName: "platform_staff_rol_personal_fkey"
+      columns: ["rol_personal"]
+isOneToOne: false
+      referencedRelation: "roles_staff"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"receipts": {
                   Row: {
@@ -1185,6 +1225,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"roles_staff": {
+                  Row: {
+                    "creado_por": string | null,"created_at": string,"descripcion": string,"id": string,"nombre": string,"permisos": (Database["public"]['Enums']["permiso_staff"])[],"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "creado_por"?: string | null,"created_at"?: string,"descripcion"?: string,"id"?: string,"nombre": string,"permisos"?: (Database["public"]['Enums']["permiso_staff"])[],"updated_at"?: string
+                  }
+                  Update: {
+                    "creado_por"?: string | null,"created_at"?: string,"descripcion"?: string,"id"?: string,"nombre"?: string,"permisos"?: (Database["public"]['Enums']["permiso_staff"])[],"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"salud_registros": {
                   Row: {
                     "componente": string,"creado": string,"id": number,"ms": number,"ok": boolean
@@ -1229,17 +1283,23 @@ isOneToOne: false
                   ]
                 },"staff_invitaciones": {
                   Row: {
-                    "aceptada": string | null,"creada_por": string | null,"created_at": string,"email": string,"id": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"token_hash": string,"vence": string
+                    "aceptada": string | null,"creada_por": string | null,"created_at": string,"email": string,"id": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"rol_personal": string | null,"token_hash": string,"vence": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "aceptada"?: string | null,"creada_por"?: string | null,"created_at"?: string,"email": string,"id"?: string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"token_hash": string,"vence"?: string
+                    "aceptada"?: string | null,"creada_por"?: string | null,"created_at"?: string,"email": string,"id"?: string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"rol_personal"?: string | null,"token_hash": string,"vence"?: string
                   }
                   Update: {
-                    "aceptada"?: string | null,"creada_por"?: string | null,"created_at"?: string,"email"?: string,"id"?: string,"nombre"?: string,"rol"?: Database["public"]['Enums']["rol_staff"],"token_hash"?: string,"vence"?: string
+                    "aceptada"?: string | null,"creada_por"?: string | null,"created_at"?: string,"email"?: string,"id"?: string,"nombre"?: string,"rol"?: Database["public"]['Enums']["rol_staff"],"rol_personal"?: string | null,"token_hash"?: string,"vence"?: string
                   }
                   Relationships: [
-                    
+                    {
+      foreignKeyName: "staff_invitaciones_rol_personal_fkey"
+      columns: ["rol_personal"]
+isOneToOne: false
+      referencedRelation: "roles_staff"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"suscripciones": {
                   Row: {
@@ -1489,6 +1549,7 @@ isOneToOne: false
 "bloques": Json | null,
 "boton_texto": string | null,
 "boton_url": string | null,
+"canal": string,
 "creada_nombre": string,
 "creada_por": string | null,
 "created_at": string,
@@ -1500,13 +1561,15 @@ isOneToOne: false
 "id": string,
 "intentos": number,
 "nombre": string,
+"plantilla_whatsapp": string | null,
 "programada_para": string | null,
 "prueba_ab_pct": number,
 "segmento": string,
 "segmento_propio": string | null,
 "titulo": string,
 "transaccional": boolean,
-"vista_previa": string | null
+"vista_previa": string | null,
+"whatsapp_vars": (string)[]
             }
                           SetofOptions: {
         from: "*"
@@ -1570,7 +1633,10 @@ isOneToOne: false
 { Args: { "p_id": string,"p_motivo": string,"p_plan": string }; Returns: undefined
                            },
 "consola_cambiar_rol":
-{ Args: { "p_rol": Database["public"]['Enums']["rol_staff"],"p_user": string }; Returns: undefined
+{ Args: { "p_rol": Database["public"]['Enums']["rol_staff"],"p_rol_personal"?: string,"p_user": string }; Returns: undefined
+                           },
+"consola_campana_canal":
+{ Args: { "p_canal": string,"p_id": string,"p_plantilla": string,"p_vars": (string)[] }; Returns: undefined
                            },
 "consola_campanas":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -1580,6 +1646,7 @@ isOneToOne: false
 "bloques": Json | null,
 "boton_texto": string | null,
 "boton_url": string | null,
+"canal": string,
 "creada_nombre": string,
 "creada_por": string | null,
 "created_at": string,
@@ -1591,13 +1658,15 @@ isOneToOne: false
 "id": string,
 "intentos": number,
 "nombre": string,
+"plantilla_whatsapp": string | null,
 "programada_para": string | null,
 "prueba_ab_pct": number,
 "segmento": string,
 "segmento_propio": string | null,
 "titulo": string,
 "transaccional": boolean,
-"vista_previa": string | null
+"vista_previa": string | null,
+"whatsapp_vars": (string)[]
             }[]
                           SetofOptions: {
         from: "*"
@@ -1674,7 +1743,7 @@ isOneToOne: false
                            },
 "consola_equipo":
 { Args: Record<PropertyKey, never>; Returns: {
-              "activo": boolean,"created_at": string,"dos_pasos": string,"email": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"ultimo_ingreso": string,"user_id": string
+              "activo": boolean,"created_at": string,"dos_pasos": string,"email": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"rol_nombre": string,"rol_personal": string,"telefono": string,"ultimo_ingreso": string,"user_id": string
             }[]
                            },
 "consola_exportar_auditoria":
@@ -1772,6 +1841,9 @@ isOneToOne: false
 "consola_guardar_respuesta":
 { Args: { "p_borrar"?: boolean,"p_cuerpo": string,"p_id": string,"p_titulo": string }; Returns: undefined
                            },
+"consola_guardar_rol":
+{ Args: { "p": Json }; Returns: string
+                           },
 "consola_guardar_ruta":
 { Args: { "p": Json }; Returns: undefined
                            },
@@ -1814,11 +1886,11 @@ isOneToOne: false
                            },
 "consola_invitaciones":
 { Args: Record<PropertyKey, never>; Returns: {
-              "creada_por": string,"created_at": string,"email": string,"id": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"vence": string
+              "creada_por": string,"created_at": string,"email": string,"id": string,"nombre": string,"rol": Database["public"]['Enums']["rol_staff"],"rol_nombre": string,"rol_personal": string,"vence": string
             }[]
                            },
 "consola_invitar":
-{ Args: { "p_email": string,"p_nombre": string,"p_rol": Database["public"]['Enums']["rol_staff"] }; Returns: string
+{ Args: { "p_email": string,"p_nombre": string,"p_rol": Database["public"]['Enums']["rol_staff"],"p_rol_personal"?: string }; Returns: string
                            },
 "consola_legal":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -1837,8 +1909,14 @@ isOneToOne: false
               "permisos": (Database["public"]['Enums']["permiso_staff"])[],"rol": Database["public"]['Enums']["rol_staff"]
             }[]
                            },
+"consola_mensajes_whatsapp":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "consola_metricas":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"consola_metricas_periodo":
+{ Args: { "p_dias"?: number }; Returns: Json
                            },
 "consola_nota_hogar":
 { Args: { "p_id": string,"p_texto": string }; Returns: undefined
@@ -1921,6 +1999,9 @@ isOneToOne: false
                            },
 "consola_restablecer_2fa":
 { Args: { "p_user": string }; Returns: undefined
+                           },
+"consola_roles":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "consola_salud":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -2010,6 +2091,9 @@ isOneToOne: false
 "generar_recurrentes_hogar":
 { Args: { "p_household": string }; Returns: number
                            },
+"guardar_contacto":
+{ Args: { "p_telefono": string,"p_whatsapp": boolean }; Returns: undefined
+                           },
 "guardar_digitos_cedula":
 { Args: { "p_digitos": string,"p_member": string }; Returns: undefined
                            },
@@ -2037,6 +2121,9 @@ isOneToOne: false
 "legal_avisos_pendientes":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"mensaje_whatsapp_estado":
+{ Args: { "p_error"?: string,"p_estado": string,"p_wamid": string }; Returns: undefined
+                           },
 "mi_firma":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
@@ -2060,6 +2147,9 @@ isOneToOne: false
             }[]
                            },
 "mis_pendientes_legales":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"mis_permisos_staff":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
 "mis_recomendaciones":
@@ -2120,6 +2210,16 @@ isOneToOne: false
                            },
 "talleres_academia":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"telefonos_del_equipo":
+{ Args: { "p_roles": (string)[] }; Returns: {
+              "nombre": string,"telefono": string
+            }[]
+                           },
+"telefonos_whatsapp":
+{ Args: { "p_ids": (string)[] }; Returns: {
+              "telefono": string,"user_id": string
+            }[]
                            },
 "tickets_sin_respuesta":
 { Args: Record<PropertyKey, never>; Returns: {

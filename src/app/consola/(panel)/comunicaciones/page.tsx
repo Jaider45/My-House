@@ -218,8 +218,8 @@ export default async function ComunicacionesConsola({ searchParams }: { searchPa
                     <td className="der">{a.envia === "supabase" ? "—" : pct(abiertos, entregados || enviados)}</td>
                     <td>{a.apagable && puede ? <InterruptorAutomatico clave={a.clave} activo={activo} /> : <Chip tono={activo ? "ok" : "neutro"}>{activo ? "Activo" : "Apagado"}</Chip>}</td>
                     <td className="pr-4! md:pr-6!">
-                      <Link href={`/consola/comunicaciones/correo/${a.muestra}`} className={clasesBoton("fantasma", "h-8 px-3 text-sm")}>
-                        Ver
+                      <Link href={`/consola/comunicaciones/correo/${a.etiquetas[0] ?? a.muestra}`} className={clasesBoton("fantasma", "h-8 px-3 text-sm")}>
+                        {a.envia === "app" && a.clave !== "legal" ? "Editar" : "Ver"}
                       </Link>
                     </td>
                   </tr>

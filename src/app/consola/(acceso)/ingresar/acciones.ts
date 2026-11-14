@@ -45,7 +45,7 @@ export async function ingresarConsola(_: Estado, datos: FormData): Promise<Estad
 
   const siguiente = destinoConsola(datos.get("siguiente"));
   const { data: factores } = await supabase.auth.mfa.listFactors();
-  const conDosPasos = factores?.totp.some((f) => f.status === "verified");
+  const conDosPasos = factores?.all.some((f) => f.status === "verified" && (f.factor_type === "totp" || f.factor_type === "webauthn"));
   const consulta = `?siguiente=${encodeURIComponent(siguiente)}`;
   redirect(conDosPasos ? `/consola/ingresar${consulta}` : `/consola/dos-pasos${consulta}`);
 }
@@ -62,6 +62,14 @@ export async function verificarConsola(_: Estado, datos: FormData): Promise<Esta
   const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
   if (error) return { error: mensajeError(error) };
   return entrar(supabase, datos.get("siguiente"));
+}
+
+/** Paso 2 con llave de seguridad: el navegador ya dejó la sesión en AAL2; aquí se confirma y se entra. */
+export async function entrarConLlave(siguiente: string): Promise<void> {
+  const supabase = await crearClienteConsola();
+  const { data } = await supabase.auth.getClaims();
+  if (data?.claims.aal !== "aal2") redirect("/consola/ingresar");
+  await entrar(supabase, siguiente);
 }
 
 export async function salirConsola() {

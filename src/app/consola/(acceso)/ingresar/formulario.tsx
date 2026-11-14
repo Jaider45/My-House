@@ -6,7 +6,8 @@ import { Aviso, Boton, Campo } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { CampoContrasena } from "@/components/ui/campo-contrasena";
 import { Captcha } from "@/components/ui/captcha";
-import { ingresarConsola, salirConsola, verificarConsola } from "./acciones";
+import { entrarConLlave, ingresarConsola, salirConsola, verificarConsola } from "./acciones";
+import { UsarLlave } from "../../llave";
 
 function Encabezado({ titulo, texto }: { titulo: string; texto: string }) {
   return (
@@ -36,14 +37,22 @@ export function IngresoClave({ siguiente, inactividad }: { siguiente: string; in
 }
 
 /** Código de 6 dígitos: acepta «123 456» pegado y se envía solo al completar. */
-export function IngresoCodigo({ email, siguiente }: { email: string; siguiente: string }) {
+export function IngresoCodigo({ email, siguiente, conApp = true, llave = null }: { email: string; siguiente: string; conApp?: boolean; llave?: string | null }) {
   const [estado, enviar, pendiente] = useActionState(verificarConsola, null);
   const [codigo, setCodigo] = useState("");
   const formulario = useRef<HTMLFormElement>(null);
   return (
     <div className="flex flex-col gap-[18px]">
+      {llave && (
+        <>
+          {!conApp && <Encabezado titulo="Verifica que eres tú" texto="Contraseña correcta. Toca tu llave de seguridad para entrar." />}
+          <UsarLlave factorId={llave} alEntrar={() => entrarConLlave(siguiente)} />
+          {conApp && <p className="text-center text-[13px] text-tenue">o escribe el código de tu app autenticadora</p>}
+        </>
+      )}
+      {conApp && (
       <form ref={formulario} action={enviar} className="flex flex-col gap-[18px]">
-        <Encabezado titulo="Verifica que eres tú" texto="Contraseña correcta. Escribe el código de 6 dígitos de tu app autenticadora." />
+        {!llave && <Encabezado titulo="Verifica que eres tú" texto="Contraseña correcta. Escribe el código de 6 dígitos de tu app autenticadora." />}
         <input type="hidden" name="siguiente" value={siguiente} />
         <Campo etiqueta="Correo del equipo" value={email} readOnly tabIndex={-1} />
         <Campo
@@ -67,6 +76,7 @@ export function IngresoCodigo({ email, siguiente }: { email: string; siguiente: 
           {pendiente ? "Verificando…" : "Entrar a la consola"}
         </Boton>
       </form>
+      )}
       <form action={salirConsola} className="self-center">
         <Boton type="submit" variante="fantasma" className="h-9 text-sm">
           Usar otra cuenta

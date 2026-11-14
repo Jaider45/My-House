@@ -4,12 +4,14 @@ import { enviarCorreo, sitio } from "@/lib/correo/enviar";
 import { correoAvisoEquipo } from "@/lib/correo/correos";
 import { leerConfigPlataforma, type AvisoEquipo } from "@/lib/plataforma/config";
 import { chequear, COMPONENTES } from "@/lib/salud";
+import { enviarUso } from "@/lib/whatsapp/enviar";
 
 export type EventoEquipo = "pago_fallido" | "ticket_urgente" | "solicitud_1581" | "servicio_caido" | "plantilla_rechazada";
 
 /**
  * Ajustes de la plataforma → «Avisos para el equipo». Si el evento está activo, manda un correo a las personas del
- * equipo con esos roles (y a los superadmin). `clave` evita repetir el aviso: se reserva en `avisos_equipo_enviados`.
+ * equipo con esos roles (y a los superadmin) y, si el aviso tiene WhatsApp, la plantilla «Aviso al equipo» a quienes
+ * dejaron su celular en Equipo y permisos. `clave` evita repetir el aviso: se reserva en `avisos_equipo_enviados`.
  * Nunca rompe lo que lo llamó.
  */
 export async function avisarEquipo(db: Servicio, evento: EventoEquipo, clave: string, d: { titulo: string; texto: string; ruta: string }): Promise<number> {
@@ -24,6 +26,10 @@ export async function avisarEquipo(db: Servicio, evento: EventoEquipo, clave: st
     for (const p of data ?? []) {
       const r = await enviarCorreo({ para: p.email, etiqueta: "equipo", contenido: correoAvisoEquipo({ ...d, url: `${sitio()}${d.ruta}` }) });
       if (r.enviado) n++;
+    }
+    if (a.whatsapp) {
+      const { data: tels } = await db.rpc("telefonos_del_equipo", { p_roles: a.roles });
+      for (const t of tels ?? []) if ((await enviarUso(db, "aviso_equipo", t.telefono, { titulo: d.titulo, texto: d.texto }, evento)).enviado) n++;
     }
     return n;
   } catch (e) {

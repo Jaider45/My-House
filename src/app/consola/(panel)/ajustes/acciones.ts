@@ -7,7 +7,7 @@ import { olvidarConfig } from "@/lib/plataforma/config";
 
 const SIN_PERMISO = "Solo un superadmin cambia los ajustes de la plataforma.";
 const EVENTOS = ["pago_fallido", "ticket_urgente", "solicitud_1581", "servicio_caido", "plantilla_rechazada"] as const;
-const ROLES = ["superadmin", "soporte", "finanzas", "contenido"] as const;
+const USOS = ["aviso_equipo", "cobro_mora", "cobro_renovacion", "cobro_gratis"] as const;
 
 const texto = (d: FormData, k: string) => String(d.get(k) ?? "").trim().slice(0, 200);
 const si = (d: FormData, k: string) => d.get(k) === "1";
@@ -38,9 +38,17 @@ function leer(clave: string, d: FormData): unknown | string {
     case "factura":
       return { proveedor: texto(d, "proveedor"), resolucion: texto(d, "resolucion"), prefijo: texto(d, "prefijo").toUpperCase(), desde: entero(d, "desde"), hasta: entero(d, "hasta"), enviar_correo: si(d, "enviar_correo") };
     case "avisos_equipo":
-      return Object.fromEntries(EVENTOS.map((e) => [e, { activo: si(d, `${e}_activo`), roles: ROLES.filter((r) => d.get(`${e}_${r}`) === "on") }]));
+      // Roles fijos o propios (id); la base valida que existan.
+      return Object.fromEntries(EVENTOS.map((e) => [e, { activo: si(d, `${e}_activo`), whatsapp: si(d, `${e}_whatsapp`), roles: d.getAll(`${e}_rol`).map(String).slice(0, 20) }]));
     case "limites_app":
-      return { comprobante_mb: entero(d, "comprobante_mb") ?? 10, exigir_2fa_admins: si(d, "exigir_2fa_admins"), intentos_bloqueo: entero(d, "intentos_bloqueo") ?? 5 };
+      return {
+        comprobante_mb: entero(d, "comprobante_mb") ?? 10,
+        exigir_2fa_admins: si(d, "exigir_2fa_admins"),
+        intentos_bloqueo: entero(d, "intentos_bloqueo") ?? 5,
+        sesion_dias: entero(d, "sesion_dias") ?? 0,
+      };
+    case "whatsapp_usos":
+      return Object.fromEntries(USOS.map((u) => [u, { plantilla: texto(d, `${u}_plantilla`), variables: d.getAll(`${u}_var`).map(String).slice(0, 10) }]));
     default:
       return "Ese ajuste no existe.";
   }

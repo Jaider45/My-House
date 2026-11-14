@@ -1,23 +1,43 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Titulo } from "@/components/ui";
+import { Tarjeta, Titulo, cx } from "@/components/ui";
 import { obtenerStaff } from "@/lib/consola/sesion";
 import { muestras } from "@/lib/correo/muestras";
-import { armarCorreo } from "@/lib/correo/plantilla";
+import { armarCorreo, plano } from "@/lib/correo/plantilla";
 import { sitio } from "@/lib/correo/enviar";
 import { AUTOMATICOS } from "@/lib/correo/automaticos";
+import { aplicarTextos, EDITABLES, type TextosCorreo } from "@/lib/correo/textos";
+import { TextosCorreoForm } from "./textos";
 
-export const metadata: Metadata = { title: "Vista previa del correo" };
+export const metadata: Metadata = { title: "Correo automático" };
 
-/** Vista previa de un correo automático con datos de ejemplo (el mismo HTML que reciben las personas). */
+/**
+ * Un correo automático: vista previa con datos de ejemplo (el mismo HTML que reciben las personas) y, si es de los
+ * que envía la app, sus textos editables. `tipo` es la muestra o la clave de textos (los cobros tienen varias).
+ */
 export default async function VistaCorreo({ params }: { params: Promise<{ tipo: string }> }) {
-  await obtenerStaff();
+  const staff = await obtenerStaff();
   const { tipo } = await params;
-  const m = muestras(sitio())[tipo];
+  const editable = EDITABLES.find((e) => e.clave === tipo) ?? EDITABLES.find((e) => e.muestra === tipo);
+  const m = muestras(sitio())[editable?.muestra ?? tipo];
   if (!m) notFound();
-  const { asunto, html } = armarCorreo(m.contenido, sitio());
-  const auto = AUTOMATICOS.find((a) => a.muestra === tipo);
+  const auto = AUTOMATICOS.find((a) => editable && a.etiquetas.includes(editable.clave)) ?? AUTOMATICOS.find((a) => a.muestra === tipo || a.clave === tipo);
+  // Variantes del mismo correo automático (p. ej. Cobros del plan: renovación, mora, paso a Gratis…).
+  const hermanos = auto ? EDITABLES.filter((e) => auto.etiquetas.includes(e.clave) || (auto.clave === "plazo" && e.clave === "plazo")) : [];
+  const { data: fila } = editable ? await staff.supabase.from("plataforma_config").select("valor").eq("clave", "correos_textos").maybeSingle() : { data: null };
+  const actuales = editable ? (((fila?.valor ?? {}) as Record<string, TextosCorreo>)[editable.clave] ?? {}) : {};
+  const contenido = aplicarTextos(m.contenido, actuales);
+  const { asunto, html } = armarCorreo(contenido, sitio());
+  const o = m.contenido;
+  const originales = {
+    asunto: plano(o.asunto),
+    vista_previa: plano(o.vistaPrevia),
+    titulo: plano(o.titulo),
+    intro: plano(o.intro),
+    nota: o.nota ? plano(o.nota.texto) : "",
+    boton: o.botones?.[0]?.texto ?? "",
+  };
   return (
     <>
       <Titulo
@@ -29,13 +49,36 @@ export default async function VistaCorreo({ params }: { params: Promise<{ tipo: 
           </Link>
         }
       >
-        {auto?.nombre ?? m.nombre}
+        {editable?.nombre ?? auto?.nombre ?? m.nombre}
       </Titulo>
-      <p className="mb-3 text-sm text-tenue">
-        Con datos de ejemplo. El texto de los correos automáticos está en el código (src/lib/correo/correos.ts); los de acceso los envía Supabase con las plantillas de
-        supabase/templates.
-      </p>
-      <iframe title={`Vista previa: ${m.nombre}`} srcDoc={html} sandbox="" className="h-[820px] w-full max-w-[720px] rounded-2xl border border-borde bg-white" />
+      {hermanos.length > 1 && (
+        <nav aria-label="Variantes" className="mb-4 flex flex-wrap gap-2">
+          {hermanos.map((h) => (
+            <Link
+              key={h.clave}
+              href={`/consola/comunicaciones/correo/${h.clave}`}
+              aria-current={h.clave === editable?.clave ? "page" : undefined}
+              className={cx("inline-flex h-9 items-center rounded-full border px-3 text-sm", h.clave === editable?.clave ? "border-monte bg-monte text-arena" : "border-control bg-elevada hover:bg-mosaico")}
+            >
+              {h.nombre}
+            </Link>
+          ))}
+        </nav>
+      )}
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,720px)_minmax(320px,1fr)]">
+        <iframe title={`Vista previa: ${m.nombre}`} srcDoc={html} sandbox="" className="h-[820px] w-full rounded-2xl border border-borde bg-white" />
+        {editable ? (
+          <Tarjeta titulo="Textos" subtitulo="Con datos de ejemplo en la vista previa">
+            <TextosCorreoForm clave={editable.clave} actuales={actuales} originales={originales} variables={Object.keys(o.variables ?? {})} puede={staff.puede("campanas")} />
+          </Tarjeta>
+        ) : (
+          <p className="text-sm text-tenue">
+            {auto?.envia === "supabase"
+              ? "Este correo lo envía Supabase con las plantillas de supabase/templates (se suben con scripts/subir-correos-supabase.mjs)."
+              : "Este correo no tiene textos editables."}
+          </p>
+        )}
+      </div>
     </>
   );
 }
