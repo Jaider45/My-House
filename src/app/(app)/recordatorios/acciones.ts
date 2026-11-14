@@ -69,6 +69,7 @@ async function cambiarCorreo(clave: "resumen_semanal" | "novedades", activo: boo
   if (error) return { error: mensajeError(error) };
   if (!hogar.length) return { error: SOLO_ADMIN };
   revalidatePath("/recordatorios");
+  revalidatePath("/ajustes/privacidad");
   return { ok: activo ? "Activado." : "Apagado." };
 }
 

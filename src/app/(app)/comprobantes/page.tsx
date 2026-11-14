@@ -195,7 +195,7 @@ async function Contenido() {
               {ctx.esAdmin && (
                 <>
                   {" · "}
-                  <Link href="/ajustes/hogar#asistente" className="underline">
+                  <Link href="/ajustes#asistente" className="underline">
                     Cambiar
                   </Link>
                 </>

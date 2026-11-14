@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { AreaTexto, Boton, Campo, Casilla, Selector } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { MensajeEstado } from "@/components/ui/estado";
-import { PieVentana } from "@/components/ui/ventana";
+import { PieVentana, useCerrarAlGuardar } from "@/components/ui/ventana";
 import { PARENTESCOS } from "@/lib/hogar/constantes";
 import { guardarPersonaACargo, invitarMiembro } from "../acciones";
 
@@ -93,6 +93,7 @@ export type PersonaEditable = {
 /** Alta o edición de una persona a cargo (hijos, padres, pareja sin ingresos…), sin acceso a la app. */
 export function FormularioPersona({ persona, adultos, hoy }: { persona?: PersonaEditable; adultos: { id: string; nombre: string }[]; hoy: string }) {
   const [estado, accion] = useActionState(guardarPersonaACargo, null);
+  useCerrarAlGuardar(persona ? null : estado); // el alta va en una ventana; la edición, en la lista
   return (
     <form action={accion} className="space-y-3">
       <input type="hidden" name="id" value={persona?.id ?? ""} />
@@ -126,9 +127,11 @@ export function FormularioPersona({ persona, adultos, hoy }: { persona?: Persona
       />
       <Casilla etiqueta="Lo reporto como dependiente en la declaración de renta" name="dependiente_dian" defaultChecked={persona?.dependiente_dian ?? false} />
       <MensajeEstado estado={estado} />
-      <BotonEnviar variante={persona ? "primario" : "secundario"} className="w-full">
-        {persona ? "Guardar cambios" : "Agregar persona a cargo"}
-      </BotonEnviar>
+      {persona ? (
+        <BotonEnviar className="w-full">Guardar cambios</BotonEnviar>
+      ) : (
+        <PieVentana>Agregar persona a cargo</PieVentana>
+      )}
     </form>
   );
 }

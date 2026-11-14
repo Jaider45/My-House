@@ -2,15 +2,16 @@ import Link from "next/link";
 import { cx } from "@/components/ui";
 
 const PESTANAS = [
-  { href: "/ajustes", texto: "Configuración" },
-  { href: "/ajustes/hogar", texto: "Hogar" },
+  { href: "/ajustes", texto: "Hogar" },
   { href: "/ajustes/miembros", texto: "Miembros" },
-  { href: "/ajustes/plan", texto: "Plan" },
+  { href: "/ajustes/personas", texto: "Personas a cargo" },
   { href: "/categorias", texto: "Categorías" },
   { href: "/ajustes/seguridad", texto: "Seguridad" },
+  { href: "/ajustes/privacidad", texto: "Privacidad y datos" },
+  { href: "/ajustes/plan", texto: "Plan" },
 ] as const;
 
-/** Pestañas de Configuración en píldoras (con desplazamiento horizontal en celular). */
+/** Submenú de Configuración: cada grupo de ajustes en su propia pantalla, en píldoras (con desplazamiento horizontal en celular). */
 export function PestanasConfiguracion({ actual }: { actual: (typeof PESTANAS)[number]["href"] }) {
   return (
     <nav aria-label="Secciones de configuración" className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:mb-5 md:flex-wrap md:px-0">

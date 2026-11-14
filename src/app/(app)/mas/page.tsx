@@ -49,7 +49,7 @@ export default async function Mas() {
     <>
       <Titulo subtitulo="Todo lo demás de My House">Más</Titulo>
       <div className="flex flex-col gap-4">
-        <Link href="/ajustes/hogar" className="flex items-center gap-2.5 rounded-xl border border-borde bg-elevada p-2.5 text-sm">
+        <Link href="/ajustes" className="flex items-center gap-2.5 rounded-xl border border-borde bg-elevada p-2.5 text-sm">
           <span className="inline-flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-monte text-[13px] font-bold text-arena">{iniciales || "MH"}</span>
           <span className="min-w-0 flex-1">
             <b className="block truncate">{ctx.hogar.nombre}</b>

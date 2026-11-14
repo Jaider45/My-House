@@ -33,6 +33,7 @@ const DESTINOS = [
   ["/cuentas", "Cuentas"],
   ["/comprobantes", "Asistente"],
   ["/ajustes/miembros", "Miembros del hogar"],
+  ["/ajustes/personas", "Personas a cargo"],
   ["/", "Inicio"],
 ] as const;
 

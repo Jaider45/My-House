@@ -6,32 +6,8 @@ import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { MensajeEstado } from "@/components/ui/estado";
 import { Interruptor } from "@/components/ui/interruptor";
 import { PieVentana, useCerrarAlGuardar } from "@/components/ui/ventana";
-import { guardarDatosHogar, guardarTrm } from "./acciones";
+import { guardarTrm } from "./acciones";
 import { solicitarDatos } from "../ayuda/acciones";
-
-/** Nombre, ciudad y moneda del hogar (diseño «Configuración → Hogar y miembros»). */
-export function FormularioDatosHogar({ nombre, ciudad, moneda, puede }: { nombre: string; ciudad: string | null; moneda: string; puede: boolean }) {
-  const [estado, accion] = useActionState(guardarDatosHogar, null);
-  return (
-    <form action={accion} className="flex flex-col gap-3">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <Campo etiqueta="Nombre del hogar" name="nombre" defaultValue={nombre} required maxLength={80} disabled={!puede} />
-        <Campo etiqueta="Ciudad" name="ciudad" defaultValue={ciudad ?? ""} maxLength={60} placeholder="Bogotá" disabled={!puede} />
-        <Selector etiqueta="Moneda" disabled defaultValue={moneda}>
-          <option value="COP">Peso colombiano (COP)</option>
-        </Selector>
-      </div>
-      {puede && (
-        <div className="flex flex-wrap items-center gap-3">
-          <BotonEnviar variante="secundario" pendiente="Guardando…">
-            Guardar
-          </BotonEnviar>
-          <MensajeEstado estado={estado} />
-        </div>
-      )}
-    </form>
-  );
-}
 
 /** «Actualizar TRM a diario» o una TRM fija del hogar. */
 export function FormularioTrm({ auto, manual, puede }: { auto: boolean; manual: number | null; puede: boolean }) {

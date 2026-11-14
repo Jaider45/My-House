@@ -379,7 +379,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Params> }) {
               titulo={`Dependientes de ${persona.nombre}`}
               subtitulo="Personas a cargo que reporta en su declaración: bajan el impuesto, no cambian los topes para declarar"
               accion={
-                <Link href="/ajustes/miembros" className="text-sm font-semibold underline">
+                <Link href="/ajustes/personas" className="text-sm font-semibold underline">
                   Editar personas a cargo
                 </Link>
               }

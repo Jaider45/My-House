@@ -202,7 +202,7 @@ export function BarraNavegacion({ ruta, extras, datos }: { ruta: string | null; 
         </nav>
         {datos && (
           <Link
-            href="/ajustes/hogar"
+            href="/ajustes"
             title={datos.hogar}
             className="flex items-center gap-2.5 rounded-xl text-sm xl:border xl:border-borde xl:p-2.5 xl:hover:bg-mosaico"
           >

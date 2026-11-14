@@ -408,7 +408,7 @@ export const CURSOS_INICIALES: Curso[] = [
           },
           { p: "Los topes exactos cambian con la ley y se expresan en UVT. Tu contador los confirma; tú solo asegúrate de tener los certificados." },
           {
-            aplica: { titulo: "Aplícalo en My House", texto: "Revisa qué personas a cargo pueden contar como dependientes.", href: "/ajustes/miembros", boton: "Ver personas a cargo" },
+            aplica: { titulo: "Aplícalo en My House", texto: "Revisa qué personas a cargo pueden contar como dependientes.", href: "/ajustes/personas", boton: "Ver personas a cargo" },
           },
         ],
       },

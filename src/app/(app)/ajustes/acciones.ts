@@ -75,6 +75,7 @@ export async function revocarInvitacion(_: Estado, datos: FormData): Promise<Est
   if (error) return { error: mensajeError(error) };
   if (!data.length) return { error: NO_ENCONTRADO };
   revalidatePath("/ajustes/miembros");
+  revalidatePath("/ajustes/personas");
   return { ok: "Invitación revocada." };
 }
 
@@ -110,7 +111,7 @@ export async function guardarPersonaACargo(_: Estado, datos: FormData): Promise<
     ? await ctx.supabase.from("members").update(persona).eq("id", id).is("user_id", null)
     : await ctx.supabase.from("members").insert({ ...persona, household_id: ctx.hogar.id, es_dependiente: true });
   if (error) return { error: mensajeError(error) };
-  revalidatePath("/ajustes/miembros");
+  revalidatePath("/ajustes/personas");
   revalidatePath("/impuestos");
   return { ok: id ? "Cambios guardados." : `${persona.nombre} agregado.` };
 }
@@ -125,6 +126,7 @@ export async function cambiarRol(_: Estado, datos: FormData): Promise<Estado> {
   if (!data.length) return { error: NO_ENCONTRADO };
   if (r.data.id === ctx.miembro.id) await ctx.supabase.auth.refreshSession();
   revalidatePath("/ajustes/miembros");
+  revalidatePath("/ajustes/personas");
   return { ok: "Rol actualizado." };
 }
 
@@ -137,6 +139,7 @@ export async function quitarMiembro(_: Estado, datos: FormData): Promise<Estado>
   if (error) return { error: mensajeError(error) };
   if (!data.length) return { error: NO_ENCONTRADO };
   revalidatePath("/ajustes/miembros");
+  revalidatePath("/ajustes/personas");
   return { ok: "Listo." };
 }
 
@@ -198,32 +201,9 @@ export async function guardarAsistente(_: Estado, datos: FormData): Promise<Esta
     .update({ config: fusionarConfigHogar(await configActual(ctx), { ia }) as { [k: string]: Json } })
     .eq("id", ctx.hogar.id);
   if (error) return { error: mensajeError(error) };
-  revalidatePath("/ajustes/hogar");
+  revalidatePath("/ajustes");
   revalidatePath("/comprobantes");
   return { ok: "Asistente actualizado." };
-}
-
-/** Nombre y ciudad del hogar (Configuración → Hogar y miembros). La cuota y el contexto se editan en Hogar. */
-export async function guardarDatosHogar(_: Estado, datos: FormData): Promise<Estado> {
-  const r = z
-    .object({
-      nombre: z.string().trim().min(1, "Ponle un nombre al hogar.").max(80),
-      ciudad: z
-        .string()
-        .optional()
-        .transform((v) => v?.trim() || null)
-        .pipe(z.string().max(60).nullable()),
-    })
-    .safeParse(Object.fromEntries(datos));
-  if (!r.success) return { error: r.error.issues[0].message };
-  const ctx = await obtenerContexto();
-  if (!ctx.esAdmin) return { error: SOLO_ADMIN };
-  const { data, error } = await ctx.supabase.from("households").update({ nombre: r.data.nombre, ciudad: r.data.ciudad }).eq("id", ctx.hogar.id).select("id");
-  if (error) return { error: mensajeError(error) };
-  if (!data.length) return { error: NO_ENCONTRADO };
-  await ctx.supabase.auth.refreshSession(); // el nombre viaja en el JWT
-  revalidatePath("/", "layout");
-  return { ok: "Cambios guardados." };
 }
 
 /** «Actualizar TRM a diario» (la oficial) o una TRM fija que escribe el hogar. */
