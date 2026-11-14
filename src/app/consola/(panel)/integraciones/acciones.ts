@@ -33,6 +33,7 @@ function validar(p: Proveedor, config: Record<string, string>): string | null {
     return "El remitente va como «My House <no-responder@tu-dominio.com>».";
   if (p === "whatsapp" && ((config.phone_number_id && !/^\d{5,30}$/.test(config.phone_number_id)) || (config.waba_id && !/^\d{5,30}$/.test(config.waba_id))))
     return "Los identificadores de WhatsApp son solo números.";
+  if (p === "n8n" && config.url && !/^https:\/\/[^\s/]+(\/[^\s]*)?$/.test(config.url)) return "La dirección de n8n empieza por https://.";
   return null;
 }
 

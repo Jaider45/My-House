@@ -18,6 +18,7 @@ const ENTORNO: Record<Proveedor, Record<string, string>> = {
   whatsapp: { phone_number_id: "WHATSAPP_PHONE_NUMBER_ID", waba_id: "WHATSAPP_WABA_ID", token: "WHATSAPP_TOKEN", app_secret: "WHATSAPP_APP_SECRET", verify_token: "WHATSAPP_VERIFY_TOKEN" },
   anthropic: { api_key: "ANTHROPIC_API_KEY", modelo: "ANTHROPIC_MODEL" },
   openai: { api_key: "OPENAI_API_KEY", modelo: "OPENAI_MODEL" },
+  n8n: { url: "N8N_URL", api_key: "N8N_API_KEY" },
 };
 
 /** Campos sin los que la integración no sirve. */
@@ -27,6 +28,7 @@ const REQUERIDOS: Record<Proveedor, string[]> = {
   whatsapp: ["phone_number_id", "token"],
   anthropic: ["api_key"],
   openai: ["api_key"],
+  n8n: ["url", "api_key"],
 };
 
 export function desdeEntorno(p: Proveedor, env: Record<string, string | undefined> = process.env): Valores | null {
@@ -120,6 +122,15 @@ export async function probar(p: Proveedor, v: Valores): Promise<Resultado> {
         const ids = (((await json(r)).data as { id: string }[]) ?? []).map((m) => m.id);
         if (v.modelo && !ids.includes(v.modelo)) return { ok: false, detalle: `Llave válida, pero el modelo «${v.modelo}» no está disponible para ella.` };
         return { ok: true, detalle: `Llave válida · ${ids.length} modelos disponibles` };
+      }
+      case "n8n": {
+        const base = v.url.replace(/\/+$/, "");
+        if (!/^https?:\/\//.test(base)) return { ok: false, detalle: "La dirección empieza por https://." };
+        const r = await fetch(`${base}/api/v1/workflows?limit=250`, { headers: { "X-N8N-API-KEY": v.api_key }, signal: tiempo(), cache: "no-store" });
+        if (r.status === 401 || r.status === 403) return { ok: false, detalle: "n8n no acepta la llave." };
+        if (!r.ok) return { ok: false, detalle: `n8n respondió ${r.status}.` };
+        const flujos = ((await json(r)).data as unknown[]) ?? [];
+        return { ok: true, detalle: `Conectado · ${flujos.length} ${flujos.length === 1 ? "flujo" : "flujos"}` };
       }
       case "openai": {
         const base = (process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/$/, "");
@@ -217,5 +228,46 @@ export async function listarPlantillasMeta(): Promise<{ ok: true; plantillas: Pl
     return { ok: true, plantillas };
   } catch (e) {
     return { ok: false, detalle: `No se pudo conectar con Meta: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+// ───────────────────────────── n8n ─────────────────────────────
+
+export type FlujoN8n = { id: string; nombre: string; activo: boolean; disparador: string; ultima: string | null; ultimaOk: boolean | null; exito7d: number | null; ejecuciones7d: number };
+
+/** Flujos de n8n con su disparador, última ejecución y % de éxito en 7 días (solo lectura, API pública de n8n). */
+export async function flujosN8n(): Promise<{ ok: true; flujos: FlujoN8n[] } | { ok: false; detalle: string } | null> {
+  const n = await leerIntegracion("n8n");
+  if (!n) return null;
+  const base = n.valores.url.replace(/\/+$/, "");
+  const h = { "X-N8N-API-KEY": n.valores.api_key };
+  try {
+    const r = await fetch(`${base}/api/v1/workflows?limit=100`, { headers: h, signal: tiempo(), cache: "no-store" });
+    if (!r.ok) return { ok: false, detalle: `n8n respondió ${r.status}.` };
+    const lista = ((await json(r)).data as { id: string; name: string; active: boolean; nodes?: { type: string; name: string }[] }[]) ?? [];
+    const desde = Date.now() - 7 * 864e5;
+    const flujos = await Promise.all(
+      lista.slice(0, 30).map(async (w) => {
+        const e = await fetch(`${base}/api/v1/executions?workflowId=${encodeURIComponent(w.id)}&limit=100`, { headers: h, signal: tiempo(), cache: "no-store" });
+        const ej = e.ok ? (((await json(e)).data as { status?: string; finished?: boolean; startedAt: string }[]) ?? []) : [];
+        const recientes = ej.filter((x) => Date.parse(x.startedAt) >= desde);
+        const bien = (x: { status?: string; finished?: boolean }) => x.status === "success" || (x.status === undefined && x.finished === true);
+        const disparo = (w.nodes ?? []).find((x) => /trigger|webhook|cron|schedule/i.test(x.type));
+        const tipo = disparo?.type.split(".").pop()?.replace(/Trigger$/i, "") ?? "manual";
+        return {
+          id: w.id,
+          nombre: w.name,
+          activo: w.active,
+          disparador: tipo === "webhook" ? "Webhook" : tipo === "scheduleTrigger" || tipo === "schedule" || tipo === "cron" ? "Programado" : tipo,
+          ultima: ej[0]?.startedAt ?? null,
+          ultimaOk: ej[0] ? bien(ej[0]) : null,
+          exito7d: recientes.length ? Math.round((100 * recientes.filter(bien).length) / recientes.length) : null,
+          ejecuciones7d: recientes.length,
+        };
+      }),
+    );
+    return { ok: true, flujos };
+  } catch (e) {
+    return { ok: false, detalle: `No se pudo conectar con n8n: ${e instanceof Error ? e.message : String(e)}` };
   }
 }

@@ -1745,6 +1745,9 @@ isOneToOne: false
 "consola_guardar_integracion":
 { Args: { "p_activa": boolean,"p_config": Json,"p_proveedor": string,"p_secretos": Json }; Returns: undefined
                            },
+"consola_guardar_ips":
+{ Args: { "p_activo": boolean,"p_ip_actual": string,"p_ips": (string)[] }; Returns: undefined
+                           },
 "consola_guardar_leccion":
 { Args: { "p": Json }; Returns: string
                            },

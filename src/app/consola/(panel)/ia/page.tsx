@@ -7,6 +7,8 @@ import { obtenerStaff } from "@/lib/consola/sesion";
 import { preciosATexto, type Precios } from "@/lib/consola/precios-ia";
 import { CONFIANZA_MINIMA } from "@/lib/comprobantes";
 import { TarjetaTabla } from "../tarjeta-tabla";
+import { flujosN8n } from "@/lib/integraciones/servidor";
+import { formatearMomento } from "@/lib/consola/formato";
 import { FormularioEstado } from "@/components/ui/formulario-estado";
 import { Barras } from "../graficas";
 import { guardarConfigIa } from "./acciones";
@@ -35,7 +37,15 @@ function Indicador({ etiqueta, valor, detalle }: { etiqueta: string; valor: stri
 
 export default async function IaConsola() {
   const staff = await obtenerStaff();
-  const { data, error } = await staff.supabase.rpc("consola_ia");
+  const [{ data, error }, { data: plantillas }, { data: integraciones }, flujos] = await Promise.all([
+    staff.supabase.rpc("consola_ia"),
+    staff.supabase.rpc("consola_plantillas_whatsapp"),
+    staff.puede("sistema") ? staff.supabase.rpc("consola_integraciones") : Promise.resolve({ data: null }),
+    flujosN8n(),
+  ]);
+  const wa = (integraciones ?? []).find((i) => i.proveedor === "whatsapp");
+  const waDetalle = (wa?.verificacion as { ok?: boolean; detalle?: string } | null) ?? null;
+  const listaPlantillas = ((plantillas ?? []) as { id: string; nombre: string; categoria: string; estado: string }[]).slice(0, 6);
   const d = (data ?? null) as unknown as Datos | null;
   const puede = staff.puede("parametros");
   const umbral = d?.config.ia_umbral ?? CONFIANZA_MINIMA;
@@ -102,16 +112,100 @@ export default async function IaConsola() {
               )}
             </TarjetaTabla>
           )}
-          <Tarjeta titulo="WhatsApp Business y flujos" subtitulo="Registro por WhatsApp y plantillas aprobadas por Meta: es su propia fase">
-            <p className="flex flex-wrap items-center gap-2 text-sm text-cuerpo">
-              <Chip plano>No conectado</Chip>
-              La conexión con Meta se configura en{" "}
-              <Link href="/consola/integraciones" className="font-semibold text-tinta underline">
-                Integraciones
-              </Link>
-              ; el registro de movimientos por WhatsApp llega después.
-            </p>
-          </Tarjeta>
+          <div className="grid items-start gap-5 lg:grid-cols-2">
+            <Tarjeta titulo="WhatsApp Business" subtitulo="API oficial de Meta">
+              <div className="flex flex-col text-sm">
+                <div className="flex min-h-10 items-center justify-between gap-3 border-b border-divisor">
+                  <span className="text-cuerpo">Estado</span>
+                  {!wa?.activa ? <Chip tono="neutro">No conectado</Chip> : waDetalle?.ok === false ? <Chip tono="error">Fallando</Chip> : <Chip tono="ok">Conectado</Chip>}
+                </div>
+                <div className="flex min-h-10 items-center justify-between gap-3">
+                  <span className="text-cuerpo">Número y calidad</span>
+                  <b className="text-right">{waDetalle?.detalle ?? "—"}</b>
+                </div>
+              </div>
+              <p className="mt-2 text-[13px] text-tenue">
+                Se conecta en{" "}
+                <Link href="/consola/integraciones" className="font-semibold text-tinta underline">
+                  Integraciones
+                </Link>
+                . El registro de gastos por WhatsApp llega en su propia fase.
+              </p>
+            </Tarjeta>
+            <TarjetaTabla
+              titulo="Plantillas de WhatsApp"
+              subtitulo={`${(plantillas as unknown[] | null)?.length ?? 0} plantillas`}
+              accion={
+                <Link href="/consola/whatsapp" className="text-sm font-semibold">
+                  Ver todas
+                </Link>
+              }
+            >
+              <table className="tabla">
+                <tbody>
+                  {listaPlantillas.length === 0 && (
+                    <tr>
+                      <td className="pl-4! text-tenue md:pl-6!">Aún no hay plantillas.</td>
+                    </tr>
+                  )}
+                  {listaPlantillas.map((t) => (
+                    <tr key={t.id}>
+                      <td className="pl-4! font-mono text-[13px] font-semibold md:pl-6!">{t.nombre}</td>
+                      <td>
+                        <Chip plano>{t.categoria === "MARKETING" ? "Marketing" : t.categoria === "AUTHENTICATION" ? "Autenticación" : "Utilidad"}</Chip>
+                      </td>
+                      <td className="pr-4! md:pr-6!">
+                        <Chip tono={t.estado === "aprobada" ? "ok" : t.estado === "rechazada" ? "error" : t.estado === "en_revision" ? "alerta" : "info"}>
+                          {{ aprobada: "Aprobada", rechazada: "Rechazada", en_revision: "En revisión", borrador: "Borrador", pausada: "Pausada" }[t.estado] ?? t.estado}
+                        </Chip>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TarjetaTabla>
+          </div>
+          <TarjetaTabla titulo="Automatizaciones" subtitulo={flujos?.ok ? `${flujos.flujos.length} flujos en n8n` : "Flujos de n8n"}>
+            {!flujos ? (
+              <p className="px-4 pb-3 text-sm text-tenue md:px-6">
+                Conecta n8n en{" "}
+                <Link href="/consola/integraciones" className="font-semibold text-tinta underline">
+                  Integraciones
+                </Link>{" "}
+                para ver aquí tus flujos, su última ejecución y su tasa de éxito.
+              </p>
+            ) : !flujos.ok ? (
+              <p className="px-4 pb-3 text-sm text-error-tinta md:px-6">{flujos.detalle}</p>
+            ) : (
+              <table className="tabla">
+                <thead>
+                  <tr>
+                    <th className="pl-4! md:pl-6!">Flujo de n8n</th>
+                    <th>Disparador</th>
+                    <th>Última ejecución</th>
+                    <th className="der">Éxito · 7 d</th>
+                    <th className="pr-4! md:pr-6!">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {flujos.flujos.map((f) => (
+                    <tr key={f.id}>
+                      <td className="pl-4! font-semibold md:pl-6!">{f.nombre}</td>
+                      <td className="text-cuerpo">{f.disparador}</td>
+                      <td className="text-cuerpo">
+                        {f.ultima ? formatearMomento(f.ultima) : "—"}
+                        {f.ultimaOk === false && <Chip tono="error">Falló</Chip>}
+                      </td>
+                      <td className="der">{f.exito7d === null ? "—" : `${f.exito7d} % · ${f.ejecuciones7d}`}</td>
+                      <td className="pr-4! md:pr-6!">
+                        <Chip tono={f.activo ? "ok" : "neutro"}>{f.activo ? "Activo" : "Pausado"}</Chip>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </TarjetaTabla>
         </div>
 
         <Tarjeta titulo="Configuración" subtitulo="Rige en todos los hogares desde la siguiente lectura">

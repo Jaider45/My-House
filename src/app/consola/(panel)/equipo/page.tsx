@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+import { IpsPermitidas } from "./ips";
 import type { Metadata } from "next";
 import { Aviso, Chip, Tarjeta, Titulo } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
@@ -40,6 +42,9 @@ function Si() {
 
 export default async function EquipoConsola() {
   const staff = await obtenerStaff();
+  const [{ data: filaIps }, h] = await Promise.all([staff.supabase.from("plataforma_config").select("valor").eq("clave", "consola_ips").maybeSingle(), headers()]);
+  const ips = ((filaIps?.valor ?? { activo: false, ips: [] }) as { activo: boolean; ips: string[] });
+  const miIp = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "";
   const gestiona = staff.puede("equipo");
   const [equipo, invitaciones] = await Promise.all([
     staff.supabase.rpc("consola_equipo"),
@@ -202,6 +207,7 @@ export default async function EquipoConsola() {
                 </div>
               ))}
             </dl>
+            <IpsPermitidas activo={ips.activo} ips={ips.ips} miIp={miIp} puede={staff.puede("equipo")} />
           </Tarjeta>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { ipPermitida } from "@/lib/consola/ips";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { esRutaPublica } from "@/lib/rutas";
@@ -55,7 +56,7 @@ export async function proxy(request: NextRequest) {
   };
 
   if (ruta === "/consola" || ruta.startsWith("/consola/")) {
-    return consola(request, respuesta, redirigir, data?.claims);
+    return await consola(request, respuesta, redirigir, data?.claims);
   }
 
   if (!data?.claims) {
@@ -95,6 +96,26 @@ export async function proxy(request: NextRequest) {
 
 type Claims = { staff?: ClaimStaff; aal?: string; mfa_activa?: boolean };
 
+/** Lista de IP permitidas (plataforma_config, lectura pública) con caché de 60 s por instancia. */
+let cacheIps: { hasta: number; valor: { activo: boolean; ips: string[] } } | null = null;
+async function ipsConsola(): Promise<{ activo: boolean; ips: string[] }> {
+  if (cacheIps && cacheIps.hasta > Date.now()) return cacheIps.valor;
+  let valor = { activo: false, ips: [] as string[] };
+  try {
+    const r = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/plataforma_config?clave=eq.consola_ips&select=valor`, {
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "" },
+      signal: AbortSignal.timeout(3000),
+      cache: "no-store",
+    });
+    const filas = r.ok ? ((await r.json()) as { valor: { activo: boolean; ips: string[] } }[]) : [];
+    if (filas[0]?.valor) valor = filas[0].valor;
+  } catch {
+    // Si la base no responde, no se bloquea a nadie (la base sigue exigiendo AAL2 y permisos).
+  }
+  cacheIps = { hasta: Date.now() + 60_000, valor };
+  return valor;
+}
+
 /**
  * Consola del equipo (/consola). Chequeo optimista con el JWT; la base exige lo mismo en cada función.
  * - Sin sesión: solo el ingreso, la invitación y salir.
@@ -102,7 +123,7 @@ type Claims = { staff?: ClaimStaff; aal?: string; mfa_activa?: boolean };
  * - Del equipo sin AAL2: al código (si tiene 2FA) o a activarla (si no). La 2FA es obligatoria para el equipo.
  * - Con AAL2: adentro, con cierre de sesión tras MINUTOS_INACTIVIDAD sin abrir ninguna pantalla de la consola.
  */
-function consola(request: NextRequest, respuesta: NextResponse, redirigir: (destino: string, conSiguiente?: boolean) => NextResponse, claims?: Claims) {
+async function consola(request: NextRequest, respuesta: NextResponse, redirigir: (destino: string, conSiguiente?: boolean) => NextResponse, claims?: Claims) {
   const ruta = request.nextUrl.pathname;
   const libre = ruta.startsWith("/consola/invitacion/") || ruta === "/consola/salir";
   if (!claims) return libre || ruta === "/consola/ingresar" ? respuesta : redirigir("/consola/ingresar", ruta !== "/consola");
@@ -114,6 +135,16 @@ function consola(request: NextRequest, respuesta: NextResponse, redirigir: (dest
     return ruta === destino ? respuesta : redirigir(destino, ruta !== "/consola");
   }
   if (ruta === "/consola/ingresar" || ruta === "/consola/dos-pasos") return redirigir("/consola");
+
+  // Equipo y permisos → «Ingreso solo desde IP permitidas».
+  const ips = await ipsConsola();
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "";
+  if (ips.activo && !ipPermitida(ip, ips.ips)) {
+    return new NextResponse(`Tu conexión (${ip || "IP desconocida"}) no está en las IP permitidas de la consola. Pide a un superadmin que la agregue.`, {
+      status: 403,
+      headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+    });
+  }
 
   const ultima = Number(request.cookies.get(COOKIE_ACTIVIDAD)?.value);
   if (ultima && Date.now() - ultima > MINUTOS_INACTIVIDAD * 60_000) {

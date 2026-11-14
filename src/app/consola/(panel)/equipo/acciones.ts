@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { reglaValida } from "@/lib/consola/ips";
 import { z } from "zod";
 import { mensajeError, type Estado } from "@/lib/acciones";
 import { obtenerStaff } from "@/lib/consola/sesion";
@@ -84,4 +86,22 @@ export async function cancelarInvitacion(_: Estado, datos: FormData): Promise<Es
   if (error) return { error: mensajeError(error) };
   revalidatePath("/consola/equipo");
   return { ok: "Invitación cancelada." };
+}
+
+/** «Ingreso solo desde IP permitidas»: una regla por línea (IP o rango). La base exige que tu IP quede dentro. */
+export async function guardarIps(_: Estado, datos: FormData): Promise<Estado> {
+  const staff = await obtenerStaff();
+  if (!staff.puede("equipo")) return { error: "Solo un superadmin cambia las políticas de acceso." };
+  const ips = String(datos.get("ips") ?? "")
+    .split(/[\s,;]+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  const malas = ips.filter((x) => !reglaValida(x));
+  if (malas.length) return { error: `No es una IP o rango válido: ${malas.join(", ")}` };
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "";
+  const { error } = await staff.supabase.rpc("consola_guardar_ips", { p_activo: datos.get("activo") === "1", p_ips: ips, p_ip_actual: ip });
+  if (error) return { error: mensajeError(error) };
+  revalidatePath("/consola/equipo");
+  return { ok: "Guardado. Aplica en máximo un minuto." };
 }

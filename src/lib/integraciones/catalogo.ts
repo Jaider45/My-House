@@ -3,7 +3,7 @@
  * Los campos deben coincidir con private.campos_integracion (migración integraciones).
  */
 
-export type Proveedor = "resend" | "wompi" | "whatsapp" | "anthropic" | "openai";
+export type Proveedor = "resend" | "wompi" | "whatsapp" | "anthropic" | "openai" | "n8n";
 
 export type Campo = {
   clave: string;
@@ -17,7 +17,7 @@ export type Campo = {
 export type Integracion = {
   proveedor: Proveedor;
   nombre: string;
-  categoria: "Correo" | "Pagos" | "Mensajería" | "Inteligencia artificial";
+  categoria: "Correo" | "Pagos" | "Mensajería" | "Inteligencia artificial" | "Automatizaciones";
   descripcion: string;
   campos: Campo[];
   /** Ruta del webhook que hay que pegar en el panel del proveedor (si tiene). */
@@ -112,6 +112,18 @@ export const INTEGRACIONES: Integracion[] = [
     ],
     pasos: ["En platform.openai.com → API keys, crea una llave del proyecto y agrega saldo.", "Pégala aquí, guarda y prueba la conexión."],
     docs: "https://platform.openai.com/docs/quickstart",
+  },
+  {
+    proveedor: "n8n",
+    nombre: "Automatizaciones · n8n",
+    categoria: "Automatizaciones",
+    descripcion: "Muestra en IA y automatizaciones los flujos de n8n, su última ejecución y su tasa de éxito.",
+    campos: [
+      { clave: "url", etiqueta: "Dirección de tu n8n", secreto: false, placeholder: "https://n8n.tudominio.co" },
+      { clave: "api_key", etiqueta: "API key de n8n", secreto: true, ayuda: "En n8n → Settings → n8n API → Create an API key. Solo se usa para leer." },
+    ],
+    pasos: ["En tu n8n, ve a Settings → n8n API y crea una llave.", "Pega la dirección de tu n8n (sin /api) y la llave, guarda y prueba la conexión."],
+    docs: "https://docs.n8n.io/api/",
   },
 ];
 
