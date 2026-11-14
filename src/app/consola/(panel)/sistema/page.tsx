@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Aviso, Campo, Chip, Tarjeta, Titulo } from "@/components/ui";
+import { Aviso, Campo, Chip, Tarjeta, Titulo, clasesBoton, cx } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { FormularioEstado } from "@/components/ui/formulario-estado";
 import { mensajeError } from "@/lib/acciones";
@@ -73,6 +73,72 @@ function EditorFuncion({ f, planes }: { f?: Funcion; planes: { codigo: string; n
   );
 }
 
+type Salud = {
+  componentes: Record<string, { ultimo: { ok: boolean; creado: string } | null; disponibilidad: number | null; latencia: number | null; dias: ("ok" | "w" | "e" | "sin")[] }>;
+  errores_1h: number;
+};
+
+const SERVICIOS: [string, string][] = [
+  ["app", "App web"],
+  ["base", "Base de datos"],
+  ["auth", "Inicio de sesión"],
+  ["archivos", "Archivos y soportes"],
+  ["ia", "Lectura con IA"],
+  ["correo", "Correo"],
+  ["pagos", "Pasarela de pagos"],
+];
+
+/** Diseño «Estado de los servicios»: estado actual, disponibilidad y latencia de los chequeos de /api/salud. */
+function EstadoServicios({ salud }: { salud: Salud }) {
+  const caidos = SERVICIOS.filter(([k]) => salud.componentes[k]?.ultimo && !salud.componentes[k].ultimo!.ok);
+  const sinDatos = SERVICIOS.every(([k]) => !salud.componentes[k]);
+  return (
+    <TarjetaTabla
+      titulo="Estado de los servicios"
+      subtitulo={
+        sinDatos
+          ? "Aún sin chequeos: se registran cuando el monitor externo llama a /api/salud/<componente>"
+          : caidos.length
+            ? `Con problemas: ${caidos.map(([, t]) => t).join(", ")}`
+            : "Todos los sistemas operando"
+      }
+    >
+      <table className="tabla">
+        <thead>
+          <tr>
+            <th className="pl-4! md:pl-6!">Servicio</th>
+            <th>Estado</th>
+            <th className="der">Disponibilidad · 30 d</th>
+            <th className="der">Latencia</th>
+            <th className="pr-4! md:pr-6!">Últimos 30 días</th>
+          </tr>
+        </thead>
+        <tbody>
+          {SERVICIOS.map(([k, t]) => {
+            const c = salud.componentes[k];
+            return (
+              <tr key={k}>
+                <td className="pl-4! font-semibold md:pl-6!">{t}</td>
+                <td>{!c?.ultimo ? <Chip tono="neutro">Sin datos</Chip> : c.ultimo.ok ? <Chip tono="ok">Operando</Chip> : <Chip tono="error">Falla</Chip>}</td>
+                <td className="der">{c?.disponibilidad == null ? "—" : `${Number(c.disponibilidad).toLocaleString("es-CO")} %`}</td>
+                <td className="der">{c?.latencia ? (c.latencia >= 1000 ? `${(c.latencia / 1000).toLocaleString("es-CO", { maximumFractionDigits: 1 })} s` : `${c.latencia} ms`) : "—"}</td>
+                <td className="pr-4! md:pr-6!">
+                  <span aria-hidden className="flex min-w-[240px] gap-[3px]">
+                    {(c?.dias ?? Array<"sin">(30).fill("sin")).map((d, i) => (
+                      <i key={i} className={cx("h-6 flex-1 rounded-sm", d === "ok" ? "bg-ok" : d === "w" ? "bg-alerta" : d === "e" ? "bg-error" : "bg-mosaico")} />
+                    ))}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <p className="px-4 pt-2 text-[13px] text-tenue md:px-6">Errores registrados en la última hora: {salud.errores_1h.toLocaleString("es-CO")}.</p>
+    </TarjetaTabla>
+  );
+}
+
 export default async function SistemaConsola() {
   const staff = await obtenerStaff();
   if (!staff.puede("sistema")) {
@@ -83,12 +149,14 @@ export default async function SistemaConsola() {
       </>
     );
   }
-  const [{ data: funciones, error }, { data: sistema }, { data: planes }, { data: integraciones }] = await Promise.all([
+  const [{ data: funciones, error }, { data: sistema }, { data: planes }, { data: integraciones }, { data: salud }] = await Promise.all([
     staff.supabase.rpc("consola_funciones"),
     staff.supabase.rpc("consola_sistema"),
     staff.supabase.from("planes").select("codigo, nombre").order("precio_mensual"),
     staff.supabase.rpc("consola_integraciones"),
+    staff.supabase.rpc("consola_salud"),
   ]);
+  const sal = (salud ?? { componentes: {}, errores_1h: 0 }) as unknown as Salud;
   const lista = (funciones ?? []) as unknown as Funcion[];
   const s = sistema as unknown as Sistema | null;
   const mantenimiento = process.env.MANTENIMIENTO === "1";
@@ -101,8 +169,18 @@ export default async function SistemaConsola() {
 
   return (
     <>
-      <Titulo registrar={false} subtitulo="Funciones por plan o porcentaje sin desplegar, mantenimiento, versión y colas">
-        Sistema
+      <Titulo
+        registrar={false}
+        subtitulo="Servicios, funciones y operación"
+        accion={
+          process.env.ESTADO_URL ? (
+            <a href={process.env.ESTADO_URL} target="_blank" rel="noreferrer" className={clasesBoton("secundario")}>
+              Página de estado pública
+            </a>
+          ) : undefined
+        }
+      >
+        Estado del sistema
       </Titulo>
       {error && <Aviso>{mensajeError(error)}</Aviso>}
       {mantenimiento && (
@@ -110,6 +188,10 @@ export default async function SistemaConsola() {
           <Aviso>Modo mantenimiento ENCENDIDO: los hogares ven la página de mantenimiento (la consola y los pagos siguen).</Aviso>
         </div>
       )}
+
+      <div className="mb-5">
+        <EstadoServicios salud={sal} />
+      </div>
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(320px,2fr)]">
         <div className="flex min-w-0 flex-col gap-5">

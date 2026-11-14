@@ -5,7 +5,7 @@ import { z } from "zod";
 import { mensajeError, type Estado } from "@/lib/acciones";
 import { obtenerStaff } from "@/lib/consola/sesion";
 import type { Permiso } from "@/lib/consola/permisos";
-import { correoPedidoAcceso } from "@/lib/correo/correos";
+import { correoContador, correoInvitacion, correoPedidoAcceso } from "@/lib/correo/correos";
 import { enviarCorreo, sitio } from "@/lib/correo/enviar";
 
 /* Acciones del detalle de hogar. Permiso primero (sin tocar la base); la función consola_* lo vuelve a exigir y audita. */
@@ -88,4 +88,44 @@ export async function pedirAccesoFinanzas(_: Estado, datos: FormData): Promise<E
   );
   revalidatePath(`/consola/hogares/${r.data.hogar}`);
   return { ok: "Solicitud enviada: el administrador la ve al abrir la app y por correo." };
+}
+
+/** «Crear hogar»: nace sin miembros y le llega a quien lo administrará una invitación (14 días). */
+export async function crearHogar(_: Estado, datos: FormData): Promise<Estado> {
+  const staff = await con("usuarios");
+  if (!staff) return { error: SIN_PERMISO };
+  const nombre = String(datos.get("nombre") ?? "").trim();
+  const correo = String(datos.get("correo") ?? "").trim().toLowerCase();
+  const { data, error } = await staff.supabase.rpc("consola_crear_hogar", { p_nombre: nombre, p_correo: correo });
+  if (error) return { error: mensajeError(error) };
+  const r = data as { hogar: string; token: string; email: string };
+  const envio = await enviarCorreo({
+    para: r.email,
+    etiqueta: "invitacion",
+    contenido: correoInvitacion({ quien: "El equipo de My House", hogar: nombre, rol: "admin", url: `${sitio()}/invitacion/${r.token}`, vence: "en 14 días" }),
+  });
+  revalidatePath("/consola/hogares");
+  return envio.enviado ? { ok: `Hogar creado. Le enviamos la invitación a ${r.email}.` } : { ok: `Hogar creado, pero el correo no salió. Enlace: ${sitio()}/invitacion/${r.token}` };
+}
+
+/** Reenviar una invitación pendiente del hogar (la extiende 7 días). */
+export async function reenviarInvitacion(_: Estado, datos: FormData): Promise<Estado> {
+  const staff = await con("usuarios");
+  if (!staff) return { error: SIN_PERMISO };
+  const id = uuid.safeParse(datos.get("id"));
+  if (!id.success) return { error: id.error.issues[0].message };
+  const { data, error } = await staff.supabase.rpc("consola_reenviar_invitacion", { p_hogar: id.data, p_correo: String(datos.get("correo") ?? "") });
+  if (error) return { error: mensajeError(error) };
+  const r = data as { token: string; email: string; rol: string; hogar: string };
+  const url = `${sitio()}/invitacion/${r.token}`;
+  const envio = await enviarCorreo({
+    para: r.email,
+    etiqueta: r.rol === "contador" ? "contador" : "invitacion",
+    contenido:
+      r.rol === "contador"
+        ? correoContador({ quien: "El equipo de My House", hogar: r.hogar, url, vence: "en 7 días", anio: new Date().getFullYear() - 1 })
+        : correoInvitacion({ quien: "El equipo de My House", hogar: r.hogar, rol: (["admin", "editor", "familiar"].includes(r.rol) ? r.rol : "editor") as "admin" | "editor" | "familiar", url, vence: "en 7 días" }),
+  });
+  revalidatePath(`/consola/hogares/${id.data}`);
+  return envio.enviado ? { ok: "Invitación reenviada." } : { error: "La invitación se extendió, pero el correo no salió." };
 }

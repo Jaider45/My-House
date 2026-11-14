@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Aviso, Tarjeta, Titulo, cx } from "@/components/ui";
+import { Aviso, Tarjeta, Titulo, clasesBoton, cx } from "@/components/ui";
 import { obtenerStaff } from "@/lib/consola/sesion";
 import { describirAccion } from "@/lib/consola/auditoria";
 import { formatearMomento } from "@/lib/consola/formato";
@@ -43,25 +43,33 @@ function Indicador({ etiqueta, valor, detalle }: { etiqueta: string; valor: stri
 export default async function PanelConsola() {
   const staff = await obtenerStaff();
   const anioSiguiente = Number(hoy().slice(0, 4)) + 1;
-  const [metricas, cobros, actividad, uvt, integraciones] = await Promise.all([
+  const [metricas, cobros, actividad, uvt, integraciones, insignias] = await Promise.all([
     staff.supabase.rpc("consola_metricas"),
     staff.supabase.rpc("consola_cobros_resumen"),
     staff.puede("auditoria") ? staff.supabase.rpc("consola_auditoria", { p_limite: 8 }) : Promise.resolve({ data: null, error: null }),
     staff.supabase.from("tax_params").select("anio").eq("pais", "CO").eq("anio", anioSiguiente).maybeSingle(),
     staff.puede("sistema") ? staff.supabase.rpc("consola_integraciones") : Promise.resolve({ data: null, error: null }),
+    staff.supabase.rpc("consola_insignias"),
   ]);
+  const ins = (insignias.data ?? {}) as { contadores?: number; soporte?: number; legal?: number };
   const m = (metricas.data ?? {}) as Metricas;
   const r = (cobros.data ?? {}) as ResumenCobros;
 
-  const alertas: { tono: "error" | "alerta" | "ok"; titulo: string; texto: string; href?: string }[] = [];
+  const alertas: { tono: "error" | "alerta" | "ok"; titulo: string; texto: string; href?: string; boton?: string }[] = [];
   if ((r.en_mora ?? 0) > 0)
-    alertas.push({ tono: "error", titulo: `${r.en_mora} ${r.en_mora === 1 ? "hogar" : "hogares"} con el pago pendiente · ${formatearCOP(r.mora_monto)}`, texto: "La secuencia de recuperación está corriendo.", href: "/consola/cobros" });
+    alertas.push({ tono: "error", titulo: `${r.en_mora} ${r.en_mora === 1 ? "pago pendiente" : "pagos pendientes"} · ${formatearCOP(r.mora_monto)}`, texto: "El reintento automático corre con el cobro diario.", href: "/consola/cobros", boton: "Ver cobros" });
+  if ((ins.soporte ?? 0) > 0)
+    alertas.push({ tono: "error", titulo: `${ins.soporte} ${ins.soporte === 1 ? "ticket urgente" : "tickets urgentes"} sin respuesta`, texto: "Prioridad alta o urgente, sin primera respuesta.", href: "/consola/soporte", boton: "Responder" });
+  if ((ins.legal ?? 0) > 0)
+    alertas.push({ tono: "alerta", titulo: `${ins.legal} ${ins.legal === 1 ? "versión legal lista" : "versiones legales listas"} para publicar`, texto: "El abogado ya la aprobó. Al publicarla, los usuarios la aceptan de nuevo al entrar si lo pediste.", href: "/consola/legal", boton: "Revisar" });
+  if ((ins.contadores ?? 0) > 0)
+    alertas.push({ tono: "alerta", titulo: `${ins.contadores} ${ins.contadores === 1 ? "contador espera" : "contadores esperan"} verificación`, texto: "Revisa su tarjeta profesional antes de activarlos.", href: "/consola/contadores", boton: "Revisar" });
   for (const i of integraciones.data ?? []) {
     if (i.verificacion && !(i.verificacion as { ok: boolean }).ok)
       alertas.push({ tono: "error", titulo: `La integración ${i.proveedor} está fallando`, texto: (i.verificacion as { detalle: string }).detalle, href: "/consola/integraciones" });
   }
   if (Number(hoy().slice(5, 7)) >= 11 && !uvt.data)
-    alertas.push({ tono: "alerta", titulo: `UVT ${anioSiguiente} sin cargar`, texto: "La DIAN la publica en diciembre; los topes del año nuevo dependen de ella.", href: "/consola/parametros" });
+    alertas.push({ tono: "alerta", titulo: `UVT ${anioSiguiente} sin cargar`, texto: "La DIAN la publica en diciembre; los topes del año nuevo dependen de ella.", href: "/consola/parametros", boton: "Cargar" });
   if ((m.en_prueba ?? 0) > 0) alertas.push({ tono: "ok", titulo: `${m.en_prueba} ${m.en_prueba === 1 ? "hogar" : "hogares"} probando Familia`, texto: "Al terminar la prueba vuelven a Gratis si no pagan." });
 
   return (
@@ -97,7 +105,7 @@ export default async function PanelConsola() {
             }))}
           />
         </Tarjeta>
-        <Tarjeta titulo="Requiere atención" subtitulo={alertas.length ? `${alertas.length} ${alertas.length === 1 ? "aviso" : "avisos"}` : "Todo en orden"}>
+        <Tarjeta titulo="Lo que necesita tu atención" subtitulo={alertas.length ? `${alertas.length} ${alertas.length === 1 ? "pendiente" : "pendientes"}, del más urgente al menos urgente` : "Todo en orden"}>
           {alertas.length === 0 ? (
             <p className="text-sm text-tenue">Sin pagos en mora ni integraciones fallando.</p>
           ) : (
@@ -109,15 +117,12 @@ export default async function PanelConsola() {
                     <b>{a.titulo}</b>
                     <br />
                     <span className="text-cuerpo">{a.texto}</span>
-                    {a.href && (
-                      <>
-                        {" "}
-                        <Link href={a.href} className="font-semibold underline-offset-4 hover:underline">
-                          Ver
-                        </Link>
-                      </>
-                    )}
                   </span>
+                  {a.href && (
+                    <Link href={a.href} className={clasesBoton(a.tono === "error" ? "primario" : "secundario", "ml-auto h-8 shrink-0 self-center px-3 text-sm")}>
+                      {a.boton ?? "Ver"}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

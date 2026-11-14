@@ -12,7 +12,7 @@ import { formatearCOP } from "@/lib/dinero";
 import { textoLimite, type Limites } from "@/lib/planes";
 import { TarjetaTabla } from "../../tarjeta-tabla";
 import { ChipPlan, etiquetaPlan, type FilaHogar } from "../comun";
-import { agregarNota, cambiarPlanHogar, registrarReembolso, suspenderHogar } from "../acciones";
+import { agregarNota, cambiarPlanHogar, registrarReembolso, reenviarInvitacion, suspenderHogar } from "../acciones";
 import { AccesoFinanzas } from "./acceso";
 
 export const metadata: Metadata = { title: "Hogar" };
@@ -150,7 +150,19 @@ export default async function HogarConsola({ params }: PageProps<"/consola/hogar
                       <Chip plano>{ROL[i.rol] ?? i.rol}</Chip>
                     </td>
                     <td>—</td>
-                    <td className="pr-4! md:pr-6!">—</td>
+                    <td className="pr-4! md:pr-6!">
+                      {staff.puede("usuarios") ? (
+                        <FormularioAccion accion={reenviarInvitacion} className="inline-flex flex-col">
+                          <input type="hidden" name="id" value={id} />
+                          <input type="hidden" name="correo" value={i.email} />
+                          <BotonEnviar variante="fantasma" className="h-8 px-3 text-sm" pendiente="…">
+                            Reenviar
+                          </BotonEnviar>
+                        </FormularioAccion>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -1,3 +1,4 @@
+import { VentanaCrearHogar } from "./crear";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Aviso, Chip, EnlaceBoton, Titulo, cx } from "@/components/ui";
@@ -46,11 +47,18 @@ export default async function HogaresConsola({ searchParams }: PageProps<"/conso
         registrar={false}
         subtitulo="Cada hogar es un cliente del SaaS"
         accion={
-          staff.puede("exportar") ? (
-            <a href={`/consola/hogares/exportar?${new URLSearchParams({ filtro, ...(q && { q }) })}`} className="inline-flex h-10 items-center rounded-lg border border-cuerpo bg-elevada px-4 text-[15px] font-semibold hover:bg-mosaico">
-              Exportar CSV
-            </a>
-          ) : undefined
+          <span className="flex flex-wrap gap-2">
+            {staff.puede("exportar") && (
+              <a href={`/consola/hogares/exportar?${new URLSearchParams({ filtro, ...(q && { q }) })}`} className="inline-flex h-10 items-center rounded-lg border border-cuerpo bg-elevada px-4 text-[15px] font-semibold hover:bg-mosaico">
+                Exportar CSV
+              </a>
+            )}
+            {staff.puede("usuarios") && (
+              <Link href="/consola/hogares?nuevo=hogar" scroll={false} className="inline-flex h-10 items-center rounded-lg bg-monte px-4 text-[15px] font-semibold text-arena hover:bg-monte/90">
+                Crear hogar
+              </Link>
+            )}
+          </span>
         }
       >
         Hogares
@@ -151,6 +159,7 @@ export default async function HogaresConsola({ searchParams }: PageProps<"/conso
           </table>
         )}
       </TarjetaTabla>
+      {staff.puede("usuarios") && <VentanaCrearHogar />}
     </>
   );
 }

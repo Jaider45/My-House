@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Aviso, Barra, Chip, EnlaceBoton, Tarjeta, Titulo, cx, type Tono } from "@/components/ui";
+import { Aviso, Barra, Chip, EnlaceBoton, Tarjeta, Titulo, clasesBoton, cx, type Tono } from "@/components/ui";
 import { mensajeError } from "@/lib/acciones";
 import { obtenerStaff } from "@/lib/consola/sesion";
+import { BotonEnviar } from "@/components/ui/boton-enviar";
+import { FormularioAccion } from "@/components/ui/formulario-accion";
+import { conciliar } from "./acciones";
 import { formatearMomento } from "@/lib/consola/formato";
 import { formatearCOP } from "@/lib/dinero";
 import { esPruebas } from "@/lib/pagos/wompi";
@@ -52,13 +55,19 @@ type Cobro = {
   factura_estado: string;
 };
 
-const SECUENCIA = [
-  { t: "Día −3", b: "Cobro de renovación y correo", d: "Con el valor y el botón para pagar con Wompi." },
-  { t: "Día 1", b: "Correo de pago pendiente", d: "El plan sigue activo; en Configuración → Plan aparece el pago." },
-  { t: "Día 3", b: "Segundo aviso por correo", d: "WhatsApp cuando se conecte (plantilla pago_fallido)." },
-  { t: "Día 7", b: "Último aviso", d: "Avisa la fecha en que pasa a Gratis." },
-  { t: "Día 14", b: "Pasa a Gratis", d: "Conserva sus datos; pierde comprobantes ilimitados, metas y renta." },
-];
+/** Secuencia de recuperación según Ajustes de la plataforma (reintentos y día del paso a Gratis). */
+function secuencia(reintentos: number[], gratis: number) {
+  return [
+    { t: "Día −3", b: "Cobro de renovación y correo", d: "Si el hogar guardó su tarjeta, se cobra sola el día del vencimiento." },
+    { t: "Día 0", b: "Cobro a la tarjeta guardada", d: "Si no hay tarjeta, el pago queda pendiente en Configuración → Plan." },
+    ...reintentos.map((n, i) => ({
+      t: `Día ${n}`,
+      b: i === reintentos.length - 1 ? "Último reintento y aviso" : "Reintento y correo",
+      d: i === reintentos.length - 1 ? `Avisa que el día ${gratis} pasa a Gratis.` : "Correo con el valor y el enlace para pagar.",
+    })),
+    { t: `Día ${gratis}`, b: "Pasa a Gratis", d: "Conserva sus datos; pierde comprobantes ilimitados, metas y renta." },
+  ];
+}
 
 function Indicador({ etiqueta, valor, detalle }: { etiqueta: string; valor: string; detalle: string }) {
   return (
@@ -75,10 +84,13 @@ export default async function CobrosConsola({ searchParams }: PageProps<"/consol
   const sp = await searchParams;
   const estado = ESTADOS.find((e) => e.valor === sp.estado)?.valor ?? "";
   const antes = typeof sp.antes === "string" && !Number.isNaN(Date.parse(sp.antes)) ? sp.antes : undefined;
-  const [resumen, lista] = await Promise.all([
+  const [resumen, lista, { data: reglas }] = await Promise.all([
     staff.supabase.rpc("consola_cobros_resumen"),
     staff.supabase.rpc("consola_cobros", { p_estado: estado || undefined, p_antes: antes, p_limite: 30 }),
+    staff.supabase.from("plataforma_config").select("clave, valor").in("clave", ["cobro_reintentos", "cobro_dia_gratis"]),
   ]);
+  const cfg = Object.fromEntries((reglas ?? []).map((x) => [x.clave, x.valor]));
+  const SECUENCIA = secuencia((cfg.cobro_reintentos as number[] | undefined) ?? [1, 3, 7], Number(cfg.cobro_dia_gratis ?? 14));
   const r = (resumen.data ?? {}) as Resumen;
   const filas = (lista.data ?? []) as Cobro[];
   const metodos = Object.entries(r.metodos ?? {}).sort((a, b) => b[1] - a[1]);
@@ -92,8 +104,27 @@ export default async function CobrosConsola({ searchParams }: PageProps<"/consol
 
   return (
     <>
-      <Titulo registrar={false} subtitulo="Wompi y factura electrónica">
-        Suscripciones y cobros
+      <Titulo
+        registrar={false}
+        subtitulo="Wompi y factura electrónica"
+        accion={
+          <span className="flex flex-wrap gap-2">
+            {staff.puede("exportar") && (
+              <a href={`/consola/cobros/exportar${estado ? `?estado=${estado}` : ""}`} className={clasesBoton("secundario")}>
+                Exportar
+              </a>
+            )}
+            {staff.puede("cobros") && wompi && (
+              <FormularioAccion accion={conciliar} className="inline-flex flex-col">
+                <BotonEnviar variante="secundario" pendiente="Conciliando…">
+                  Conciliar
+                </BotonEnviar>
+              </FormularioAccion>
+            )}
+          </span>
+        }
+      >
+        Cobros
       </Titulo>
       {(resumen.error || lista.error) && <Aviso>{mensajeError(resumen.error ?? lista.error)}</Aviso>}
       {!wompi ? (
@@ -109,10 +140,10 @@ export default async function CobrosConsola({ searchParams }: PageProps<"/consol
       )}
 
       <section className="mb-5 grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
-        <Indicador etiqueta="MRR" valor={formatearCOP(r.mrr ?? 0)} detalle={`${r.activas ?? 0} suscripciones activas`} />
-        <Indicador etiqueta="Cobrado este mes" valor={formatearCOP(r.cobrado_mes ?? 0)} detalle={`${r.cobros_mes ?? 0} cobros exitosos`} />
-        <Indicador etiqueta="En mora" valor={String(r.en_mora ?? 0)} detalle={`${formatearCOP(r.mora_monto ?? 0)} por recuperar · ${r.fallidos_30d ?? 0} fallidos en 30 d`} />
-        <Indicador etiqueta="Próximos 7 días" valor={formatearCOP(r.proximos_7d ?? 0)} detalle={`${r.proximos_7d_n ?? 0} renovaciones · recuperación ${r.recuperados_pct == null ? "—" : `${r.recuperados_pct} %`}`} />
+        <Indicador etiqueta="Cobrado este mes" valor={formatearCOP(r.cobrado_mes ?? 0)} detalle={`${r.cobros_mes ?? 0} cobros exitosos · MRR ${formatearCOP(r.mrr ?? 0)}`} />
+        <Indicador etiqueta="Pagos pendientes" valor={String(r.en_mora ?? 0)} detalle={`${formatearCOP(r.mora_monto ?? 0)} por recuperar · ${r.fallidos_30d ?? 0} fallidos en 30 d`} />
+        <Indicador etiqueta="Recuperados por reintento" valor={r.recuperados_pct == null ? "—" : `${r.recuperados_pct} %`} detalle="de los pagos fallidos · últimos 90 días" />
+        <Indicador etiqueta="Próximos 7 días" valor={formatearCOP(r.proximos_7d ?? 0)} detalle={`${r.proximos_7d_n ?? 0} renovaciones programadas`} />
       </section>
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
@@ -205,7 +236,17 @@ export default async function CobrosConsola({ searchParams }: PageProps<"/consol
         </TarjetaTabla>
 
         <div className="flex min-w-0 flex-col gap-5">
-          <Tarjeta titulo="Recuperación de pagos" subtitulo="Secuencia automática (cron diario)">
+          <Tarjeta
+            titulo="Recuperación de pagos fallidos"
+            subtitulo="Secuencia automática (cron diario)"
+            accion={
+              staff.puede("sistema") ? (
+                <Link href="/consola/ajustes?tab=pagos" className="text-sm font-semibold">
+                  Cambiar días
+                </Link>
+              ) : undefined
+            }
+          >
             <ol className="flex flex-col">
               {SECUENCIA.map((s) => (
                 <li key={s.t} className="grid grid-cols-[64px_minmax(0,1fr)] gap-3 border-b border-divisor py-3 text-sm last:border-0">

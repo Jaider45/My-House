@@ -1185,6 +1185,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"salud_registros": {
+                  Row: {
+                    "componente": string,"creado": string,"id": number,"ms": number,"ok": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "componente": string,"creado"?: string,"id"?: never,"ms"?: number,"ok": boolean
+                  }
+                  Update: {
+                    "componente"?: string,"creado"?: string,"id"?: never,"ms"?: number,"ok"?: boolean
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"segmentos": {
                   Row: {
                     "actividad": string,"condiciones": (string)[],"creado_por": string | null,"created_at": string,"id": string,"nombre": string,"plan": string
@@ -1608,6 +1622,11 @@ isOneToOne: false
               "creado": string,"cupon": string,"descuento": number,"error": string,"estado": string,"factura_estado": string,"hogar": string,"household_id": string,"id": string,"metodo": string,"metodo_detalle": string,"monto": number,"motivo": string,"pagado_en": string,"pasarela": string,"periodo": string,"plan": string,"referencia": string
             }[]
                            },
+"consola_cobros_por_conciliar":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "referencia": string,"transaccion_id": string
+            }[]
+                           },
 "consola_cobros_resumen":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
@@ -1621,6 +1640,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "abiertos": number,"clics": number,"entregados": number,"enviados": number,"etiqueta": string,"rebotados": number,"ultimo": string
             }[]
+                           },
+"consola_crear_hogar":
+{ Args: { "p_correo": string,"p_nombre": string }; Returns: Json
                            },
 "consola_cupones":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -1876,6 +1898,9 @@ isOneToOne: false
 "consola_publicar_version":
 { Args: { "p_id": string }; Returns: undefined
                            },
+"consola_reenviar_invitacion":
+{ Args: { "p_correo": string,"p_hogar": string }; Returns: Json
+                           },
 "consola_registrar_ingreso":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
@@ -1893,6 +1918,9 @@ isOneToOne: false
                            },
 "consola_restablecer_2fa":
 { Args: { "p_user": string }; Returns: undefined
+                           },
+"consola_salud":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "consola_segmentos":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -2080,6 +2108,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "objeto": string,"tipo": string
             }[]
+                           },
+"salud_registrar":
+{ Args: { "p_componente": string,"p_ms": number,"p_ok": boolean }; Returns: undefined
                            },
 "solicitar_privacidad":
 { Args: { "p_detalle": string,"p_tipo": string }; Returns: string
