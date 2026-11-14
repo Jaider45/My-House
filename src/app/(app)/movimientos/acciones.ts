@@ -81,7 +81,10 @@ export async function registrarRapido(_: Estado, datos: FormData): Promise<Estad
   // la restricción única lo rechaza y se responde como guardado, sin duplicarlo.
   const clave = String(datos.get("clave") ?? "");
   const client_id = z.uuid().safeParse(clave).success ? clave : null;
-  const { error } = await ctx.supabase.from("transactions").insert({ ...r.movimiento, household_id: ctx.hogar.id, client_id });
+  // Lo que tardó en el navegador (solo para métricas; un registro reenviado desde la cola no se mide).
+  const ms = Number(datos.get("duracion_ms"));
+  const registro_ms = Number.isInteger(ms) && ms > 0 && ms <= 600_000 && !datos.get("en_cola") ? ms : null;
+  const { error } = await ctx.supabase.from("transactions").insert({ ...r.movimiento, household_id: ctx.hogar.id, client_id, registro_ms });
   const listo = `${r.movimiento.tipo === "ingreso" ? "Ingreso" : "Gasto"} de ${formatearCOP(r.movimiento.monto)} guardado.`;
   if (error?.code === "23505" && client_id && error.message.includes("transactions_client_id_unico")) return { ok: listo };
   if (error) return { error: mensajeError(error) };

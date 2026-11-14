@@ -39,3 +39,15 @@ export async function restablecerDosPasos(_: Estado, datos: FormData): Promise<E
   revalidatePath("/consola/usuarios");
   return { ok: "Verificación restablecida: al entrar podrá activarla de nuevo." };
 }
+
+/** Quita el bloqueo de 15 minutos por intentos fallidos (queda en la auditoría). */
+export async function desbloquear(_: Estado, datos: FormData): Promise<Estado> {
+  const staff = await obtenerStaff();
+  if (!staff.puede("usuarios")) return { error: "Tu rol no puede desbloquear cuentas." };
+  const usuario = String(datos.get("usuario") ?? "");
+  if (!/^[0-9a-f-]{36}$/.test(usuario)) return { error: "Cuenta no válida." };
+  const { error } = await staff.supabase.rpc("consola_desbloquear", { p_user: usuario });
+  if (error) return { error: mensajeError(error) };
+  revalidatePath("/consola/usuarios");
+  return { ok: "Desbloqueada: ya puede intentar de nuevo." };
+}

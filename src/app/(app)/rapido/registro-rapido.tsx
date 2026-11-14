@@ -3,7 +3,7 @@
 import { formatearCOP } from "@/lib/dinero";
 
 import Link from "next/link";
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { Aviso, claseControl, cx } from "@/components/ui";
 import { Icono } from "@/components/marca";
 import { iconoCategoria } from "@/lib/categorias/iconos";
@@ -60,6 +60,8 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, h
   const [cambiar, setCambiar] = useState(false);
   const [pagado, setPagado] = useState(true);
   const [reinicio, setReinicio] = useState(0);
+  // Del primer toque a guardar (Analítica → «Tiempo medio de registro»). Se reinicia con cada registro.
+  const inicio = useRef<number | null>(null);
 
   // Última cuenta usada en este dispositivo.
   useEffect(() => {
@@ -76,6 +78,7 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, h
     datos.delete("seguir");
     // Una clave por registro, antes de decidir si va a la cola: el reenvío desde la cola usa la misma y no duplica.
     datos.set("clave", nuevaClave());
+    if (inicio.current !== null) datos.set("duracion_ms", String(Math.round(performance.now() - inicio.current)));
     // Sin señal (o si se cae a mitad del envío) el registro queda en este celular y se envía al volver.
     const enCola = (): Estado => {
       if (!encolar(localStorage, camposDe(datos))) return { error: "Hay demasiados registros esperando conexión. Conéctate para enviarlos." };
@@ -93,6 +96,7 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, h
       }
     }
     if (r?.ok) {
+      inicio.current = null;
       localStorage.setItem(CLAVE_CUENTA, cuenta);
       setConcepto("");
       setElegida("");
@@ -120,7 +124,13 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, h
   const abierto = cambiar || (!categoria && normalizar(concepto).length >= 3);
 
   return (
-    <form action={accion} className="flex flex-col gap-4">
+    <form
+      action={accion}
+      onInputCapture={() => {
+        if (inicio.current === null) inicio.current = performance.now();
+      }}
+      className="flex flex-col gap-4"
+    >
       <input type="hidden" name="tipo" value={tipo} />
       <input type="hidden" name="fecha" value={hoy} />
       <input type="hidden" name="account_id" value={cuenta} />

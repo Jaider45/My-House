@@ -50,6 +50,12 @@ export type ClaimStaff = { rol: RolStaff; nombre: string };
 /** Minutos sin actividad tras los que la consola cierra la sesión (política «Cerrar sesión por inactividad»). */
 export const MINUTOS_INACTIVIDAD = 30;
 export const COOKIE_ACTIVIDAD = "mh_consola_actividad";
+/**
+ * «Confiar en este equipo por 12 horas»: el ingreso sigue pidiendo el código o la llave (la base exige AAL2), pero en
+ * ese navegador la sesión no se cierra por inactividad durante 12 horas. Guarda la hora en que se marcó.
+ */
+export const COOKIE_CONFIABLE = "mh_consola_confiable";
+export const HORAS_CONFIABLE = 12;
 /** La escribe el proxy en cada pantalla de la consola y el ingreso al terminar (para no heredar una vieja). */
 export const opcionesCookieActividad = {
   httpOnly: true,

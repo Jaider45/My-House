@@ -592,3 +592,46 @@ export function correoAvisoEquipo(d: { titulo: string; texto: string; url: strin
     porque: "Recibes este correo porque eres del equipo de My House y tu rol recibe este aviso (Consola → Ajustes de la plataforma).",
   };
 }
+
+/** Consola → Contadores → «Invitar contador»: invitación a un contador aliado para abrir su firma en My House. */
+export function correoInvitarContador(d: { nombre: string; quien: string; url: string; comision: number }): Contenido {
+  return {
+    asunto: `${d.nombre}, te invitamos a atender a tus clientes en My House`,
+    vistaPrevia: `Panel con el semáforo DIAN de cada cliente y ${d.comision} % de comisión por los hogares que traigas.`,
+    etiqueta: "Contadores aliados",
+    icono: { nombre: "declaracion-renta", tono: "monte" },
+    titulo: "Atiende a tus clientes con sus finanzas al día",
+    intro: `${hola(d.nombre)} ${d.quien} del equipo de My House te invita como contador aliado.`,
+    lista: {
+      titulo: "Con el plan Contador",
+      items: [
+        { n: "1", t: "Semáforo DIAN de cada cliente", d: "Quién debe declarar, con qué topes y qué soportes faltan." },
+        { n: "2", t: "Tus clientes registran solos", d: "Gastos, extractos y comprobantes llegan ordenados." },
+        { n: "3", t: `${d.comision} % de comisión`, d: "Por cada hogar que traigas con tu enlace y que pague." },
+      ],
+    },
+    botones: [{ texto: "Crear mi cuenta", url: d.url }],
+    nota: { texto: "Después de crear tu cuenta, activa el plan Contador en Configuración → Plan y pide la verificación de tu firma en Clientes." },
+    porque: "Recibes este correo porque el equipo de My House te invitó como contador aliado.",
+  };
+}
+
+/** Respuesta del equipo a la verificación de una firma de contadores. */
+export function correoVerificacionFirma(d: { firma: string; accion: "aprobar" | "pedir_datos" | "rechazar"; mensaje: string; url: string }): Contenido {
+  const t = {
+    aprobar: { asunto: `${d.firma} ya es una firma verificada`, titulo: "Tu firma está verificada", intro: "Revisamos tu tarjeta profesional: tus clientes ya te ven como contador verificado.", tono: "monte" as const },
+    pedir_datos: { asunto: `Necesitamos un dato más para verificar ${d.firma}`, titulo: "Nos falta un dato", intro: "Para terminar de verificar tu firma necesitamos lo siguiente:", tono: "alerta" as const },
+    rechazar: { asunto: `No pudimos verificar ${d.firma}`, titulo: "No pudimos verificar tu firma", intro: "Revisamos tu solicitud y por ahora no la podemos aprobar:", tono: "error" as const },
+  }[d.accion];
+  return {
+    asunto: t.asunto,
+    vistaPrevia: d.mensaje || t.intro,
+    etiqueta: "Contadores aliados",
+    icono: { nombre: "declaracion-renta", tono: t.tono },
+    titulo: t.titulo,
+    intro: t.intro,
+    nota: d.mensaje ? { texto: d.mensaje, tono: d.accion === "aprobar" ? "neutro" : "alerta" } : undefined,
+    botones: [{ texto: d.accion === "pedir_datos" ? "Enviar los datos" : "Ir a Clientes", url: d.url }],
+    porque: CUENTA,
+  };
+}

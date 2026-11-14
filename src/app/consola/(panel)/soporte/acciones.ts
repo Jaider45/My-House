@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { mensajeError, type Estado } from "@/lib/acciones";
 import { obtenerStaff } from "@/lib/consola/sesion";
@@ -77,4 +78,34 @@ export async function guardarRespuestaGuardada(_: Estado, datos: FormData): Prom
   if (error) return { error: mensajeError(error) };
   revalidatePath("/consola/soporte");
   return { ok: borrar ? "Respuesta borrada." : "Respuesta guardada." };
+}
+
+/** «Nuevo ticket»: algo que llegó por correo, teléfono o WhatsApp. Si el correo es de una cuenta, queda a su nombre. */
+export async function crearTicketConsola(_: Estado, datos: FormData): Promise<Estado> {
+  const staff = await obtenerStaff();
+  if (!staff.puede("tickets")) return { error: SIN_PERMISO };
+  const r = z
+    .object({
+      correo: z.string().trim().max(200).optional(),
+      nombre: z.string().trim().max(120).optional(),
+      asunto: z.string().trim().min(3, "Escribe el asunto.").max(120),
+      categoria: z.enum(["cuenta", "cobros", "importacion", "ia", "renta", "otro"]),
+      prioridad: z.enum(["baja", "normal", "alta", "urgente"]),
+      canal: z.enum(["correo", "telefono", "whatsapp"]),
+      mensaje: z.string().trim().min(5, "Escribe lo que pidió la persona.").max(5000),
+    })
+    .safeParse(Object.fromEntries(datos));
+  if (!r.success) return { error: r.error.issues[0].message };
+  const { data: id, error } = await staff.supabase.rpc("consola_crear_ticket", {
+    p_correo: r.data.correo ?? "",
+    p_nombre: r.data.nombre ?? "",
+    p_asunto: r.data.asunto,
+    p_categoria: r.data.categoria,
+    p_prioridad: r.data.prioridad,
+    p_canal: r.data.canal,
+    p_mensaje: r.data.mensaje,
+  });
+  if (error) return { error: mensajeError(error) };
+  revalidatePath("/consola/soporte");
+  redirect(`/consola/soporte/${id}`);
 }

@@ -38,7 +38,7 @@ export default async function TicketConsola({ params }: PageProps<"/consola/sopo
 
   return (
     <>
-      <Titulo registrar={false} subtitulo={`#${t.numero} · ${t.creado_nombre} · ${formatearMomento(t.created_at)} · tema: ${t.categoria}`}>
+      <Titulo registrar={false} subtitulo={`#${t.numero} · ${t.creado_nombre} · ${formatearMomento(t.created_at)} · tema: ${t.categoria} · ${{ app: "desde la app", correo: "por correo", telefono: "por teléfono", whatsapp: "por WhatsApp" }[(t as { canal?: string }).canal ?? "app"] ?? ""}`}>
         {t.asunto}
       </Titulo>
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">

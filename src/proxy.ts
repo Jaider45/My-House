@@ -2,7 +2,7 @@ import { ipPermitida } from "@/lib/consola/ips";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { esRutaPublica } from "@/lib/rutas";
-import { COOKIE_ACTIVIDAD, MINUTOS_INACTIVIDAD, opcionesCookieActividad, type ClaimStaff } from "@/lib/consola/permisos";
+import { COOKIE_ACTIVIDAD, COOKIE_CONFIABLE, HORAS_CONFIABLE, MINUTOS_INACTIVIDAD, opcionesCookieActividad, type ClaimStaff } from "@/lib/consola/permisos";
 
 /**
  * Refresca la sesión de Supabase en cada request y hace los chequeos optimistas:
@@ -173,7 +173,10 @@ async function consola(request: NextRequest, respuesta: NextResponse, redirigir:
   }
 
   const ultima = Number(request.cookies.get(COOKIE_ACTIVIDAD)?.value);
-  if (ultima && Date.now() - ultima > Math.max(5, sesion.minutos) * 60_000) {
+  // «Confiar en este equipo por 12 horas»: en este navegador la inactividad no cierra la sesión mientras dure.
+  const confiable = Number(request.cookies.get(COOKIE_CONFIABLE)?.value);
+  const limite = confiable && Date.now() - confiable < HORAS_CONFIABLE * 3_600_000 ? HORAS_CONFIABLE * 60 : Math.max(5, sesion.minutos);
+  if (ultima && Date.now() - ultima > limite * 60_000) {
     const url = request.nextUrl.clone();
     url.pathname = "/consola/salir";
     url.search = "?motivo=inactividad";

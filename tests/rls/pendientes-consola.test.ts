@@ -31,7 +31,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  for (const f of limpiar) await f();
+  for (const f of limpiar.reverse()) await f();
   await entorno.limpiar();
 });
 

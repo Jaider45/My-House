@@ -11,9 +11,9 @@ export type Punto = { etiqueta: string; valor: number; detalle?: string; destaca
 export function Barras({ datos, alto = 200, formato = (v: number) => v.toLocaleString("es-CO") }: { datos: Punto[]; alto?: number; formato?: (v: number) => string }) {
   const max = Math.max(1, ...datos.map((d) => d.valor));
   return (
-    <div className="flex items-end gap-1.5" style={{ height: alto }} role="img" aria-label={datos.map((d) => `${d.etiqueta}: ${formato(d.valor)}`).join(" · ")}>
-      {datos.map((d) => (
-        <div key={d.etiqueta} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1 self-stretch" title={`${d.detalle ?? d.etiqueta}: ${formato(d.valor)}`}>
+    <div className="flex items-end gap-1.5" style={{ height: alto }} role="img" aria-label={datos.map((d) => `${d.detalle ?? d.etiqueta}: ${formato(d.valor)}`).join(" · ")}>
+      {datos.map((d, i) => (
+        <div key={`${i}-${d.detalle ?? d.etiqueta}`} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1 self-stretch" title={`${d.detalle ?? d.etiqueta}: ${formato(d.valor)}`}>
           <div
             className={cx("w-full max-w-9 rounded-t-md", d.destacar ? "bg-teja" : "bg-monte")}
             style={{ height: `${Math.max(d.valor > 0 ? 2 : 0, Math.round((d.valor / max) * 88))}%` }}

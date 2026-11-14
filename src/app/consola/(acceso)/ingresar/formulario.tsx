@@ -40,13 +40,14 @@ export function IngresoClave({ siguiente, inactividad }: { siguiente: string; in
 export function IngresoCodigo({ email, siguiente, conApp = true, llave = null }: { email: string; siguiente: string; conApp?: boolean; llave?: string | null }) {
   const [estado, enviar, pendiente] = useActionState(verificarConsola, null);
   const [codigo, setCodigo] = useState("");
+  const [confiar, setConfiar] = useState(false);
   const formulario = useRef<HTMLFormElement>(null);
   return (
     <div className="flex flex-col gap-[18px]">
       {llave && (
         <>
           {!conApp && <Encabezado titulo="Verifica que eres tú" texto="Contraseña correcta. Toca tu llave de seguridad para entrar." />}
-          <UsarLlave factorId={llave} alEntrar={() => entrarConLlave(siguiente)} />
+          <UsarLlave factorId={llave} alEntrar={() => entrarConLlave(siguiente, confiar)} />
           {conApp && <p className="text-center text-[13px] text-tenue">o escribe el código de tu app autenticadora</p>}
         </>
       )}
@@ -72,11 +73,16 @@ export function IngresoCodigo({ email, siguiente, conApp = true, llave = null }:
           className="[&_input]:h-14 [&_input]:text-center [&_input]:text-[24px] [&_input]:font-semibold [&_input]:tracking-[0.5em]"
         />
         {estado?.error && <Aviso>{estado.error}</Aviso>}
+        <input type="hidden" name="confiar" value={confiar ? "on" : ""} />
         <Boton type="submit" className="h-12 w-full" disabled={pendiente || codigo.length < 6}>
           {pendiente ? "Verificando…" : "Entrar a la consola"}
         </Boton>
       </form>
       )}
+      <label className="inline-flex items-center gap-2.5 self-start text-sm" title="Igual te pedimos el código al entrar; en este equipo no cerramos la sesión por inactividad durante 12 horas.">
+        <input type="checkbox" checked={confiar} onChange={(e) => setConfiar(e.target.checked)} className="size-4 accent-monte" />
+        Confiar en este equipo por 12 horas
+      </label>
       <form action={salirConsola} className="self-center">
         <Boton type="submit" variante="fantasma" className="h-9 text-sm">
           Usar otra cuenta

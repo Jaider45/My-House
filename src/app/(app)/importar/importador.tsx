@@ -138,6 +138,8 @@ export function Importador({ cuentas, categorias, formatos = [] }: { cuentas: Cu
         archivo: archivo.nombre,
         mapeo,
         filas: lectura.validas.map((f, i) => ({ ...f, incluir: revision[i].incluir, category_id: revision[i].category_id })),
+        banco: formatoPara(archivo.columnas, formatos)?.banco ?? null,
+        invalidas: lectura.errores.length,
       });
       if (r.error) return setMensaje({ tipo: "error", texto: r.error });
       setMensaje({ tipo: "ok", texto: `Importados ${r.importadas} movimientos. ${r.duplicadas} filas no se importaron.` });

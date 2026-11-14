@@ -7,7 +7,7 @@ import { mensajeError } from "@/lib/acciones";
 import { obtenerStaff } from "@/lib/consola/sesion";
 import { formatearMomento } from "@/lib/consola/formato";
 import { TarjetaTabla } from "../tarjeta-tabla";
-import { cerrarSesiones, restablecerDosPasos } from "./acciones";
+import { cerrarSesiones, desbloquear, restablecerDosPasos } from "./acciones";
 import { VerCorreo } from "./ver-correo";
 
 export const metadata: Metadata = { title: "Usuarios" };
@@ -19,6 +19,7 @@ const FILTROS = [
   { valor: "contador", texto: "Contadores" },
   { valor: "sin_2fa", texto: "Sin 2FA" },
   { valor: "equipo", texto: "Equipo My House" },
+  { valor: "bloqueados", texto: "Bloqueados" },
 ] as const;
 const ROL: Record<string, string> = { admin: "Administrador", editor: "Editor", contador: "Contador" };
 
@@ -46,6 +47,9 @@ export default async function UsuariosConsola({ searchParams }: PageProps<"/cons
     staff.supabase.rpc("consola_usuarios_conteos"),
   ]);
   const filas = (lista.data ?? []) as Usuario[];
+  // Intentos fallidos, bloqueo y en cuántos hogares está (los contadores atienden varios).
+  const { data: estados } = filas.length ? await staff.supabase.rpc("consola_usuarios_estado", { p_ids: filas.map((f) => f.user_id) }) : { data: [] };
+  const estadoDe = new Map((estados ?? []).map((e) => [e.user_id, e]));
   const n = (conteos.data ?? {}) as Record<string, number>;
   const gestiona = staff.puede("usuarios");
   const url = (cambios: Record<string, string | undefined>) => {
@@ -57,7 +61,15 @@ export default async function UsuariosConsola({ searchParams }: PageProps<"/cons
 
   return (
     <>
-      <Titulo registrar={false} subtitulo="Todas las personas con cuenta en My House">
+      <Titulo registrar={false} subtitulo="Todas las personas con cuenta en My House"
+        accion={
+          staff.puede("exportar") ? (
+            <a href={`/consola/usuarios/exportar${filtro !== "todos" || q ? `?${new URLSearchParams({ ...(filtro !== "todos" && { filtro }), ...(q && { q }) })}` : ""}`} className="inline-flex h-10 items-center rounded-[10px] border border-cuerpo px-4 text-sm font-semibold hover:bg-mosaico">
+              Exportar CSV
+            </a>
+          ) : undefined
+        }
+      >
         Usuarios
       </Titulo>
       {(lista.error || conteos.error) && <Aviso>{mensajeError(lista.error ?? conteos.error)}</Aviso>}
@@ -108,6 +120,7 @@ export default async function UsuariosConsola({ searchParams }: PageProps<"/cons
               <th>Rol</th>
               <th>2FA</th>
               <th>Último ingreso</th>
+              <th>Estado</th>
               <th className="pr-4! md:pr-6!">{gestiona ? "Acciones" : <span className="sr-only">Acciones</span>}</th>
             </tr>
           </thead>
@@ -124,7 +137,9 @@ export default async function UsuariosConsola({ searchParams }: PageProps<"/cons
                   </span>
                 </td>
                 <td className="text-cuerpo">
-                  {u.hogar_id ? (
+                  {u.rol === "contador" && (estadoDe.get(u.user_id)?.hogares ?? 0) > 1 ? (
+                    `${estadoDe.get(u.user_id)!.hogares} hogares`
+                  ) : u.hogar_id ? (
                     <Link href={`/consola/hogares/${u.hogar_id}`} className="underline-offset-4 hover:underline">
                       {u.hogar}
                     </Link>
@@ -135,6 +150,13 @@ export default async function UsuariosConsola({ searchParams }: PageProps<"/cons
                 <td>{u.rol ? <Chip plano>{ROL[u.rol] ?? u.rol}</Chip> : "—"}</td>
                 <td>{u.dos_pasos ? <Chip tono="ok">Activa</Chip> : <Chip tono="alerta">Sin activar</Chip>}</td>
                 <td className="text-cuerpo">{formatearMomento(u.ultimo_ingreso)}</td>
+                <td>
+                  {estadoDe.get(u.user_id)?.bloqueado ? (
+                    <Chip tono="error">Bloqueado · {estadoDe.get(u.user_id)!.intentos} intentos</Chip>
+                  ) : (
+                    <Chip tono="ok">Activo</Chip>
+                  )}
+                </td>
                 <td className="pr-4! md:pr-6!">
                   {gestiona && u.user_id !== staff.userId ? (
                     <span className="inline-flex flex-wrap gap-1">
@@ -144,6 +166,14 @@ export default async function UsuariosConsola({ searchParams }: PageProps<"/cons
                           Cerrar sesiones
                         </BotonEnviar>
                       </FormularioAccion>
+                      {estadoDe.get(u.user_id)?.bloqueado && (
+                        <FormularioAccion accion={desbloquear} className="inline-flex">
+                          <input type="hidden" name="usuario" value={u.user_id} />
+                          <BotonEnviar variante="fantasma" className="h-8 px-2 text-sm" pendiente="…">
+                            Desbloquear
+                          </BotonEnviar>
+                        </FormularioAccion>
+                      )}
                       {u.dos_pasos && (
                         <FormularioAccion accion={restablecerDosPasos} className="inline-flex">
                           <input type="hidden" name="usuario" value={u.user_id} />

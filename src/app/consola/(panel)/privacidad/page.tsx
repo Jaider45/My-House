@@ -10,6 +10,29 @@ import { SolicitudesPrivacidad } from "./solicitudes";
 
 export const metadata: Metadata = { title: "Privacidad y auditoría" };
 
+function Indicador({ etiqueta, valor, detalle }: { etiqueta: string; valor: string; detalle: string }) {
+  return (
+    <div className="rounded-2xl border border-borde bg-elevada p-4 md:p-5">
+      <p className="text-[13px] font-semibold text-cuerpo">{etiqueta}</p>
+      <p className="mt-1 text-[26px] leading-8 font-bold">{valor}</p>
+      <p className="text-[13px] text-tenue">{detalle}</p>
+    </div>
+  );
+}
+
+/** Días hábiles (lunes a viernes) de hoy a la fecha; negativo si ya pasó. Los festivos los cuenta la base al fijar el plazo. */
+function diasHabilesHasta(desde: string, hasta: string): number {
+  const a = new Date(`${desde}T12:00:00Z`);
+  const b = new Date(`${hasta}T12:00:00Z`);
+  if (b < a) return -1;
+  let n = 0;
+  for (const d = new Date(a); d < b; d.setUTCDate(d.getUTCDate() + 1)) {
+    const s = new Date(d.getTime() + 86_400_000).getUTCDay();
+    if (s !== 0 && s !== 6) n++;
+  }
+  return n;
+}
+
 const POR_PAGINA = 50;
 
 export default async function PrivacidadConsola({ searchParams }: PageProps<"/consola/privacidad">) {
@@ -27,17 +50,44 @@ export default async function PrivacidadConsola({ searchParams }: PageProps<"/co
 
   const { antes } = await searchParams;
   const cursor = typeof antes === "string" && /^\d{1,18}$/.test(antes) ? Number(antes) : null;
-  const { data, error } = await staff.supabase.rpc("consola_auditoria", { p_antes: cursor ?? undefined, p_limite: POR_PAGINA });
+  const [{ data, error }, { data: kpisCrudos }] = await Promise.all([
+    staff.supabase.rpc("consola_auditoria", { p_antes: cursor ?? undefined, p_limite: POR_PAGINA }),
+    staff.supabase.rpc("consola_privacidad_kpis"),
+  ]);
+  const k = (kpisCrudos ?? {}) as { abiertas?: number; proxima_vence?: string | null; atendidas_90d?: number; a_tiempo_90d?: number; supresiones_anio?: number; accesos_30d?: number };
+  const habiles = k.proxima_vence ? diasHabilesHasta(hoy(), k.proxima_vence) : null;
   const filas = data ?? [];
   const siguiente = filas.length === POR_PAGINA ? filas[filas.length - 1].id : null;
   const finMes = hoy();
 
   return (
     <>
-      <Titulo registrar={false} subtitulo="Ley 1581 de 2012 y registro de acciones del equipo">
+      <Titulo
+        registrar={false}
+        subtitulo="Ley 1581 de 2012 y registro de acciones del equipo"
+        accion={
+          <EnlaceBoton href="/privacidad" variante="secundario" className="h-10 text-sm" target="_blank">
+            Política de datos
+          </EnlaceBoton>
+        }
+      >
         Privacidad y auditoría
       </Titulo>
       {error && <Aviso>{mensajeError(error)}</Aviso>}
+      <section className="mb-5 grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-4">
+        <Indicador
+          etiqueta="Solicitudes abiertas"
+          valor={String(k.abiertas ?? 0)}
+          detalle={habiles == null ? "Ninguna por vencer" : habiles < 0 ? "Una ya venció" : `La próxima vence en ${habiles} ${habiles === 1 ? "día hábil" : "días hábiles"}`}
+        />
+        <Indicador
+          etiqueta="Atendidas a tiempo · 90 d"
+          valor={k.atendidas_90d ? `${Math.round((100 * (k.a_tiempo_90d ?? 0)) / k.atendidas_90d)} %` : "—"}
+          detalle={`${k.atendidas_90d ?? 0} ${k.atendidas_90d === 1 ? "solicitud" : "solicitudes"}`}
+        />
+        <Indicador etiqueta="Supresiones ejecutadas" valor={String(k.supresiones_anio ?? 0)} detalle="este año" />
+        <Indicador etiqueta="Accesos de soporte con permiso" valor={String(k.accesos_30d ?? 0)} detalle="últimos 30 días" />
+      </section>
       <SolicitudesPrivacidad />
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
@@ -56,6 +106,7 @@ export default async function PrivacidadConsola({ searchParams }: PageProps<"/co
                     <th className="pl-4! md:pl-6!">Fecha</th>
                     <th>Quién</th>
                     <th>Acción</th>
+                    <th>Objeto</th>
                     <th className="pr-4! md:pr-6!">IP</th>
                   </tr>
                 </thead>
@@ -65,6 +116,7 @@ export default async function PrivacidadConsola({ searchParams }: PageProps<"/co
                       <td className="pl-4! text-cuerpo md:pl-6!">{formatearMomento(f.creada)}</td>
                       <td className="font-semibold">{f.quien_nombre}</td>
                       <td className="whitespace-normal!">{describirAccion(f)}</td>
+                      <td className="text-cuerpo">{f.objeto_nombre ?? "—"}</td>
                       <td className="pr-4! text-cuerpo md:pr-6!">{f.ip ?? "—"}</td>
                     </tr>
                   ))}

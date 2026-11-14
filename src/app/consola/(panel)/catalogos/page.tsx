@@ -94,7 +94,12 @@ function FilaCategoria({ c, raices, etiquetas, puede }: { c?: Categoria; raices:
 
 export default async function Catalogos() {
   const staff = await obtenerStaff();
-  const { data, error } = await staff.supabase.rpc("consola_catalogos");
+  const [{ data, error }, { data: usoCrudo }] = await Promise.all([staff.supabase.rpc("consola_catalogos"), staff.supabase.rpc("consola_catalogos_uso", { p_pais: "CO" })]);
+  const uso = (usoCrudo ?? {}) as {
+    reglas?: Record<string, { coincidencias: number; precision: number | null }>;
+    formatos?: Record<string, { importaciones: number; errores_pct: number | null }>;
+  };
+  const num = (n: number | null | undefined, sufijo = "") => (n == null ? "—" : `${n.toLocaleString("es-CO")}${sufijo}`);
   const d = (data ?? { categorias: [], reglas: [], sugeridas: [], formatos: [], etiquetas: [] }) as unknown as Datos;
   const puede = staff.puede("parametros");
   const raices = d.categorias.filter((c) => !c.padre_id);
@@ -131,6 +136,8 @@ export default async function Catalogos() {
                   <tr>
                     <th className="pl-4! md:pl-6!">Patrón</th>
                     <th>Categoría</th>
+                    <th className="der">Coincidencias · 30 d</th>
+                    <th className="der">Precisión</th>
                     <th>Origen</th>
                     <th className="pr-4! md:pr-6!">Estado</th>
                   </tr>
@@ -142,6 +149,16 @@ export default async function Catalogos() {
                       <td>
                         {r.categoria}
                         {r.ambito === "negocio" && <span className="text-tenue"> · negocio</span>}
+                      </td>
+                      <td className="der">{num(uso.reglas?.[r.patron]?.coincidencias)}</td>
+                      <td className="der">
+                        {uso.reglas?.[r.patron]?.precision == null ? (
+                          "—"
+                        ) : (
+                          <span className={uso.reglas[r.patron].precision! < 90 ? "font-semibold text-alerta-tinta" : undefined} title="Movimientos que quedaron en la categoría de la regla">
+                            {num(uso.reglas[r.patron].precision, " %")}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <Chip plano>{r.origen === "aprendida" ? "Aprendida" : "Manual"}</Chip>
@@ -259,6 +276,8 @@ export default async function Catalogos() {
                     <th className="pl-4! md:pl-6!">Banco</th>
                     <th>Encabezados</th>
                     <th>Columnas</th>
+                    <th className="der">Importaciones · 30 d</th>
+                    <th className="der">Errores</th>
                     <th className="pr-4! md:pr-6!">Estado</th>
                   </tr>
                 </thead>
@@ -271,6 +290,14 @@ export default async function Catalogos() {
                       </td>
                       <td className="text-[13px] text-cuerpo">
                         {f.mapeo.fecha} · {f.mapeo.descripcion} · {f.mapeo.modo === "unico" ? f.mapeo.monto : `${f.mapeo.debito} / ${f.mapeo.credito}`}
+                      </td>
+                      <td className="der">{num(uso.formatos?.[f.banco]?.importaciones)}</td>
+                      <td className="der">
+                        {(uso.formatos?.[f.banco]?.errores_pct ?? 0) >= 5 ? (
+                          <Chip tono="alerta">{num(uso.formatos![f.banco].errores_pct, " %")} · revisar columnas</Chip>
+                        ) : (
+                          num(uso.formatos?.[f.banco]?.errores_pct, " %")
+                        )}
                       </td>
                       <td className="pr-4! md:pr-6!">
                         {puede ? (

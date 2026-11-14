@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { crearClienteConsola } from "./sesion";
-import { COOKIE_ACTIVIDAD, opcionesCookieActividad } from "./permisos";
+import { COOKIE_ACTIVIDAD, COOKIE_CONFIABLE, HORAS_CONFIABLE, opcionesCookieActividad } from "./permisos";
 import { destinoConsola } from "./rutas";
 
 /**
@@ -10,12 +10,15 @@ import { destinoConsola } from "./rutas";
  * arranca de cero el contador de inactividad (para no heredar una cookie vieja) y entra. Si la base no acepta el
  * registro (persona desactivada en el intermedio), cierra la sesión.
  */
-export async function entrar(supabase: Awaited<ReturnType<typeof crearClienteConsola>>, siguiente: FormDataEntryValue | null): Promise<never> {
+export async function entrar(supabase: Awaited<ReturnType<typeof crearClienteConsola>>, siguiente: FormDataEntryValue | null, confiar = false): Promise<never> {
   const { error } = await supabase.rpc("consola_registrar_ingreso");
   if (error) {
     await supabase.auth.signOut();
     redirect("/consola/ingresar");
   }
-  (await cookies()).set(COOKIE_ACTIVIDAD, String(Date.now()), opcionesCookieActividad);
+  const c = await cookies();
+  c.set(COOKIE_ACTIVIDAD, String(Date.now()), opcionesCookieActividad);
+  if (confiar) c.set(COOKIE_CONFIABLE, String(Date.now()), { ...opcionesCookieActividad, maxAge: HORAS_CONFIABLE * 3600 });
+  else c.delete({ name: COOKIE_CONFIABLE, path: "/consola" });
   redirect(destinoConsola(siguiente));
 }

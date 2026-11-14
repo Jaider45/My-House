@@ -9,6 +9,8 @@ import { obtenerStaff } from "@/lib/consola/sesion";
 import { formatearMomento } from "@/lib/consola/formato";
 import { TarjetaTabla } from "../tarjeta-tabla";
 import { guardarRespuestaGuardada } from "./acciones";
+import { FormularioNuevoTicket } from "./nuevo";
+import { Ventana } from "@/components/ui/ventana";
 
 export const metadata: Metadata = { title: "Soporte" };
 
@@ -77,13 +79,26 @@ export default async function Soporte({ searchParams }: PageProps<"/consola/sopo
   const sp = await searchParams;
   const estado = typeof sp.estado === "string" && FILTROS.some((f) => f.valor === sp.estado) ? sp.estado : "pendientes";
   const mios = sp.asignado === "mios";
-  const { data, error } = await staff.supabase.rpc("consola_tickets", { p_estado: estado, p_asignado: mios ? "mios" : "todos" });
+  const [{ data, error }, { data: tiemposCrudos }] = await Promise.all([
+    staff.supabase.rpc("consola_tickets", { p_estado: estado, p_asignado: mios ? "mios" : "todos" }),
+    staff.supabase.rpc("consola_soporte_tiempos"),
+  ]);
+  const tiempos = (tiemposCrudos ?? {}) as { mediana_min?: number | null; a_tiempo_pct?: number | null; respondidos?: number };
+  const mediana = tiempos.mediana_min == null ? null : tiempos.mediana_min < 60 ? `${tiempos.mediana_min} min` : `${Math.round(tiempos.mediana_min / 6) / 10} h`;
   const d = (data ?? { tickets: [], conteos: { abiertos: 0, urgentes: 0, vencidos: 0, mios: 0, resueltos_7d: 0 }, respuestas: [] }) as unknown as Datos;
   const enlace = (e: string, m: boolean) => `/consola/soporte?${new URLSearchParams({ estado: e, ...(m && { asignado: "mios" }) })}`;
 
   return (
     <>
-      <Titulo registrar={false} subtitulo="Lo que escriben los hogares desde «Ayuda», con su plazo de primera respuesta">
+      <Titulo
+        registrar={false}
+        subtitulo={`${d.conteos.abiertos} ${d.conteos.abiertos === 1 ? "ticket abierto" : "tickets abiertos"}${mediana ? ` · primera respuesta en ${mediana} de mediana (30 días)` : ""}`}
+        accion={
+          <Link href="/consola/soporte?nuevo=1" scroll={false} className="inline-flex h-10 items-center rounded-[10px] bg-monte px-4 text-sm font-semibold text-arena">
+            Nuevo ticket
+          </Link>
+        }
+      >
         Soporte
       </Titulo>
       {error && <Aviso>{mensajeError(error)}</Aviso>}
@@ -91,7 +106,7 @@ export default async function Soporte({ searchParams }: PageProps<"/consola/sopo
         <Indicador etiqueta="Pendientes" valor={d.conteos.abiertos} detalle={`${d.conteos.mios} asignados a ti`} />
         <Indicador etiqueta="Urgentes" valor={d.conteos.urgentes} detalle="Primera respuesta en 4 h" />
         <Indicador etiqueta="Fuera de plazo" valor={d.conteos.vencidos} detalle="Sin primera respuesta a tiempo" />
-        <Indicador etiqueta="Resueltos" valor={d.conteos.resueltos_7d} detalle="Últimos 7 días" />
+        <Indicador etiqueta="Resueltos" valor={d.conteos.resueltos_7d} detalle={`Últimos 7 días${tiempos.a_tiempo_pct != null ? ` · ${tiempos.a_tiempo_pct} % respondidos a tiempo` : ""}`} />
       </section>
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(300px,1fr)]">
@@ -186,6 +201,9 @@ export default async function Soporte({ searchParams }: PageProps<"/consola/sopo
           </FormularioEstado>
         </Tarjeta>
       </div>
+      <Ventana titulo="Nuevo ticket" subtitulo="Algo que llegó por correo, teléfono o WhatsApp" valor="1" ancho={640}>
+        <FormularioNuevoTicket />
+      </Ventana>
     </>
   );
 }

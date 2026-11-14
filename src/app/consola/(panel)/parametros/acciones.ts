@@ -94,3 +94,26 @@ export async function guardarEtiqueta(_: Estado, datos: FormData): Promise<Estad
   revalidatePath("/consola/parametros");
   return { ok: "Etiqueta guardada." };
 }
+
+/** Grupo y límite de una etiqueta (el límite se escribe como lo validó el contador). */
+export async function guardarDetalleEtiqueta(_: Estado, datos: FormData): Promise<Estado> {
+  const staff = await conPermiso();
+  if (!staff) return { error: SIN_PERMISO };
+  const codigo = String(datos.get("codigo") ?? "");
+  const grupo = String(datos.get("grupo") ?? "");
+  if (!/^[a-z0-9_]{2,40}$/.test(codigo) || !["", "ingreso", "deduccion", "retencion", "exenta", "patrimonio", "otro"].includes(grupo)) return { error: "Datos no válidos." };
+  const { error } = await staff.supabase.rpc("consola_etiqueta_detalle", { p_pais: "CO", p_codigo: codigo, p_grupo: grupo, p_limite: String(datos.get("limite") ?? "").slice(0, 80) });
+  if (error) return { error: mensajeError(error) };
+  revalidatePath("/consola/parametros");
+  return { ok: "Guardado." };
+}
+
+/** «Última revisión contable»: el contador del equipo revisó UVT, topes, etiquetas y calendario. */
+export async function marcarRevision(_: Estado, datos: FormData): Promise<Estado> {
+  const staff = await conPermiso();
+  if (!staff) return { error: SIN_PERMISO };
+  const { error } = await staff.supabase.rpc("consola_marcar_revision_tributaria", { p_pais: "CO", p_quien: String(datos.get("quien") ?? "").trim().slice(0, 80) });
+  if (error) return { error: mensajeError(error) };
+  revalidatePath("/consola/parametros");
+  return { ok: "Revisión registrada." };
+}

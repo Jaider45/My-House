@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { mensajeError, type Estado } from "@/lib/acciones";
 import { crearClienteConsola } from "@/lib/consola/sesion";
-import { COOKIE_ACTIVIDAD } from "@/lib/consola/permisos";
+import { COOKIE_ACTIVIDAD, COOKIE_CONFIABLE } from "@/lib/consola/permisos";
 import { entrar } from "@/lib/consola/ingreso";
 import { destinoConsola } from "@/lib/consola/rutas";
 
@@ -61,20 +61,22 @@ export async function verificarConsola(_: Estado, datos: FormData): Promise<Esta
   if (!factor) return { error: "No tienes un autenticador configurado." };
   const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
   if (error) return { error: mensajeError(error) };
-  return entrar(supabase, datos.get("siguiente"));
+  return entrar(supabase, datos.get("siguiente"), datos.get("confiar") === "on");
 }
 
 /** Paso 2 con llave de seguridad: el navegador ya dejó la sesión en AAL2; aquí se confirma y se entra. */
-export async function entrarConLlave(siguiente: string): Promise<void> {
+export async function entrarConLlave(siguiente: string, confiar = false): Promise<void> {
   const supabase = await crearClienteConsola();
   const { data } = await supabase.auth.getClaims();
   if (data?.claims.aal !== "aal2") redirect("/consola/ingresar");
-  await entrar(supabase, siguiente);
+  await entrar(supabase, siguiente, confiar);
 }
 
 export async function salirConsola() {
   const supabase = await crearClienteConsola();
   await supabase.auth.signOut();
-  (await cookies()).delete({ name: COOKIE_ACTIVIDAD, path: "/consola" });
+  const c = await cookies();
+  c.delete({ name: COOKIE_ACTIVIDAD, path: "/consola" });
+  c.delete({ name: COOKIE_CONFIABLE, path: "/consola" });
   redirect("/consola/ingresar");
 }

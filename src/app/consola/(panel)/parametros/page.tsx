@@ -11,7 +11,7 @@ import { formatearFechaLarga, hoy } from "@/lib/fechas";
 import { TarjetaTabla } from "../tarjeta-tabla";
 import { FormularioEstado } from "@/components/ui/formulario-estado";
 import { EditorCalendario } from "./calendario";
-import { guardarEtiqueta, guardarParametros, publicarParametros } from "./acciones";
+import { guardarDetalleEtiqueta, guardarEtiqueta, guardarParametros, marcarRevision, publicarParametros } from "./acciones";
 
 export const metadata: Metadata = { title: "Parámetros DIAN" };
 
@@ -61,9 +61,22 @@ function cambios(a: Anio): string[] {
   return out;
 }
 
+const GRUPOS = [
+  ["ingreso", "Ingreso"],
+  ["deduccion", "Deducción"],
+  ["retencion", "Retención"],
+  ["exenta", "Renta exenta"],
+  ["patrimonio", "Patrimonio"],
+  ["otro", "Otro"],
+] as const;
+
 export default async function Parametros() {
   const staff = await obtenerStaff();
-  const { data, error } = await staff.supabase.rpc("consola_parametros", { p_pais: "CO" });
+  const [{ data, error }, { data: usoCrudo }] = await Promise.all([
+    staff.supabase.rpc("consola_parametros", { p_pais: "CO" }),
+    staff.supabase.rpc("consola_etiquetas_uso", { p_pais: "CO" }),
+  ]);
+  const uso = (usoCrudo ?? {}) as { uso?: Record<string, { grupo: string | null; limite: string | null; uso: number }>; revision?: { fecha: string; quien: string } | null };
   const d = (data ?? { anios: [], etiquetas: [], calendario: [], personas_con_digitos: 0 }) as unknown as Datos;
   const puede = staff.puede("parametros");
   const anioActual = Number(hoy().slice(0, 4));
@@ -163,7 +176,7 @@ export default async function Parametros() {
             </TarjetaTabla>
           )}
 
-          <TarjetaTabla titulo="Etiquetas DIAN" subtitulo="Las que el hogar pone a sus movimientos; el renglón se llena al validarlo contra el formulario 210">
+          <TarjetaTabla titulo="Etiquetas DIAN" subtitulo={`${d.etiquetas.length} etiquetas · los límites se validan con un contador antes de publicarlos · uso de 30 días`}>
             <ul className="flex flex-col px-4 md:px-6">
               {[...d.etiquetas, ...(puede ? [{ codigo: "", nombre: "", renglon: null }] : [])].map((e) => (
                 <li key={e.codigo || "nueva"} className="border-b border-divisor py-2 last:border-0">
@@ -186,6 +199,26 @@ export default async function Parametros() {
                       <span />
                     )}
                   </FormularioAccion>
+                  {e.codigo && (
+                    <FormularioAccion accion={guardarDetalleEtiqueta} className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px]">
+                      <input type="hidden" name="codigo" value={e.codigo} />
+                      <select name="grupo" defaultValue={uso.uso?.[e.codigo]?.grupo ?? ""} disabled={!puede} aria-label={`Grupo de ${e.nombre}`} className={campoFila}>
+                        <option value="">Sin grupo</option>
+                        {GRUPOS.map(([v, t]) => (
+                          <option key={v} value={v}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                      <input name="limite" defaultValue={uso.uso?.[e.codigo]?.limite ?? ""} disabled={!puede} placeholder="Límite: [validar con contador]" aria-label={`Límite de ${e.nombre}`} className={`${campoFila} min-w-[200px] flex-1`} />
+                      <span className="text-tenue">{(uso.uso?.[e.codigo]?.uso ?? 0).toLocaleString("es-CO")} usos</span>
+                      {puede && (
+                        <BotonEnviar variante="fantasma" className="h-8 px-2 text-sm" pendiente="…">
+                          Guardar
+                        </BotonEnviar>
+                      )}
+                    </FormularioAccion>
+                  )}
                 </li>
               ))}
             </ul>
@@ -240,6 +273,24 @@ export default async function Parametros() {
               </div>
             )}
             <EditorCalendario anios={[anioActual - 1, anioActual]} textos={textos} puede={puede} />
+            <div className="mt-4 flex flex-col border-t border-divisor pt-3 text-sm">
+              <div className="flex min-h-9 items-center justify-between gap-3">
+                <span className="text-cuerpo">Avisos antes del vencimiento</span>
+                <b>60, 30 y 7 días</b>
+              </div>
+              <div className="flex min-h-9 items-center justify-between gap-3">
+                <span className="text-cuerpo">Última revisión contable</span>
+                <b>{uso.revision ? `${formatearFechaLarga(uso.revision.fecha)} · ${uso.revision.quien}` : "Pendiente"}</b>
+              </div>
+              {puede && (
+                <FormularioAccion accion={marcarRevision} className="mt-2 flex flex-wrap items-center gap-2">
+                  <input name="quien" placeholder="Quién revisó (contador)" aria-label="Quién revisó" className={`${campoFila} min-w-[180px] flex-1`} />
+                  <BotonEnviar variante="secundario" className="h-9 text-sm" pendiente="…">
+                    Marcar revisado hoy
+                  </BotonEnviar>
+                </FormularioAccion>
+              )}
+            </div>
           </Tarjeta>
         </div>
       </div>

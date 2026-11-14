@@ -84,6 +84,9 @@ export async function importarMovimientos(entrada: {
   archivo: string;
   mapeo: z.infer<typeof mapeo>;
   filas: (FilaLeida & { incluir: boolean; category_id: string | null })[];
+  /** Banco del formato reconocido (Catálogos) y filas que no se pudieron leer: métricas de la consola. */
+  banco?: string | null;
+  invalidas?: number;
 }): Promise<Resultado> {
   const r = z
     .object({
@@ -91,6 +94,8 @@ export async function importarMovimientos(entrada: {
       archivo: z.string().trim().min(1).max(200),
       mapeo,
       filas: z.array(fila.extend({ incluir: z.boolean(), category_id: z.uuid().nullable() })).min(1).max(MAX_FILAS),
+      banco: z.string().trim().max(60).nullish(),
+      invalidas: z.number().int().min(0).max(MAX_FILAS).optional(),
     })
     .safeParse(entrada);
   if (!r.success) return { error: "Datos de importación inválidos." };
@@ -104,7 +109,16 @@ export async function importarMovimientos(entrada: {
 
   const { data: lote, error: eLote } = await ctx.supabase
     .from("import_batches")
-    .insert({ household_id: ctx.hogar.id, account_id: cuentaId, archivo_nombre: archivo, filas_total: filas.length, filas_importadas: 0, filas_duplicadas: 0 })
+    .insert({
+      household_id: ctx.hogar.id,
+      account_id: cuentaId,
+      archivo_nombre: archivo,
+      filas_total: filas.length,
+      filas_importadas: 0,
+      filas_duplicadas: 0,
+      banco: r.data.banco || null,
+      filas_invalidas: r.data.invalidas ?? 0,
+    })
     .select("id")
     .single();
   if (eLote) return { error: mensajeError(eLote) };

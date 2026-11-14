@@ -1,3 +1,4 @@
+import { VerificacionFirma } from "./verificacion";
 import type { Metadata } from "next";
 import { Chip, Tarjeta, Titulo, Vacio, type Tono } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
@@ -38,6 +39,10 @@ async function Contenido() {
   const [{ data: clientes }, { data: firmaCruda }] = await Promise.all([ctx.supabase.rpc("mis_clientes"), ctx.supabase.rpc("mi_firma")]);
   const lista = (clientes ?? []) as Cliente[];
   const firma = firmaCruda as Firma | null;
+  const { data: solicitud } =
+    firma && !firma.verificada
+      ? await ctx.supabase.from("solicitudes_contador").select("estado, respuesta, tarjeta, ciudad, clientes").eq("firma", firma.id).order("created_at", { ascending: false }).limit(1).maybeSingle()
+      : { data: null };
 
   // Semáforo DIAN de cada cliente (es la razón de ser del panel): solo con plan Contador, hasta su tope de hogares.
   const semaforos = new Map<string, { texto: string; tono: Tono }>();
@@ -176,9 +181,7 @@ async function Contenido() {
             </Tarjeta>
             {!firma.verificada && (
               <Tarjeta titulo="Verificación">
-                <p className="text-sm text-cuerpo">
-                  Tu firma aún no está verificada: escríbenos con tu tarjeta profesional y te marcamos como contador verificado.
-                </p>
+                <VerificacionFirma firma={firma.id} solicitud={solicitud} />
               </Tarjeta>
             )}
           </>
