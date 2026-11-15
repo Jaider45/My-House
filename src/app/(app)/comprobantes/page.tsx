@@ -12,6 +12,7 @@ import { NOMBRE_PROVEEDOR } from "@/lib/ia/proveedores";
 import { cambiarRegla, deshacerComprobante } from "./acciones";
 import { Compositor } from "./chat";
 import { FormularioResolver } from "./formularios";
+import { esCategoriaDeudas } from "@/lib/deudas";
 import { FormularioAccion } from "@/components/ui/formulario-accion";
 
 export const metadata = { title: "Comprobantes" };
@@ -51,6 +52,7 @@ type Recibo = {
     confianza?: number;
     cuenta?: string | null;
     etiqueta_dian?: string | null;
+    deuda?: string | null;
     ambito?: string | null;
   };
 };
@@ -71,7 +73,7 @@ async function Contenido() {
   const ctx = await obtenerContexto(); // antes de hoy(): marca el render como dinámico
   const fecha = hoy();
   const mes = mesDe(fecha);
-  const [{ data: mensajes }, { data: recibos }, { data: reglas }, { data: categorias }, { data: cuentas }, { data: miembros }, ia] = await Promise.all([
+  const [{ data: mensajes }, { data: recibos }, { data: reglas }, { data: categorias }, { data: cuentas }, { data: miembros }, ia, { data: deudas }] = await Promise.all([
     ctx.supabase.from("assistant_messages").select("id, autor, texto, receipt_ids, created_by, created_at").order("created_at", { ascending: false }).limit(40),
     ctx.supabase
       .from("receipts")
@@ -84,6 +86,7 @@ async function Contenido() {
     ctx.supabase.from("accounts").select("id, nombre").eq("archivada", false).order("created_at"),
     ctx.supabase.from("members").select("nombre, user_id"),
     iaDelHogar(ctx),
+    ctx.supabase.from("debts").select("id, nombre, cuota").eq("archivada", false).order("created_at"),
   ]);
   const lista = (recibos ?? []) as Recibo[];
   const porId = new Map(lista.map((r) => [r.id, r]));
@@ -101,6 +104,8 @@ async function Contenido() {
   const catPorNombre = new Map(cats.map((c) => [c.nombre.toLowerCase(), c.id]));
   const ctaPorNombre = new Map((cuentas ?? []).map((c) => [c.nombre.toLowerCase(), c.id]));
   const opcionesCuentas = (cuentas ?? []).map((c) => ({ id: c.id, etiqueta: c.nombre }));
+  const categoriasDeudas = cats.filter((c) => esCategoriaDeudas(cats, c.id)).map((c) => c.id);
+  const deudaPorNombre = new Map((deudas ?? []).map((x) => [x.nombre.toLowerCase(), x.id]));
   const pendientes = lista.filter((r) => r.estado === "por_revisar");
   const iaLista = ia !== null;
   const cuenta = (n: Recibo["estado"][]) => lista.filter((r) => n.includes(r.estado)).length;
@@ -155,6 +160,9 @@ async function Contenido() {
             cuenta={d.cuenta ? (ctaPorNombre.get(d.cuenta.toLowerCase()) ?? null) : null}
             categorias={opcionesCats}
             cuentas={opcionesCuentas}
+            deudas={deudas ?? []}
+            categoriasDeudas={categoriasDeudas}
+            deuda={d.deuda ? (deudaPorNombre.get(d.deuda.toLowerCase()) ?? null) : null}
             hoy={fecha}
           />
         )}

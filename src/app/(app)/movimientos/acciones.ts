@@ -10,11 +10,29 @@ import { movimientoDesdeFormulario } from "@/lib/ingesta";
 import { formatearCOP } from "@/lib/dinero";
 import { mesDe } from "@/lib/fechas";
 import { z } from "zod";
+import { aplicarPar, conciliar, confirmarPendiente } from "@/lib/conciliacion/servidor";
+import type { Movimiento } from "@/lib/ingesta";
+
+type Ctx = Awaited<ReturnType<typeof obtenerContexto>>;
+
+/**
+ * Registro nuevo: si es un pago fijo pendiente (o la cuota pendiente de la deuda elegida), lo confirma en vez de
+ * crear otro. Devuelve la frase para la familia, o null si no había par.
+ */
+async function confirmarSiEsPendiente(ctx: Ctx, m: Movimiento, client_id: string | null = null): Promise<string | null> {
+  if (!ctx.puedeEditar || m.estado !== "confirmado" || m.tipo === "transferencia") return null;
+  const par = await conciliar(ctx, { tipo: m.tipo, fecha: m.fecha, monto: m.monto, category_id: m.category_id, comercio: m.comercio, debt_id: m.debt_id }, { soloPendientes: true });
+  if (!par) return null;
+  const r = await aplicarPar(ctx, par, { monto: m.monto, fecha: m.fecha, account_id: m.account_id, category_id: m.category_id, debt_id: m.debt_id, client_id, tax_tag_id: m.tax_tag_id });
+  return r.texto;
+}
 
 function refrescar() {
   revalidatePath("/movimientos");
   revalidatePath("/");
   revalidatePath("/cuentas");
+  revalidatePath("/recurrentes");
+  revalidatePath("/deudas");
 }
 
 export async function guardarMovimiento(_: Estado, datos: FormData): Promise<Estado> {
@@ -35,12 +53,23 @@ export async function guardarMovimiento(_: Estado, datos: FormData): Promise<Est
     category_id: m.category_id,
     member_id: m.member_id,
     tax_tag_id: m.tax_tag_id,
+    debt_id: m.debt_id,
     comercio: m.comercio,
     nota: m.nota,
     ambito: m.ambito,
     estado: "confirmado" as const,
   };
-  const { error } = id
+  let confirmado: string | null = null;
+  if (!id) {
+    try {
+      confirmado = await confirmarSiEsPendiente(ctx, m);
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "No pude guardarlo." };
+    }
+  }
+  const { error } = confirmado
+    ? { error: null }
+    : id
     ? await ctx.supabase.from("transactions").update(cambios).eq("id", id)
     : await ctx.supabase.from("transactions").insert({ ...r.movimiento, household_id: ctx.hogar.id });
   if (error) return { error: mensajeError(error) };
@@ -81,6 +110,15 @@ export async function registrarRapido(_: Estado, datos: FormData): Promise<Estad
   // la restricción única lo rechaza y se responde como guardado, sin duplicarlo.
   const clave = String(datos.get("clave") ?? "");
   const client_id = z.uuid().safeParse(clave).success ? clave : null;
+  try {
+    const texto = await confirmarSiEsPendiente(ctx, r.movimiento, client_id);
+    if (texto) {
+      refrescar();
+      return { ok: texto };
+    }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "No pude guardarlo." };
+  }
   const { error } = await ctx.supabase.from("transactions").insert({ ...r.movimiento, household_id: ctx.hogar.id, client_id });
   const listo = `${r.movimiento.tipo === "ingreso" ? "Ingreso" : "Gasto"} de ${formatearCOP(r.movimiento.monto)} guardado.`;
   if (error?.code === "23505" && client_id && error.message.includes("transactions_client_id_unico")) return { ok: listo };
@@ -106,9 +144,12 @@ export async function confirmarMovimiento(_: Estado, datos: FormData): Promise<E
   if (!ctx.puedeEditar) return { error: SOLO_LECTURA };
   const id = idDe(datos);
   if (!id) return { error: NO_ENCONTRADO };
-  const { data, error } = await ctx.supabase.from("transactions").update({ estado: "confirmado" }).eq("id", id).select("id");
-  if (error) return { error: mensajeError(error) };
-  if (!data.length) return { error: NO_ENCONTRADO };
-  refrescar();
-  return { ok: "Confirmado." };
+  try {
+    const r = await confirmarPendiente(ctx, id);
+    if (!r.ok) return { error: NO_ENCONTRADO };
+    refrescar();
+    return { ok: r.texto };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "No pude confirmarlo." };
+  }
 }

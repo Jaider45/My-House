@@ -17,6 +17,8 @@ import { camposDe, encolar, esErrorDeRed, nuevaClave } from "@/lib/cola";
 import { EVENTO_COLA } from "@/components/cola-sin-conexion";
 import { SelectorTipo } from "../movimientos/formulario";
 import { buscarSugerencia, normalizar, type Sugerencia } from "@/lib/registro/sugerencias";
+import { esCategoriaDeudas } from "@/lib/deudas";
+import { CampoDeuda, type OpcionDeuda } from "@/components/ui/campo-deuda";
 
 export type { Sugerencia };
 
@@ -25,6 +27,8 @@ const CLAVE_CUENTA = "myhouse:ultima-cuenta";
 type Props = {
   cuentas: CuentaOpcion[];
   categorias: Categoria[];
+  /** Deudas activas: si la categoría es Deudas se pregunta cuál se paga. */
+  deudas?: OpcionDeuda[];
   /** ids de categoría ordenados por uso reciente (más usadas primero). */
   frecuentes: string[];
   /** Conceptos recientes (el más reciente primero), sin repetir. */
@@ -50,7 +54,7 @@ const seg = (activo: boolean) =>
  * Registrar → «Escribirlo» (diseño «Registrar movimiento»): monto grande, concepto en texto libre y la categoría y la
  * cuenta que sugiere lo último registrado con ese concepto. «Cambiar» abre las categorías más usadas y las cuentas.
  */
-export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, hoy, alGuardar, soloGasto, trm }: Props) {
+export function RegistroRapido({ cuentas, categorias, deudas = [], frecuentes, sugerencias, hoy, alGuardar, soloGasto, trm }: Props) {
   const [enDolares, setEnDolares] = useState(false);
   const [dolares, setDolares] = useState("");
   const [tipo, setTipo] = useState<"gasto" | "ingreso">("gasto");
@@ -60,6 +64,9 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, h
   const [cambiar, setCambiar] = useState(false);
   const [pagado, setPagado] = useState(true);
   const [reinicio, setReinicio] = useState(0);
+  const [monto, setMonto] = useState(0);
+  const [montoInicial, setMontoInicial] = useState(0);
+  const [deuda, setDeuda] = useState("");
 
   // Última cuenta usada en este dispositivo.
   useEffect(() => {
@@ -97,6 +104,9 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, h
       setConcepto("");
       setElegida("");
       setCambiar(false);
+      setDeuda("");
+      setMonto(0);
+      setMontoInicial(0);
       setReinicio((n) => n + 1);
       navigator.vibrate?.(30);
       if (!seguir) alGuardar?.();
@@ -118,6 +128,17 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, h
   const nombreCuenta = cuentas.find((c) => c.id === cuenta)?.nombre;
   // Las categorías se abren con «Cambiar» o si el concepto no se parece a nada registrado antes.
   const abierto = cambiar || (!categoria && normalizar(concepto).length >= 3);
+  const conDeuda = tipo === "gasto" && esCategoriaDeudas(categorias, categoria) && deudas.length > 0;
+  // Elegir la deuda llena su cuota (si el monto está vacío o era la cuota de otra) y el concepto si falta.
+  const elegirDeuda = (d: OpcionDeuda | null) => {
+    setDeuda(d?.id ?? "");
+    if (d?.cuota && (!monto || deudas.some((x) => x.cuota === monto))) {
+      setMonto(d.cuota);
+      setMontoInicial(d.cuota);
+      setReinicio((n) => n + 1);
+    }
+    if (d && !concepto.trim()) setConcepto(`Cuota ${d.nombre}`);
+  };
 
   return (
     <form action={accion} className="flex flex-col gap-4">
@@ -160,7 +181,7 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, h
           </span>
         </div>
       ) : (
-        <CampoMonto key={reinicio} etiqueta="¿Cuánto?" name="monto" grande autoFocus enterKeyHint="next" />
+        <CampoMonto key={reinicio} etiqueta="¿Cuánto?" name="monto" grande autoFocus enterKeyHint="next" valorInicial={montoInicial} onCambio={setMonto} />
       )}
       {trm ? (
         <button type="button" onClick={() => setEnDolares(!enDolares)} className="-mt-2 self-start text-[13px] font-semibold text-cuerpo underline-offset-4 hover:underline">
@@ -273,6 +294,8 @@ export function RegistroRapido({ cuentas, categorias, frecuentes, sugerencias, h
           </fieldset>
         </>
       )}
+
+      {conDeuda && <CampoDeuda deudas={deudas} valor={deuda} onCambio={elegirDeuda} />}
 
       {tipo === "gasto" && (
         <div role="radiogroup" aria-label="Estado" className="inline-flex gap-1 self-start rounded-[10px] bg-mosaico p-1">

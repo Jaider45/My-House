@@ -54,6 +54,8 @@ const lectura = {
   confianza: 92,
   cuenta: null,
   etiqueta_dian: null,
+  deuda: null,
+  pago_fijo: null,
   ambito: null,
   pregunta: null,
 };

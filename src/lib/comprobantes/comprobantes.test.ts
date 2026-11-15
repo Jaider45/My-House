@@ -103,4 +103,13 @@ describe("reglas globales y umbral de la consola", () => {
     expect(decidir({ ...lectura, confianza: 85 }, { ...opciones, umbral: 90 })).toMatchObject({ accion: "revisar" });
     expect(decidir({ ...lectura, confianza: 85 }, { ...opciones, umbral: 80 })).toMatchObject({ accion: "registrar" });
   });
+
+  it("reconoce la deuda y el pago fijo por nombre y pone Deudas si no hay categoría", () => {
+    const d = decidir(
+      { ...lectura, categoria: null, deuda: "crédito carro", pago_fijo: "Cuota Crédito Carro" },
+      { ...opciones, deudas: [{ id: "d-carro", nombre: "Crédito carro" }], pagosFijos: [{ id: "r-carro", nombre: "Cuota Crédito Carro" }], categoriaDeudas: "c-deudas" },
+    );
+    expect(d).toMatchObject({ debt_id: "d-carro", recurring_rule_id: "r-carro", category_id: "c-deudas" });
+    expect(decidir({ ...lectura, deuda: "Otra" }, { ...opciones, deudas: [{ id: "d-carro", nombre: "Crédito carro" }] })).toMatchObject({ debt_id: null });
+  });
 });

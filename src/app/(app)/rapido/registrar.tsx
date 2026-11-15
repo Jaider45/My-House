@@ -12,8 +12,9 @@ import { enviarAlAsistente } from "../comprobantes/acciones";
 import { RegistroRapido, type Sugerencia } from "./registro-rapido";
 import type { Categoria } from "@/lib/categorias";
 import type { CuentaOpcion } from "@/lib/catalogos";
+import type { OpcionDeuda } from "@/components/ui/campo-deuda";
 
-export type DatosEscribir = { cuentas: CuentaOpcion[]; categorias: Categoria[]; frecuentes: string[]; sugerencias: Sugerencia[]; hoy: string; soloGasto?: boolean; trm?: number | null };
+export type DatosEscribir = { cuentas: CuentaOpcion[]; categorias: Categoria[]; deudas?: OpcionDeuda[]; frecuentes: string[]; sugerencias: Sugerencia[]; hoy: string; soloGasto?: boolean; trm?: number | null };
 
 export type Modo = "escribir" | "foto" | "whatsapp";
 

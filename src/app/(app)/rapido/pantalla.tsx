@@ -51,7 +51,7 @@ export async function PantallaRegistrar({ sobrePantalla }: { sobrePantalla: bool
   ]);
   return (
     <VentanaRegistrar
-      datos={{ cuentas: catalogos.cuentas, categorias: catalogos.categorias, frecuentes: masUsadas(recientes ?? []), sugerencias: conceptos(recientes ?? []), hoy: fecha, soloGasto: familiar, trm: trm?.valor ?? null }}
+      datos={{ cuentas: catalogos.cuentas, categorias: catalogos.categorias, deudas: catalogos.deudas, frecuentes: masUsadas(recientes ?? []), sugerencias: conceptos(recientes ?? []), hoy: fecha, soloGasto: familiar, trm: trm?.valor ?? null }}
       sinCuentas={!catalogos.cuentas.length}
       iaLista={ia !== null}
       sobrePantalla={sobrePantalla}

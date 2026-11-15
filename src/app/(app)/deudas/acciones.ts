@@ -6,6 +6,7 @@ import { obtenerContexto } from "@/lib/sesion";
 import { hoy, parsearFecha } from "@/lib/fechas";
 import { mensajeError, type Estado } from "@/lib/acciones";
 import { planCuota } from "@/lib/deudas";
+import { aplicarPar, conciliar } from "@/lib/conciliacion/servidor";
 
 const opcional = <T extends z.ZodType>(e: T) => e.optional().or(z.literal("").transform(() => undefined));
 
@@ -75,7 +76,11 @@ const esquemaAbono = z.object({
   account_id: z.uuid("Elige la cuenta."),
 });
 
-/** Un abono es un gasto en la categoría Deudas ligado a la deuda (así cuenta en el costo de vida del mes). */
+/**
+ * Un abono es un gasto en la categoría Deudas ligado a la deuda (así cuenta en el costo de vida del mes). Si la cuota
+ * ya estaba pendiente (pago fijo de la deuda) se confirma con este monto, y si el pago ya se había registrado (p. ej.
+ * desde el asistente) se liga a la deuda: nunca queda dos veces.
+ */
 export async function registrarAbono(_: Estado, datos: FormData): Promise<Estado> {
   const r = esquemaAbono.safeParse(Object.fromEntries(datos));
   if (!r.success) return { error: r.error.issues[0].message };
@@ -85,19 +90,37 @@ export async function registrarAbono(_: Estado, datos: FormData): Promise<Estado
     ctx.supabase.from("debts").select("nombre").eq("id", r.data.debt_id).single(),
     ctx.supabase.from("categories").select("id").eq("nombre", "Deudas").is("padre_id", null).maybeSingle(),
   ]);
+  const fecha = hoy();
+  const comercio = `Abono ${deuda?.nombre ?? "deuda"}`;
+  try {
+    const par = await conciliar(ctx, { tipo: "gasto", fecha, monto: r.data.monto, category_id: categoria?.id ?? null, comercio, debt_id: r.data.debt_id });
+    if (par) {
+      const hecho = await aplicarPar(ctx, par, { monto: r.data.monto, fecha, account_id: r.data.account_id, category_id: categoria?.id ?? null, debt_id: r.data.debt_id });
+      refrescar();
+      return { ok: hecho.texto };
+    }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "No pude registrar el abono." };
+  }
   const { error } = await ctx.supabase.from("transactions").insert({
     household_id: ctx.hogar.id,
     account_id: r.data.account_id,
-    fecha: hoy(),
+    fecha,
     monto: r.data.monto,
     tipo: "gasto",
     category_id: categoria?.id ?? null,
-    comercio: `Abono ${deuda?.nombre ?? "deuda"}`,
+    comercio,
     member_id: ctx.miembro.id,
     debt_id: r.data.debt_id,
   });
   if (error) return { error: mensajeError(error) };
-  revalidatePath("/deudas");
-  revalidatePath("/");
+  refrescar();
   return { ok: "Abono registrado." };
+}
+
+function refrescar() {
+  revalidatePath("/deudas");
+  revalidatePath("/movimientos");
+  revalidatePath("/recurrentes");
+  revalidatePath("/");
 }

@@ -58,3 +58,15 @@ export function planCuota(d: { monto: number; pagado_inicial: number; cuota: num
   const ultima = proximoDia(d.dia_pago, `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}-01`);
   return { primera, cuotas, ultima };
 }
+
+/** ¿La categoría es Deudas o una subcategoría suya? Ahí el registro pregunta qué deuda se paga. */
+export function esCategoriaDeudas(categorias: { id: string; nombre: string; padre_id: string | null }[], id: string | null | undefined): boolean {
+  if (!id) return false;
+  const porId = new Map(categorias.map((c) => [c.id, c]));
+  let c = porId.get(id);
+  for (let i = 0; c && i < 5; i++) {
+    if (!c.padre_id) return c.nombre === "Deudas";
+    c = porId.get(c.padre_id);
+  }
+  return false;
+}

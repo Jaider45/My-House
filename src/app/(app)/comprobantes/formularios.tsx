@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { CampoDeuda, type OpcionDeuda } from "@/components/ui/campo-deuda";
 import { Casilla, Selector } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/boton-enviar";
 import { CampoMonto } from "@/components/ui/campo-monto";
@@ -19,6 +20,9 @@ export function FormularioResolver({
   cuenta,
   categorias,
   cuentas,
+  deudas = [],
+  categoriasDeudas = [],
+  deuda: deudaLeida = null,
   hoy,
 }: {
   id: string;
@@ -28,14 +32,20 @@ export function FormularioResolver({
   cuenta: string | null;
   categorias: Opcion[];
   cuentas: Opcion[];
+  deudas?: OpcionDeuda[];
+  /** Deudas y sus subcategorías: ahí se pregunta qué deuda se paga. */
+  categoriasDeudas?: string[];
+  deuda?: string | null;
   hoy: string;
 }) {
   const [estado, accion] = useActionState(resolverComprobante, null);
+  const [cat, setCat] = useState(categoria ?? "");
+  const [deuda, setDeuda] = useState(deudaLeida ?? "");
   return (
     <form action={accion} className="mt-2.5 flex flex-col gap-3">
       <input type="hidden" name="id" value={id} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Selector etiqueta="Categoría" name="category_id" defaultValue={categoria ?? ""}>
+        <Selector etiqueta="Categoría" name="category_id" value={cat} onChange={(e) => setCat(e.target.value)}>
           <option value="">Elige…</option>
           {categorias.map((c) => (
             <option key={c.id} value={c.id}>
@@ -53,6 +63,7 @@ export function FormularioResolver({
         <CampoMonto etiqueta="Total" name="monto" valorInicial={monto ?? 0} />
         <Campo etiqueta="Fecha" name="fecha" type="date" defaultValue={fecha ?? hoy} max={hoy} />
       </div>
+      {categoriasDeudas.includes(cat) && <CampoDeuda deudas={deudas} valor={deuda} onCambio={(d) => setDeuda(d?.id ?? "")} />}
       <fieldset className="flex flex-wrap gap-2">
         <legend className="mb-1.5 text-[13px] font-semibold text-cuerpo">¿Personal o del negocio?</legend>
         {(["personal", "negocio"] as const).map((a) => (

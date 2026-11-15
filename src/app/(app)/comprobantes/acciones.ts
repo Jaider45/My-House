@@ -5,7 +5,8 @@ import { z } from "zod";
 import { obtenerContexto } from "@/lib/sesion";
 import { idDe, mensajeError, NO_ENCONTRADO, SOLO_LECTURA, type Estado } from "@/lib/acciones";
 import { formatearCOP } from "@/lib/dinero";
-import { hoy, sumarDias } from "@/lib/fechas";
+import { hoy } from "@/lib/fechas";
+import { aplicarPar, conciliar } from "@/lib/conciliacion/servidor";
 import { entornoIa, IaNoConfigurada, leerComprobante, type Archivo, type UsoIa } from "@/lib/ia";
 import { registrarUsos } from "@/lib/ia/uso";
 import { registrarError } from "@/lib/registro-tecnico";
@@ -29,8 +30,8 @@ function refrescar() {
 
 /** Catálogos que la lectura y la decisión necesitan, en una sola ida a la base. */
 async function catalogos(ctx: Ctx) {
-  const [{ data: categorias }, { data: cuentas }, { data: etiquetas }, { data: reglas }, { data: hogar }, { data: personas }, { data: globales }, { data: umbral }] = await Promise.all([
-    ctx.supabase.from("categories").select("id, nombre").eq("archivada", false),
+  const [{ data: categorias }, { data: cuentas }, { data: etiquetas }, { data: reglas }, { data: hogar }, { data: personas }, { data: globales }, { data: umbral }, { data: deudas }, { data: pagosFijos }] = await Promise.all([
+    ctx.supabase.from("categories").select("id, nombre, padre_id, clase").eq("archivada", false),
     ctx.supabase.from("accounts").select("id, nombre, tipo").eq("archivada", false).order("created_at"),
     ctx.supabase.from("tax_tags").select("id, nombre").eq("pais", ctx.hogar.pais),
     ctx.supabase.from("merchant_rules").select("patron, category_id, ambito, activa"),
@@ -38,6 +39,8 @@ async function catalogos(ctx: Ctx) {
     ctx.supabase.from("members").select("id, nombre, es_dependiente, parentesco, fecha_nacimiento, a_cargo_de, nota").order("created_at"),
     ctx.supabase.from("reglas_comercio_globales").select("patron, categoria, ambito").eq("pais", ctx.hogar.pais),
     ctx.supabase.from("plataforma_config").select("valor").eq("clave", "ia_umbral").maybeSingle(),
+    ctx.supabase.from("debts").select("id, nombre").eq("archivada", false).order("created_at"),
+    ctx.supabase.from("recurring_rules").select("id, descripcion").eq("activa", true).order("created_at"),
   ]);
   const config = leerConfigHogar(hogar?.config);
   return {
@@ -46,24 +49,13 @@ async function catalogos(ctx: Ctx) {
     etiquetas: etiquetas ?? [],
     reglas: (reglas ?? []) as ReglaComercio[],
     reglasGlobales: reglasGlobalesDelHogar(globales ?? [], categorias ?? []),
+    deudas: deudas ?? [],
+    pagosFijos: (pagosFijos ?? []).map((r) => ({ id: r.id, nombre: r.descripcion })),
+    categoriaDeudas: categorias?.find((c) => c.nombre === "Deudas" && !c.padre_id && c.clase === "gasto")?.id ?? null,
     umbral: typeof umbral?.valor === "number" ? umbral.valor : CONFIANZA_MINIMA,
     ia: resolverIa(config.ia, await entornoIa()),
     hogar: describirHogar((personas ?? []) as PersonaHogar[], config.contexto, hoy()),
   };
-}
-
-/** Movimiento existente que ya representa este pago (mismo tipo y monto a ±2 días). */
-async function duplicado(ctx: Ctx, d: { tipo: string; monto: number; fecha: string }) {
-  const { data } = await ctx.supabase
-    .from("transactions")
-    .select("id, comercio, fecha")
-    .eq("tipo", d.tipo as "gasto" | "ingreso")
-    .eq("monto", d.monto)
-    .gte("fecha", sumarDias(d.fecha, -2))
-    .lte("fecha", sumarDias(d.fecha, 2))
-    .limit(1)
-    .maybeSingle();
-  return data;
 }
 
 async function registrar(ctx: Ctx, d: Extract<Decision, { accion: "registrar" | "revisar" }>, archivoPath: string | null) {
@@ -78,6 +70,7 @@ async function registrar(ctx: Ctx, d: Extract<Decision, { accion: "registrar" | 
       category_id: d.category_id,
       comercio: d.comercio,
       tax_tag_id: d.tax_tag_id,
+      debt_id: d.debt_id,
       ambito: d.ambito,
       member_id: ctx.miembro.id,
       origen: "ocr",
@@ -98,6 +91,25 @@ async function guardarArchivo(ctx: Ctx, id: string, archivo: File): Promise<stri
 }
 
 type Resultado = { id: string; resumen: string; registrado?: number };
+
+/**
+ * Si el pago ya está en la base —el mismo movimiento, la cuota pendiente de la deuda o el pago fijo pendiente— se
+ * concilia (ver src/lib/conciliacion) y el archivo queda adjunto a ese movimiento. null = hay que registrarlo.
+ */
+async function unirSiExiste(ctx: Ctx, d: Extract<Decision, { accion: "registrar" | "revisar" }>, archivoPath: string | null) {
+  const par = await conciliar(ctx, { tipo: d.tipo, fecha: d.fecha!, monto: d.monto!, category_id: d.category_id, comercio: d.comercio, debt_id: d.debt_id, recurring_rule_id: d.recurring_rule_id });
+  if (!par) return null;
+  const r = await aplicarPar(ctx, par, {
+    monto: d.monto!,
+    fecha: d.fecha!,
+    account_id: d.cuentaLeida ? d.account_id : null,
+    category_id: d.category_id,
+    debt_id: d.debt_id,
+    tax_tag_id: d.tax_tag_id,
+  });
+  if (archivoPath) await ctx.supabase.from("attachments").insert({ household_id: ctx.hogar.id, transaction_id: r.id, archivo_path: archivoPath, tipo: "factura" });
+  return { ...r, pagoFijo: par.motivo === "pago_fijo" };
+}
 
 /** Lee un comprobante (archivo o texto), decide y lo registra, adjunta o deja por revisar. */
 async function procesar(ctx: Ctx, cat: Awaited<ReturnType<typeof catalogos>>, entrada: { archivo?: File; texto?: string }, usos: UsoIa[]): Promise<Resultado> {
@@ -122,7 +134,15 @@ async function procesar(ctx: Ctx, cat: Awaited<ReturnType<typeof catalogos>>, en
             : undefined,
           texto: entrada.texto,
         },
-        { hoy: fecha, categorias: cat.categorias.map((c) => c.nombre), cuentas: cat.cuentas.map((c) => c.nombre), etiquetas: cat.etiquetas.map((e) => e.nombre), hogar: cat.hogar },
+        {
+          hoy: fecha,
+          categorias: cat.categorias.map((c) => c.nombre),
+          cuentas: cat.cuentas.map((c) => c.nombre),
+          etiquetas: cat.etiquetas.map((e) => e.nombre),
+          deudas: cat.deudas.map((d) => d.nombre),
+          pagosFijos: cat.pagosFijos.map((r) => r.nombre),
+          hogar: cat.hogar,
+        },
         (uso) => usos.push(uso),
       ),
     ]);
@@ -135,11 +155,11 @@ async function procesar(ctx: Ctx, cat: Awaited<ReturnType<typeof catalogos>>, en
       return { id: recibo.id, resumen: d.motivo };
     }
     if (d.accion === "registrar") {
-      const existente = await duplicado(ctx, { tipo: d.tipo, monto: d.monto!, fecha: d.fecha! });
-      if (existente) {
-        if (archivoPath) await ctx.supabase.from("attachments").insert({ household_id: ctx.hogar.id, transaction_id: existente.id, archivo_path: archivoPath, tipo: "factura" });
-        await actualizar({ archivo_path: archivoPath, estado: "soporte", datos, transaction_id: existente.id });
-        return { id: recibo.id, resumen: `${d.comercio} ya estaba registrado (${existente.comercio ?? "movimiento"} del ${existente.fecha}): no lo dupliqué, lo adjunté como soporte.` };
+      const unido = await unirSiExiste(ctx, d, archivoPath);
+      if (unido) {
+        // «soporte»: deshacer el comprobante no borra el movimiento al que se unió (el pago fijo sigue existiendo).
+        await actualizar({ archivo_path: archivoPath, estado: "soporte", datos, transaction_id: unido.id });
+        return { id: recibo.id, resumen: `${d.comercio}: ${unido.texto}`, registrado: unido.pagoFijo ? d.monto! : undefined };
       }
       if (!d.account_id) {
         await actualizar({ archivo_path: archivoPath, estado: "por_revisar", datos, pregunta: "Crea una cuenta para poder registrarlo." });
@@ -222,6 +242,7 @@ const esquemaResolver = z.object({
   fecha: z.iso.date("Escribe la fecha."),
   ambito: z.enum(["personal", "negocio"]),
   account_id: z.uuid("Elige la cuenta."),
+  debt_id: z.union([z.uuid(), z.literal("")]).optional().transform((v) => v || null),
   aprender: z.literal("on").optional(),
 });
 
@@ -237,24 +258,25 @@ export async function resolverComprobante(_: Estado, datos: FormData): Promise<E
   const comercio = leido.comercio || "Comprobante";
 
   try {
-    const transaccion = await registrar(
-      ctx,
-      {
-        accion: "registrar",
-        pregunta: null,
-        tipo: leido.tipo ?? "gasto",
-        comercio,
-        fecha: r.data.fecha,
-        monto: r.data.monto,
-        category_id: r.data.category_id,
-        account_id: r.data.account_id,
-        tax_tag_id: null,
-        ambito: r.data.ambito,
-        porRegla: false,
-      },
-      recibo.archivo_path,
-    );
-    await ctx.supabase.from("receipts").update({ estado: "registrado", transaction_id: transaccion, pregunta: null }).eq("id", recibo.id);
+    const decision: Extract<Decision, { accion: "registrar" | "revisar" }> = {
+      accion: "registrar",
+      pregunta: null,
+      tipo: leido.tipo ?? "gasto",
+      comercio,
+      fecha: r.data.fecha,
+      monto: r.data.monto,
+      category_id: r.data.category_id,
+      account_id: r.data.account_id,
+      cuentaLeida: true,
+      tax_tag_id: null,
+      debt_id: (leido.tipo ?? "gasto") === "gasto" ? r.data.debt_id : null,
+      recurring_rule_id: null,
+      ambito: r.data.ambito,
+      porRegla: false,
+    };
+    const unido = await unirSiExiste(ctx, decision, recibo.archivo_path);
+    const transaccion = unido?.id ?? (await registrar(ctx, decision, recibo.archivo_path));
+    await ctx.supabase.from("receipts").update({ estado: unido ? "soporte" : "registrado", transaction_id: transaccion, pregunta: null }).eq("id", recibo.id);
     const patron = patronDe(comercio);
     if (r.data.aprender && patron.length >= 2) {
       await ctx.supabase
@@ -264,7 +286,7 @@ export async function resolverComprobante(_: Estado, datos: FormData): Promise<E
     await ctx.supabase.from("assistant_messages").insert({
       household_id: ctx.hogar.id,
       autor: "asistente",
-      texto: `Listo. Registré ${comercio} por ${formatearCOP(r.data.monto)}.${r.data.aprender && patron ? ` Desde ahora, lo de «${patron}» irá a esa categoría sin preguntarte.` : ""}`,
+      texto: `Listo. ${unido ? unido.texto : `Registré ${comercio} por ${formatearCOP(r.data.monto)}.`}${r.data.aprender && patron ? ` Desde ahora, lo de «${patron}» irá a esa categoría sin preguntarte.` : ""}`,
       receipt_ids: [recibo.id],
     });
   } catch (e) {

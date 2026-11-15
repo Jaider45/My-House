@@ -34,6 +34,8 @@ export const esquemaMovimiento = z
     category_id: uuidOpcional,
     member_id: uuidOpcional,
     tax_tag_id: uuidOpcional,
+    /** Deuda que se abona (categoría Deudas): el pago cuenta en su avance. */
+    debt_id: uuidOpcional,
     comercio: textoOpcional(200),
     nota: textoOpcional(1000),
     estado: z.enum(["confirmado", "programado"]).default("confirmado"),
@@ -50,7 +52,7 @@ export const esquemaMovimiento = z
     }
   })
   .transform((m) =>
-    m.tipo === "transferencia" ? { ...m, category_id: null } : { ...m, cuenta_destino_id: null },
+    m.tipo === "transferencia" ? { ...m, category_id: null, debt_id: null } : { ...m, cuenta_destino_id: null, debt_id: m.tipo === "gasto" ? m.debt_id : null },
   );
 
 export type EntradaMovimiento = z.input<typeof esquemaMovimiento>;
@@ -76,6 +78,7 @@ export function movimientoDesdeFormulario(datos: FormData) {
     category_id: v("category_id"),
     member_id: v("member_id"),
     tax_tag_id: v("tax_tag_id"),
+    debt_id: v("debt_id"),
     comercio: v("comercio"),
     nota: v("nota"),
     ambito: (v("ambito") || undefined) as EntradaMovimiento["ambito"],

@@ -13,6 +13,10 @@ export type Lectura = {
   cuenta: string | null;
   etiqueta_dian: string | null;
   ambito: "personal" | "negocio" | null;
+  /** Nombre de la deuda que se paga, si el modelo la reconoció. */
+  deuda?: string | null;
+  /** Pago fijo que es, si el modelo lo reconoció. */
+  pago_fijo?: string | null;
   pregunta: string | null;
 };
 
@@ -30,7 +34,11 @@ export type Decision =
       monto: number | null;
       category_id: string | null;
       account_id: string | null;
+      /** La cuenta salió del comprobante (si no, es la cuenta por defecto y un pago fijo conserva la suya). */
+      cuentaLeida: boolean;
       tax_tag_id: string | null;
+      debt_id: string | null;
+      recurring_rule_id: string | null;
       ambito: "personal" | "negocio";
       /** La categoría vino de una regla aprendida y no del modelo. */
       porRegla: boolean;
@@ -80,6 +88,11 @@ export function decidir(
     reglas: ReglaComercio[];
     /** Reglas de la plataforma (consola → Catálogos): solo si ninguna del hogar aplica. */
     reglasGlobales?: ReglaComercio[];
+    /** Deudas activas y pagos fijos activos (descripción como nombre). */
+    deudas?: Opcion[];
+    pagosFijos?: Opcion[];
+    /** Categoría raíz Deudas: la de un pago a una deuda si el modelo no dio otra. */
+    categoriaDeudas?: string | null;
     umbral?: number;
     hoy: string;
     cuentaPorDefecto: string | null;
@@ -88,7 +101,10 @@ export function decidir(
   if (!l.es_comprobante) return { accion: "descartar", motivo: l.pregunta ?? "No parece un comprobante de pago." };
 
   const regla = reglaPara(l.comercio, o.reglas) ?? reglaPara(l.comercio, o.reglasGlobales ?? []);
-  const category_id = regla?.category_id ?? buscar(o.categorias, l.categoria);
+  const debt_id = buscar(o.deudas ?? [], l.deuda ?? null);
+  const recurring_rule_id = buscar(o.pagosFijos ?? [], l.pago_fijo ?? null);
+  const category_id = regla?.category_id ?? buscar(o.categorias, l.categoria) ?? (debt_id ? (o.categoriaDeudas ?? null) : null);
+  const cuentaLeida = buscar(o.cuentas, l.cuenta);
   const fecha = l.fecha ? parsearFecha(l.fecha) : null;
   const fechaValida = fecha && fecha <= o.hoy ? fecha : null;
   const monto = l.total && l.total > 0 ? Math.round(l.total) : null;
@@ -111,8 +127,11 @@ export function decidir(
     fecha: fechaValida,
     monto,
     category_id,
-    account_id: buscar(o.cuentas, l.cuenta) ?? o.cuentaPorDefecto,
+    account_id: cuentaLeida ?? o.cuentaPorDefecto,
+    cuentaLeida: !!cuentaLeida,
     tax_tag_id: buscar(o.etiquetas, l.etiqueta_dian),
+    debt_id: l.tipo === "gasto" ? debt_id : null,
+    recurring_rule_id,
     ambito: regla?.ambito ?? l.ambito ?? "personal",
     porRegla: !!regla,
   };

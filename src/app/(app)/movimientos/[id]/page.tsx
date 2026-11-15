@@ -36,7 +36,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   const [{ data: m }, catalogos] = await Promise.all([
     ctx.supabase
       .from("transactions")
-      .select("id, tipo, fecha, monto, account_id, cuenta_destino_id, category_id, member_id, tax_tag_id, comercio, nota, ambito, estado, origen, created_at")
+      .select("id, tipo, fecha, monto, account_id, cuenta_destino_id, category_id, member_id, tax_tag_id, debt_id, comercio, nota, ambito, estado, origen, created_at")
       .eq("id", id)
       .maybeSingle(),
     ctx.puedeEditar ? cargarCatalogos(ctx) : null,

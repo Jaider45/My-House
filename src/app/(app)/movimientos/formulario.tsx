@@ -8,6 +8,8 @@ import { MensajeEstado } from "@/components/ui/estado";
 import { opcionesCategoria } from "@/lib/categorias";
 import type { Catalogos } from "@/lib/catalogos";
 import { guardarMovimiento } from "./acciones";
+import { esCategoriaDeudas } from "@/lib/deudas";
+import { CampoDeuda, type OpcionDeuda } from "@/components/ui/campo-deuda";
 
 export type MovimientoEditable = {
   id: string;
@@ -19,6 +21,7 @@ export type MovimientoEditable = {
   category_id: string | null;
   member_id: string | null;
   tax_tag_id: string | null;
+  debt_id?: string | null;
   comercio: string | null;
   nota: string | null;
   ambito: "personal" | "negocio";
@@ -55,13 +58,34 @@ export function FormularioMovimiento({ catalogos, movimiento, hoy, miembroId }: 
   const [estado, accion] = useActionState(guardarMovimiento, null);
   const [tipo, setTipo] = useState<MovimientoEditable["tipo"]>(movimiento?.tipo ?? "gasto");
   const cats = tipo === "transferencia" ? [] : opcionesCategoria(catalogos.categorias, tipo);
+  const [categoria, setCategoria] = useState(movimiento?.category_id ?? "");
+  const [deuda, setDeuda] = useState(movimiento?.debt_id ?? "");
+  const [monto, setMonto] = useState(movimiento?.monto ?? 0);
+  const [montoInicial, setMontoInicial] = useState(movimiento?.monto ?? 0);
+  const [versionMonto, setVersionMonto] = useState(0);
+  const deudas: OpcionDeuda[] = catalogos.deudas ?? [];
+  const conDeuda = tipo === "gasto" && esCategoriaDeudas(catalogos.categorias, categoria) && deudas.length > 0;
+  const elegirDeuda = (d: OpcionDeuda | null) => {
+    setDeuda(d?.id ?? "");
+    if (d?.cuota && (!monto || deudas.some((x) => x.cuota === monto))) {
+      setMonto(d.cuota);
+      setMontoInicial(d.cuota);
+      setVersionMonto((n) => n + 1);
+    }
+  };
 
   return (
     <form action={accion} className="flex flex-col gap-4">
       <input type="hidden" name="id" value={movimiento?.id ?? ""} />
       <input type="hidden" name="tipo" value={tipo} />
-      <SelectorTipo tipo={tipo} onCambio={setTipo} />
-      <CampoMonto etiqueta="Monto" name="monto" valorInicial={movimiento?.monto} grande autoFocus={!movimiento} />
+      <SelectorTipo
+        tipo={tipo}
+        onCambio={(t) => {
+          setTipo(t);
+          setCategoria("");
+        }}
+      />
+      <CampoMonto key={versionMonto} etiqueta="Monto" name="monto" valorInicial={montoInicial} onCambio={setMonto} grande autoFocus={!movimiento && !versionMonto} />
       <Campo etiqueta="Fecha" name="fecha" type="date" defaultValue={movimiento?.fecha ?? hoy} required />
 
       <Selector etiqueta={tipo === "transferencia" ? "Desde la cuenta" : "Cuenta"} name="account_id" defaultValue={movimiento?.account_id} required>
@@ -82,7 +106,7 @@ export function FormularioMovimiento({ catalogos, movimiento, hoy, miembroId }: 
           ))}
         </Selector>
       ) : (
-        <Selector key={tipo} etiqueta="Categoría" name="category_id" defaultValue={movimiento?.category_id ?? ""} required>
+        <Selector key={tipo} etiqueta="Categoría" name="category_id" value={categoria} onChange={(e) => setCategoria(e.target.value)} required>
           <option value="">Elige…</option>
           {cats.map((c) => (
             <option key={c.id} value={c.id}>
@@ -91,6 +115,8 @@ export function FormularioMovimiento({ catalogos, movimiento, hoy, miembroId }: 
           ))}
         </Selector>
       )}
+
+      {conDeuda ? <CampoDeuda deudas={deudas} valor={deuda} onCambio={elegirDeuda} /> : <input type="hidden" name="debt_id" value={tipo === "gasto" ? deuda : ""} />}
 
       <Campo
         etiqueta={tipo === "ingreso" ? "Pagador (opcional)" : "Comercio o descripción (opcional)"}
